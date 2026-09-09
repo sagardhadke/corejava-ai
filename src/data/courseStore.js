@@ -30,18 +30,15 @@ function loadRegistry() {
       // Guard against a corrupt/partial registry.
       if (parsed && Array.isArray(parsed.courseIds) && parsed.activeCourseId) {
         const customCourses = parsed.customCourses || {};
-        // Keep only ids that actually exist (either in DEFAULT_COURSE_IDS or in customCourses)
+        // Keep only ids that actually exist (either in DEFAULT_COURSE_BY_ID or in customCourses)
         const validIds = parsed.courseIds.filter(
-          (id) => DEFAULT_COURSE_IDS.includes(id) || !!customCourses[id]
+          (id) => DEFAULT_COURSE_BY_ID.has(id) || !!customCourses[id]
         );
-        DEFAULT_COURSE_IDS.forEach((id) => {
-          if (!validIds.includes(id)) validIds.unshift(id);
-        });
 
         if (validIds.length > 0) {
           const activeId = validIds.includes(parsed.activeCourseId)
             ? parsed.activeCourseId
-            : DEFAULT_COURSE_IDS[0] || validIds[0];
+            : validIds[0];
           return {
             courseIds: validIds,
             activeCourseId: activeId,
@@ -65,7 +62,7 @@ function saveRegistry(registry) {
 }
 
 // Removes every localStorage key that belongs to a specific course (progress,
-// plan, settings, history) — used when a course is deleted or replaced.
+// plan, settings, history, start date) — used when a course is deleted or replaced.
 function purgeCourseData(courseId) {
   const prefixes = [
     `jct_watched__${courseId}`,
@@ -77,7 +74,9 @@ function purgeCourseData(courseId) {
   const keysToRemove = [];
   for (let i = 0; i < localStorage.length; i++) {
     const key = localStorage.key(i);
-    if (prefixes.some((p) => key === p)) keysToRemove.push(key);
+    if (prefixes.some((p) => key === p || (key && key.startsWith(p)))) {
+      keysToRemove.push(key);
+    }
   }
   keysToRemove.forEach((k) => localStorage.removeItem(k));
 }
@@ -140,6 +139,7 @@ export function addCourse(course) {
 export function replaceCourse(oldCourseId, newCourse) {
   const registry = loadRegistry();
   purgeCourseData(oldCourseId);
+  purgeCourseData(newCourse.id);
 
   delete registry.customCourses[oldCourseId];
   registry.courseIds = registry.courseIds.filter((id) => id !== oldCourseId);
