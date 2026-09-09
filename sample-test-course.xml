@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<course>
+  <title>Modern TypeScript & AI Integration</title>
+  <sections>
+    <section number="01" title="TypeScript Fundamentals">
+      <items>
+        <item type="video" title="TypeScript Setup and Tooling" duration="15m30s" />
+        <item type="video" title="Type Annotations and Inference" duration="22m10s" />
+        <item type="video" title="Interfaces and Type Aliases" duration="18m45s" />
+      </items>
+    </section>
+    <section number="02" title="Advanced Type Systems">
+      <items>
+        <item type="video" title="Generics and Utility Types" duration="25m00s" />
+        <item type="video" title="Discriminated Unions and Pattern Matching" duration="30m15s" />
+      </items>
+    </section>
+  </sections>
+</course>

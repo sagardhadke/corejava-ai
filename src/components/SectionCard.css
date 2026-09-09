@@ -1,0 +1,111 @@
+.section-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  margin-bottom: 10px;
+  overflow: hidden;
+}
+
+.section-card--open { border-color: var(--border); }
+.section-card--complete { border-color: rgba(74, 222, 128, 0.25); }
+
+.section-card__head {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  background: var(--surface-2);
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  color: var(--ink);
+}
+.section-card__head:hover { background: var(--surface-3); }
+
+.section-card__chevron {
+  color: var(--ink-faint);
+  flex-shrink: 0;
+  display: flex;
+  transition: transform 0.18s ease;
+}
+.section-card--open .section-card__chevron { transform: rotate(90deg); color: var(--amber); }
+
+.section-card__number {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--amber-dim);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 3px 6px;
+  flex-shrink: 0;
+}
+
+.section-card__title {
+  flex: 1;
+  min-width: 0;
+  font-size: 14px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.project-pill {
+  flex-shrink: 0;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--ink-soft);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 2px 6px;
+  border-radius: 3px;
+  letter-spacing: 0.03em;
+}
+
+.today-dot {
+  flex-shrink: 0;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--amber);
+  box-shadow: 0 0 6px 1px rgba(255,184,0,0.6);
+}
+
+.section-card__mini-bar {
+  display: none;
+  width: 70px;
+  height: 5px;
+  border-radius: 3px;
+  background: var(--surface-3);
+  overflow: hidden;
+  flex-shrink: 0;
+  border: 1px solid var(--border-soft);
+}
+.section-card__mini-bar span {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, var(--amber-dim), var(--amber));
+}
+
+@media (min-width: 640px) { .section-card__mini-bar { display: block; } }
+
+.section-card__meta {
+  flex-shrink: 0;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--ink-faint);
+  white-space: nowrap;
+}
+
+.meta-left { color: var(--amber-dim); }
+
+.section-card__body {
+  padding: 6px 8px 10px;
+  border-top: 1px solid var(--border-soft);
+}

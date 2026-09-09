@@ -1,0 +1,76 @@
+.mp-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(4, 5, 6, 0.72);
+  backdrop-filter: blur(3px);
+  z-index: 110;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: mpFadeIn 0.2s ease;
+}
+
+@keyframes mpFadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+.mp-card {
+  width: 100%;
+  max-width: 420px;
+  background: var(--surface);
+  border: 1px solid var(--amber-dim);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-pop);
+  padding: 28px 24px 24px;
+  text-align: center;
+  animation: mpPopIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes mpPopIn {
+  from { transform: translateY(10px) scale(0.97); opacity: 0; }
+  to { transform: translateY(0) scale(1); opacity: 1; }
+}
+
+.mp-icon { font-size: 32px; margin-bottom: 10px; }
+.mp-card h2 { font-size: 17px; color: var(--ink); margin: 0 0 14px; }
+
+.mp-message {
+  font-size: 14px;
+  color: var(--ink-soft);
+  line-height: 1.6;
+  min-height: 44px;
+  margin: 0 0 18px;
+}
+
+.mp-message--loading { color: var(--ink-faint); font-style: italic; }
+
+.mp-stats-row {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  font-size: 12px;
+  color: var(--ink-faint);
+  margin-bottom: 18px;
+  flex-wrap: wrap;
+}
+
+.mp-stats-row strong { color: var(--amber); font-family: var(--font-mono); }
+
+.mp-fallback-note {
+  font-size: 11px;
+  color: var(--ink-faint);
+  margin: 0 0 16px;
+  line-height: 1.5;
+}
+
+.mp-btn {
+  width: 100%;
+  height: 42px;
+  border-radius: var(--r-md);
+  background: var(--amber);
+  border: 1px solid var(--amber);
+  color: #0c0d10;
+  font-weight: 700;
+  font-size: 13.5px;
+  cursor: pointer;
+}
+.mp-btn:hover { background: var(--amber-bright); }

@@ -1,0 +1,100 @@
+.mm-wrap { display: flex; flex-direction: column; gap: 12px; }
+
+.mm-total {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  padding: 10px 14px;
+  font-size: 12.5px;
+  color: var(--ink-soft);
+}
+.mm-total strong { font-family: var(--font-mono); color: var(--amber); }
+
+.mm-error {
+  font-size: 12px;
+  color: var(--danger);
+  background: rgba(240, 101, 79, 0.08);
+  border: 1px solid rgba(240, 101, 79, 0.3);
+  border-radius: var(--r-sm);
+  padding: 8px 10px;
+}
+
+.mm-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+
+.mm-item {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  padding: 12px 14px;
+}
+
+.mm-item__title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 4px;
+}
+
+.mm-active-tag, .mm-default-tag {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 3px;
+  letter-spacing: 0.03em;
+}
+.mm-active-tag { color: var(--amber); background: var(--amber-wash-strong); border: 1px solid rgba(255,184,0,0.4); }
+.mm-default-tag { color: var(--ink-soft); background: var(--surface); border: 1px solid var(--border); }
+
+.mm-item__meta {
+  font-size: 11px;
+  color: var(--ink-faint);
+  font-family: var(--font-mono);
+  margin-bottom: 10px;
+}
+
+.mm-item__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.mm-btn {
+  height: 32px;
+  padding: 0 12px;
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--ink-soft);
+  font-size: 11.5px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.mm-btn:hover { border-color: var(--amber-dim); color: var(--amber); }
+
+.mm-btn--danger { color: var(--danger); }
+.mm-btn--danger:hover { border-color: var(--danger); background: rgba(240,101,79,0.08); }
+
+.mm-confirm {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 11.5px;
+  color: var(--ink-soft);
+}
+
+.mm-hint {
+  font-size: 11px;
+  color: var(--ink-faint);
+  line-height: 1.5;
+  margin: 0;
+}

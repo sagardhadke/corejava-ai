@@ -1,0 +1,177 @@
+.psp-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 16px;
+  margin-top: 14px;
+}
+
+.psp-card__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.psp-card__head h3 { font-size: 13px; color: var(--ink); }
+
+.psp-card__summary {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--ink-faint);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 2px 8px;
+}
+
+.psp-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 400px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.psp-item {
+  padding: 10px;
+  border-radius: var(--r-md);
+  cursor: pointer;
+  background: var(--surface-2);
+  border: 1px solid transparent;
+  transition: all 0.15s ease;
+}
+.psp-item:hover {
+  background: var(--surface-3);
+  border-color: var(--border-soft);
+}
+
+.psp-item--complete {
+  background: rgba(74, 222, 128, 0.03);
+  border-color: rgba(74, 222, 128, 0.1);
+}
+.psp-item--complete:hover {
+  background: rgba(74, 222, 128, 0.06);
+  border-color: rgba(74, 222, 128, 0.2);
+}
+
+/* Top row: number + title + percentage/done badge */
+.psp-item__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.psp-item__left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex: 1;
+}
+
+.psp-item__number {
+  flex-shrink: 0;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--amber-dim);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 1px 5px;
+  font-weight: 600;
+}
+
+.psp-item--complete .psp-item__number {
+  color: var(--good);
+  border-color: rgba(74, 222, 128, 0.2);
+  background: rgba(74, 222, 128, 0.06);
+}
+
+.psp-item__title {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.psp-item--complete .psp-item__title {
+  color: var(--ink-soft);
+}
+
+.psp-item__right {
+  flex-shrink: 0;
+}
+
+.psp-item__pct {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--amber);
+}
+
+.psp-item__done-tag {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  font-weight: 700;
+  color: var(--good);
+  background: rgba(74, 222, 128, 0.10);
+  border: 1px solid rgba(74, 222, 128, 0.25);
+  padding: 2px 7px;
+  border-radius: 3px;
+  letter-spacing: 0.02em;
+}
+
+/* Progress bar */
+.psp-item__bar-wrap {
+  margin-bottom: 6px;
+}
+
+.psp-item__bar {
+  height: 5px;
+  border-radius: 3px;
+  background: var(--surface);
+  overflow: hidden;
+  border: 1px solid var(--border-soft);
+}
+
+.psp-item__bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  background: linear-gradient(90deg, var(--amber-dim), var(--amber));
+  transition: width 0.4s ease;
+}
+
+.psp-item__bar-fill--done {
+  background: linear-gradient(90deg, rgba(74, 222, 128, 0.5), var(--good));
+}
+
+/* Bottom row: counts + remaining */
+.psp-item__bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--ink-faint);
+}
+
+.psp-item__remaining {
+  color: var(--ink-faint);
+}
+
+.psp-item--complete .psp-item__remaining {
+  color: var(--good);
+  opacity: 0.7;
+}
