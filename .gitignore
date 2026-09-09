@@ -22,3 +22,8 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Private and internal handoff documentation
+PROJECT_HANDOFF_PROMPT.md
+PRIVATE_DEV_HANDOFF.md
+*_HANDOFF*.md
