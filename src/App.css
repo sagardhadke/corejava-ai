@@ -79,8 +79,14 @@
 
 .app-footer {
   text-align: center;
-  padding: 20px;
+  padding: 20px 140px 24px 20px;
   font-size: 11.5px;
   color: var(--ink-faint);
   border-top: 1px solid var(--border-soft);
+}
+
+@media (max-width: 600px) {
+  .app-footer {
+    padding: 18px 16px 44px;
+  }
 }

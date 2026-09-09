@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<course>
+  <title>Fullstack Python &amp; FastAPI</title>
+  <sections>
+    <section number="01" title="FastAPI Fundamentals">
+      <items>
+        <item type="video" title="Environment and Virtualenvs" duration="14m20s" />
+        <item type="video" title="FastAPI Routing and Pydantic Models" duration="28m40s" />
+        <item type="video" title="Dependency Injection in FastAPI" duration="21m15s" />
+      </items>
+    </section>
+    <section number="02" title="Database Integration with SQLAlchemy">
+      <items>
+        <item type="video" title="Async SQLAlchemy Setup" duration="26m50s" />
+        <item type="video" title="Alembic Migrations" duration="19m30s" />
+      </items>
+    </section>
+  </sections>
+</course>
