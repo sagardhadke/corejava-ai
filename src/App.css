@@ -1,0 +1,79 @@
+.app-shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.app-shell--empty {
+  align-items: center;
+  justify-content: center;
+  color: var(--ink-faint);
+  font-size: 14px;
+}
+
+.app-main {
+  flex: 1;
+  max-width: 1320px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 24px 24px 40px;
+}
+
+.app-layout {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+}
+
+.app-layout__main {
+  flex: 1;
+  min-width: 0;
+}
+
+.app-layout__side {
+  width: 320px;
+  flex-shrink: 0;
+}
+
+/* This is the key sticky behavior: as the page scrolls, this wrapper sticks
+   just below the header and scrolls WITH the page rather than staying pinned
+   to the very top of the viewport — so Today's Plan and Per-section progress
+   stay visible while working through sections further down the syllabus. */
+.sticky-side-panel {
+  position: sticky;
+  top: calc(var(--header-h) + 20px);
+  max-height: calc(100vh - var(--header-h) - 40px);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding-right: 2px; /* avoid scrollbar overlapping content */
+}
+
+@media (max-width: 900px) {
+  .app-layout { flex-direction: column; }
+  .app-layout__side { width: 100%; }
+  .sticky-side-panel {
+    position: static;
+    max-height: none;
+    overflow-y: visible;
+  }
+  .app-main { padding: 18px 14px 32px; }
+}
+
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--ink-faint);
+  font-size: 13.5px;
+  border: 1px dashed var(--border);
+  border-radius: var(--r-lg);
+}
+
+.app-footer {
+  text-align: center;
+  padding: 20px;
+  font-size: 11.5px;
+  color: var(--ink-faint);
+  border-top: 1px solid var(--border-soft);
+}
