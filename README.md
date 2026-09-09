@@ -1,115 +1,188 @@
-# Java Course Tracker
+# Core Java + AI Development Course Tracker
 
-A daily lecture tracker for Java courses, with full multi-course support. Built with
-React 19 + Vite 8. All data lives in your browser's `localStorage` — nothing is sent
-anywhere except a direct call to `api.openai.com` if you add your own API key for the
-daily motivation message.
+<div align="center">
 
-Ships with two courses out of the box: **Core Java + AI Development** (150 lectures)
-and **Foundation of Java with Logic Building** (parsed from the provided XML files) —
-you can add more, replace either, or delete them via Settings.
+![React 19](https://img.shields.io/badge/React-19.2-blue?style=for-the-badge&logo=react)
+![Vite 8](https://img.shields.io/badge/Vite-8.2-646CFF?style=for-the-badge&logo=vite)
+![Oxlint](https://img.shields.io/badge/Oxlint-passing-brightgreen?style=for-the-badge)
+![Tests](https://img.shields.io/badge/Tests-14%2F14%20Passing-success?style=for-the-badge)
 
-## Getting started
+**A modern, production-grade learning management and lecture progress tracker tailored for deep syllabus tracking, daily planning, and streak consistency.**
+
+[Explore Repository](https://github.com/sagardhadke/corejava-ai) · [Report Bug](https://github.com/sagardhadke/corejava-ai/issues) · [Request Feature](https://github.com/sagardhadke/corejava-ai/issues)
+
+</div>
+
+---
+
+## 🌟 Overview
+
+**Core Java + AI Development Course Tracker** is an interactive, privacy-first web application engineered to track large curriculum courses. Built with React 19 and Vite 8, all user progress, daily schedules, streak histories, and configuration settings are stored 100% locally in your browser's `localStorage`—no account creation, telemetry, or backend database required.
+
+The application comes preloaded with the flagship **Core Java + AI Development (Interview Prep. & Projects)** curriculum (150 lectures / ~131 hours across 18 comprehensive sections), featuring full support for importing, adding, and replacing custom course XMLs.
+
+---
+
+## 🚀 Key Features
+
+### 📅 Smart Daily Target & Frozen Auto-Plan
+* **Zero-Configuration Setup**: Launches immediately with a balanced **1.5h daily target** and expands Section 1 by default.
+* **Auto-Plan Mode**: Automatically calculates and selects the optimal next lectures in syllabus order to meet your daily target.
+* **Daily Plan Freeze**: Once generated, the day's plan remains locked in `localStorage` for that date. Refreshing the browser or checking off lectures will not mutate your planned schedule until a new calendar day begins.
+* **Smart Lecture State**: Completed lectures display a crisp `COMPLETED` pill badge, row dimming, and strikethrough title while hiding the "Mark as Today" plan toggle to eliminate visual clutter.
+
+### 📊 Modern Per-Section Progress Sidebar
+* **Interactive Section Cards**: Displays live watched ratios (e.g. `3/7 lectures`), remaining section duration (`1h 46m left`), and dynamic progress bars with amber-to-green gradient transitions.
+* **One-Click Section Navigation**: Clicking any section card smoothly scrolls to and expands that specific section in the syllabus.
+* **Sticky Dual-Panel**: Today's Plan and Section Progress scroll alongside the main curriculum, remaining visible without having to scroll back to the top of long syllabi.
+
+### 🔄 Multi-Course Lifecycle & XML Importer
+* **Single Built-in Flagship Course**: Pre-configured with **Core Java + AI Development**.
+* **Flexible Course Management**:
+  * **Add Course Alongside**: Import any custom course XML to track multiple curriculums concurrently without losing existing data.
+  * **Replace Course**: Cleanly replace an existing course with a new XML syllabus.
+* **Data Isolation**: Each course maintains isolated namespaces in `localStorage` for watched lectures, daily plans, streak history, settings, and start dates. Switching courses never mixes progress.
+* **Safe Course Deletion**: Destructive actions and course replacements are guarded by a 6-character alphanumeric PIN confirmation modal where the confirm button is strictly disabled until the exact code matches.
+
+### 🔥 Consistency & Streak Calendar
+* **GitHub-Style Contribution Heatmap**: Visualizes your daily watch time with varying intensity of amber cells.
+* **Practice Days**: Allows logging non-video study sessions (coding exercises, interview prep, revision) to preserve streaks. Requires a reflective 10+ word note and confirmation code.
+* **Historical Logging**: Retroactively log practice sessions on past inactive days directly from the calendar modal.
+* **Course Completion Projection**: Calculates estimated finish dates based on your actual start date, remaining course duration, and daily pace.
+
+### 🧠 Daily AI Motivation (Optional)
+* Features an uplifting daily encouragement popup.
+* Bring your own OpenAI API key in Settings for dynamic, AI-generated daily messages, with seamless automatic fallback to built-in motivational quotes if no API key is provided.
+
+### 🛡️ Privacy & Storage Management
+* **Data Export & Backup**: Export your entire application state (all courses, progress, plans, and history) into a portable JSON backup file.
+* **Data Restore**: Import backup snapshots with safety validation.
+* **Danger Zone Factory Reset**: Cleanly wipe all stored data and restore a pristine default installation.
+
+---
+
+## 🛠️ Technology Stack
+
+| Layer | Technologies Used |
+|---|---|
+| **Frontend Framework** | [React 19](https://react.dev/) |
+| **Build Tool & Dev Server** | [Vite 8](https://vite.dev/) |
+| **Styling & Design System** | Vanilla CSS3 (Custom Design Tokens, Glassmorphism, CSS Grid & Flexbox) |
+| **Code Quality & Linter** | [Oxlint](https://oxc.rs/) |
+| **Testing Suite** | Node.js Native Test Runner (`node:test`) with custom localStorage mock |
+| **Storage Engine** | Browser `localStorage` (Namespaced JSON keys) |
+
+---
+
+## 📦 Getting Started
+
+### Prerequisites
+* **Node.js**: `v18.0.0` or higher
+* **npm**: `v9.0.0` or higher
+
+### Installation
+
+1. **Clone the repository**:
+   ```bash
+   git clone https://github.com/sagardhadke/corejava-ai.git
+   cd corejava-ai
+   ```
+
+2. **Install dependencies**:
+   ```bash
+   npm install
+   ```
+
+3. **Start the local development server**:
+   ```bash
+   npm run dev
+   ```
+   Open [http://localhost:5173](http://localhost:5173) in your browser.
+
+4. **Build for production**:
+   ```bash
+   npm run build
+   ```
+
+5. **Preview production bundle**:
+   ```bash
+   npm run preview
+   ```
+
+---
+
+## 🧪 Testing & Quality Assurance
+
+The application includes an automated integration test suite covering the course management system, data isolation, replacement logic, and edge cases:
 
 ```bash
-npm install
-npm run dev       # local dev server
-npm run build     # production build -> dist/
-npm run preview   # preview the production build
+npm test
 ```
 
-## Features
+### Test Suite Coverage (14/14 Passing)
+- [x] Fresh install initializes with single built-in Core Java + AI course
+- [x] Adding custom XML course alongside preserves default course
+- [x] Course switching persists active state and synchronizes UI
+- [x] Multi-course progress data isolation across `localStorage`
+- [x] Course replacement completely removes target course and purges all 5 data keys
+- [x] Replaced courses do not resurrect on simulated reload or registry refresh
+- [x] Replacing custom courses with new custom courses works cleanly
+- [x] Course deletion enforces minimum 1-course safeguard
+- [x] Deleting a course purges all associated keys and frees storage space
+- [x] Deleting active course automatically falls back to the remaining course
+- [x] Factory reset purges all custom keys and restores default configuration
+- [x] Graceful recovery and fallback upon encountering corrupt `localStorage` registry
+- [x] Stale/orphan course IDs in registry are filtered automatically
+- [x] Complete backup export and restore preserves all courses and progress
 
-- **Zero-setup Today's Plan**: 1.5 hours is selected by default from the very first
-  load — no manual target selection needed. The first section is expanded by default
-  too, so the starting lectures are visible immediately.
-- **One checkbox per lecture** for "today's plan" (amber) — separate from the green
-  "watched" toggle. **The plan checkbox is hidden entirely once a lecture is marked
-  watched** — there's nothing left to plan for it.
-- **Auto-plan mode** (on by default): picks the next unwatched lectures in course
-  order until your daily target is reached. **Once generated for a day, the plan is
-  frozen** in localStorage under that date and won't change again that day — not on
-  reload, not when you mark lectures watched. It only regenerates on an actual day
-  change or an explicit setting change.
-- **Global lecture numbering**: every lecture shows its position across the whole
-  course next to its checkbox, continuing across section boundaries.
-- **Per-section progress** panel (below Today's Plan): every topic with its
-  watched-count and remaining time, e.g. "Java Basics — 1/21 · 4h 58m left". Click any
-  entry to jump to and expand that section.
-- **Sticky sidebar**: Today's Plan and Per-section progress scroll together with the
-  page instead of staying pinned to the top, so they're reachable no matter how far
-  down the syllabus you're working.
-- **Multi-course support**: switch courses from the header dropdown or Settings. Each
-  course keeps its **own independent** watched/plan/streak/settings data — switching
-  never mixes progress between courses.
-- **Import courses from XML** (Settings → Import course): upload a file in the same
-  `<course><sections><section><items><item type="video" duration="...">` format as the
-  bundled courses. After parsing, choose to:
-  - **Add alongside** the current course (keeps everything, just adds an option), or
-  - **Replace** the current course (requires typing a random 6-digit confirmation code
-    shown on screen — this permanently deletes the old course and its progress).
-- **Default course selection** in Settings — pick which course opens by default.
-- **Memory management** (Settings): lists every course with its storage footprint,
-  lets you set any course active, and delete individual courses (at least one must
-  always remain).
-- **Full backup & restore** (Settings): export everything (all courses, progress,
-  settings) to a single JSON file; import it back later. Restoring requires explicit
-  confirmation since it completely overwrites existing data.
-- **Delete everything & reset to default** (Settings, danger zone): wipes all
-  courses/progress/settings and restores the exact state of a fresh install — both
-  bundled default courses return automatically.
-- **Streak calendar** in the header — GitHub-style activity grid. Amber intensity =
-  time watched that day; grey = a confirmed practice day. **Click any greyed-out past
-  day with no activity** to retroactively mark it as a practice day.
-- **Practice days**: log a day with no lecture but real practice (coding problems,
-  revision) so your streak doesn't break. Requires a 10+ word note and re-typing a
-  random 6-digit code — an intentional, occasional override, not a free daily pass.
-- **Daily motivation popup**: shows once per day with a short, encouraging message.
-  Add your own OpenAI API key in Settings for a freshly AI-written message each day;
-  without a key, it falls back to built-in messages, so it always works.
-- Duration labels always display with a space between units (`41m 51s`, not `41m51s`).
-- Search, expand/collapse all, section-wise and course-wide duration stats.
+### Linting
+```bash
+npm run lint
+```
+Uses `oxlint` for high-performance static analysis with zero warnings and zero errors.
 
-## Data model (localStorage keys)
+---
 
-All per-course keys are namespaced by course id, e.g. `jct_watched__core-java-ai`:
+## 📑 Course XML Format
 
-- `jct_course_registry_v1` — `{ courseIds: [...], activeCourseId, customCourses: { [id]: courseObject } }`
-  — the list of available courses and which one is active. Default (bundled) courses
-  are not stored here in full, only referenced by id.
-- `jct_watched__<courseId>` — `{ [lectureId]: true }`
-- `jct_today_plan__<courseId>` — `{ date, ids: [...], auto: boolean }` — frozen per-day
-- `jct_settings__<courseId>` — daily target, auto-plan flag, streak mode (defaults to
-  1.5h / auto-plan on / streak-mode "any" for every course, including newly imported ones)
-- `jct_history__<courseId>` — per-day buckets, keyed by date: `{ watchedSec, watchedCount, lectureIds, isPractice?, practiceNote? }`
-- `jct_motivation_shown_v1` — `{ date }` — global, not per-course (the greeting is once a day for the whole app)
-- `jct_openai_api_key_v1` — your OpenAI API key, if added (never sent anywhere except directly to `api.openai.com`)
-
-## Importing your own course XML
-
-The importer expects the same format as the two bundled files:
+Custom courses can be imported at runtime via **Settings → Memory & Courses → Import course from XML**. The XML parser expects the following schema:
 
 ```xml
+<?xml version="1.0" encoding="UTF-8"?>
 <course>
-  <title>My Course</title>
+  <title>Your Course Title Here</title>
   <sections>
-    <section number="01" title="Introduction">
+    <section number="01" title="Fundamentals &amp; Setup">
       <items>
-        <item type="video" title="Welcome" duration="12m30s" />
-        <item type="pdf" title="Slides" />
-        <!-- non-video items are ignored for tracking purposes -->
+        <item type="video" title="Introduction to Architecture" duration="15m30s" />
+        <item type="video" title="Environment Configuration" duration="28m45s" />
+        <item type="pdf" title="Cheatsheet" /> <!-- Non-video items are preserved without affecting duration -->
+      </items>
+    </section>
+    <section number="02" title="Advanced Concepts">
+      <items>
+        <item type="video" title="Memory Model &amp; Garbage Collection" duration="42m10s" />
       </items>
     </section>
   </sections>
 </course>
 ```
 
-Only `type="video"` items with a `duration` attribute become trackable lectures;
-`pdf`/`article`/`quiz` items are parsed but not counted toward duration or progress.
+> **Note**: Durations can be formatted as `Xh Ym Zs`, `Xh Ym`, `Ym Zs`, or `Xm`. Ampersands in titles should be escaped as `&amp;`.
 
-## Editing/adding default courses
+---
 
-The two bundled courses live pre-parsed in `src/data/defaultCourses.js`. To swap them
-for different bundled defaults, re-parse new XML through `src/data/xmlCourseParser.js`
-(see the parser's `parseCourseXml` function) and replace the exported array — or
-simpler, just use the in-app Import feature at runtime instead of rebuilding.
+## 🗄️ LocalStorage Data Architecture
+
+All course data is stored under namespaced keys to guarantee zero cross-talk between curriculums:
+
+| Key Pattern | Structure / Purpose |
+|---|---|
+| `jct_course_registry_v1` | `{ courseIds: string[], activeCourseId: string, customCourses: Record<string, Course> }` |
+| `jct_watched__<courseId>` | `{ [lectureId: string]: boolean }` — Map of completed lecture IDs |
+| `jct_today_plan__<courseId>` | `{ date: string, ids: string[], auto: boolean }` — Frozen daily schedule |
+| `jct_settings__<courseId>` | `{ dailySec: number, autoPlan: boolean, streakMode: "target" \| "any" }` |
+| `jct_history__<courseId>` | `{ [dateKey: string]: { watchedSec, watchedCount, lectureIds, isPractice, practiceNote } }` |
+| `jct_start_date__<courseId>` | `"YYYY-MM-DD"` — Custom start date for completion estimation |
+| `jct_motivation_shown_v1` | `{ date: string }` — Global daily flag for motivation popup |
+| `jct_openai_api_key_v1` | `string` — User-provided OpenAI API key (client-side only) |
