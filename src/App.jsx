@@ -15,6 +15,7 @@ import SettingsPanel from './components/SettingsPanel';
 import PracticeDayModal from './components/PracticeDayModal';
 import MotivationPopup from './components/MotivationPopup';
 import CourseImportModal from './components/CourseImportModal';
+import DeveloperBadge from './components/DeveloperBadge';
 import { dateKey } from './utils/time';
 import './App.css';
 
@@ -25,7 +26,12 @@ export default function App() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const courses = useMemo(() => listCourses(), [courseListVersion]);
 
-  const refreshCourseList = useCallback(() => setCourseListVersion((v) => v + 1), []);
+  const refreshCourseList = useCallback(() => {
+    setCourseListVersion((v) => v + 1);
+    const curActiveId = getActiveCourseId();
+    setActiveCourseIdState(curActiveId);
+    setCourse(getCourseById(curActiveId));
+  }, []);
 
   const handleSwitchCourse = useCallback((courseId) => {
     setActiveCourseId(courseId);
@@ -278,6 +284,8 @@ export default function App() {
         startDate={startDate}
         onUpdateStartDate={updateStartDate}
       />
+
+      <DeveloperBadge />
     </div>
   );
 }

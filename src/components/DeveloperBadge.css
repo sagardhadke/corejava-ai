@@ -1,0 +1,165 @@
+.dev-badge-wrapper {
+  position: fixed;
+  bottom: 18px;
+  right: 20px;
+  z-index: 40;
+  pointer-events: auto;
+  user-select: none;
+  animation: devBadgeFadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+}
+
+@keyframes devBadgeFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.dev-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  padding: 6px 13px 6px 11px;
+  background: rgba(19, 21, 25, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border);
+  border-radius: 9999px;
+  color: var(--ink);
+  text-decoration: none;
+  font-family: var(--font-body);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.03);
+  transition:
+    transform 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    background 0.2s ease;
+  line-height: 1;
+}
+
+.dev-badge:hover {
+  transform: translateY(-2px);
+  border-color: rgba(255, 184, 0, 0.5);
+  background: rgba(25, 28, 34, 0.95);
+  box-shadow:
+    0 8px 24px rgba(0, 0, 0, 0.55),
+    0 0 16px var(--amber-wash-strong);
+  color: var(--ink);
+}
+
+.dev-badge:active {
+  transform: translateY(0) scale(0.98);
+}
+
+.dev-badge:focus-visible {
+  outline: 2px solid var(--amber);
+  outline-offset: 3px;
+}
+
+.dev-badge__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--good);
+  box-shadow: 0 0 8px rgba(74, 222, 128, 0.7);
+  flex-shrink: 0;
+  display: inline-block;
+  animation: devBadgePulse 2.4s ease-in-out infinite;
+}
+
+@keyframes devBadgePulse {
+  0%, 100% {
+    opacity: 0.8;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.15);
+    box-shadow: 0 0 11px rgba(74, 222, 128, 0.9);
+  }
+}
+
+.dev-badge__content {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+}
+
+.dev-badge__label {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--ink-faint);
+  letter-spacing: 0.01em;
+}
+
+.dev-badge__name {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink);
+  letter-spacing: -0.01em;
+  transition: color 0.15s ease;
+}
+
+.dev-badge:hover .dev-badge__name {
+  color: #ffffff;
+}
+
+.dev-badge__divider {
+  width: 1px;
+  height: 12px;
+  background: var(--border);
+  flex-shrink: 0;
+}
+
+.dev-badge__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ink-soft);
+  transition:
+    color 0.2s ease,
+    transform 0.2s ease;
+  flex-shrink: 0;
+}
+
+.dev-badge:hover .dev-badge__icon {
+  color: var(--amber-bright);
+  transform: scale(1.12);
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+  .dev-badge-wrapper {
+    bottom: 14px;
+    right: 14px;
+  }
+
+  .dev-badge {
+    padding: 5px 11px 5px 9px;
+    gap: 7px;
+  }
+
+  .dev-badge__name {
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .dev-badge-wrapper {
+    bottom: 10px;
+    right: 10px;
+  }
+
+  .dev-badge__label {
+    display: none;
+  }
+
+  .dev-badge {
+    padding: 5px 10px 5px 8px;
+    gap: 6px;
+  }
+}

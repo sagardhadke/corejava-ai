@@ -1,5 +1,5 @@
-import { DEFAULT_COURSES } from './defaultCourses';
-import { parseCourseXml } from './xmlCourseParser';
+import { DEFAULT_COURSES } from './defaultCourses.js';
+import { parseCourseXml } from './xmlCourseParser.js';
 
 const REGISTRY_KEY = 'jct_course_registry_v1'; // { courseIds: [...], activeCourseId, customCourses: { [id]: courseObject } }
 
