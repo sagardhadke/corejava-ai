@@ -131,7 +131,7 @@ export default function MotivationPopup({ today, stats, streak, courseTitle }) {
         </div>
         {usedFallback && !loading && (
           <p className="mp-fallback-note">
-            {getStoredApiKey()
+            {getStoredApiKey()?.trim()
               ? "Couldn't reach OpenAI just now, so here's a message from the backup list."
               : 'Add an OpenAI API key in Settings for a fresh AI-written message each day.'}
           </p>
