@@ -22,6 +22,14 @@ export default function SettingsPanel({
   course, stats, startDate, onUpdateStartDate,
 }) {
   const [apiKey, setApiKey] = useState(() => getStoredApiKey());
+  const [prevOpen, setPrevOpen] = useState(open);
+  if (open !== prevOpen) {
+    setPrevOpen(open);
+    if (open) {
+      setApiKey(getStoredApiKey());
+    }
+  }
+
   const [saved, setSaved] = useState(false);
   const [deleteEverythingOpen, setDeleteEverythingOpen] = useState(false);
   const [resetProgressOpen, setResetProgressOpen] = useState(false);
@@ -208,7 +216,17 @@ export default function SettingsPanel({
           className="api-key-input"
           placeholder="sk-..."
           value={apiKey}
-          onChange={(e) => setApiKey(e.target.value)}
+          onChange={(e) => {
+            const val = e.target.value;
+            setApiKey(val);
+            setStoredApiKey(val.trim());
+          }}
+          onBlur={(e) => {
+            setStoredApiKey(e.target.value.trim());
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') handleSaveKey();
+          }}
         />
         <button className="save-key-btn" onClick={handleSaveKey}>{saved ? 'Saved ✓' : 'Save API key'}</button>
       </section>
