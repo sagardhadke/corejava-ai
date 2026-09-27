@@ -45,6 +45,7 @@ const {
 } = await import('../data/courseStore.js');
 
 const { getActiveSectionId } = await import('../utils/activeSection.js');
+const { getAggregatedHistory } = await import('../utils/activityHistory.js');
 
 const SAMPLE_COURSE_1 = {
   id: 'course-python-ai-101',
@@ -361,5 +362,99 @@ describe('Course Flow & State Management Integration Tests', () => {
 
     // User resets manual override -> falls back to auto-detected 2026-01-01
     assert.equal(resolveStartDate(historyWithFirstLecture, false, '2025-12-15', today), '2026-01-01');
+  });
+
+  it('17. Track course activity date-wise like GitHub with course title, lecture number, title, and duration', () => {
+    const courseA = {
+      id: 'course-a',
+      title: 'Course A',
+      allLectures: [
+        { id: 'l1', title: 'Intro to Course A', durationSec: 600, durationLabel: '10m' },
+        { id: 'l2', title: 'Deep Dive A', durationSec: 1200, durationLabel: '20m' },
+      ],
+    };
+
+    const courseB = {
+      id: 'course-b',
+      title: 'Course B',
+      allLectures: [
+        { id: 'b1', title: 'Intro to Course B', durationSec: 900, durationLabel: '15m' },
+      ],
+    };
+
+    localStorage.setItem('jct_history__course-a', JSON.stringify({
+      '2026-09-20': {
+        watchedSec: 1800,
+        watchedCount: 2,
+        entries: [
+          {
+            courseId: 'course-a',
+            courseTitle: 'Course A',
+            lectureId: 'l1',
+            lectureNumber: 1,
+            lectureTitle: 'Intro to Course A',
+            durationSec: 600,
+            durationLabel: '10m',
+          },
+          {
+            courseId: 'course-a',
+            courseTitle: 'Course A',
+            lectureId: 'l2',
+            lectureNumber: 2,
+            lectureTitle: 'Deep Dive A',
+            durationSec: 1200,
+            durationLabel: '20m',
+          },
+        ],
+      },
+    }));
+
+    localStorage.setItem('jct_history__course-b', JSON.stringify({
+      '2026-09-20': {
+        watchedSec: 900,
+        watchedCount: 1,
+        entries: [
+          {
+            courseId: 'course-b',
+            courseTitle: 'Course B',
+            lectureId: 'b1',
+            lectureNumber: 1,
+            lectureTitle: 'Intro to Course B',
+            durationSec: 900,
+            durationLabel: '15m',
+          },
+        ],
+      },
+      '2026-09-21': {
+        watchedSec: 0,
+        watchedCount: 0,
+        isPractice: true,
+        practiceNote: 'Solved algorithms',
+      },
+    }));
+
+    const aggregated = getAggregatedHistory([courseA, courseB]);
+
+    // On 2026-09-20, both courses' activities are combined
+    const day20 = aggregated['2026-09-20'];
+    assert.ok(day20);
+    assert.equal(day20.watchedSec, 2700);
+    assert.equal(day20.watchedCount, 3);
+    assert.equal(day20.entries.length, 3);
+
+    // Verify course titles, lecture numbers, and titles
+    assert.equal(day20.entries[0].courseTitle, 'Course A');
+    assert.equal(day20.entries[0].lectureNumber, 1);
+    assert.equal(day20.entries[0].lectureTitle, 'Intro to Course A');
+
+    assert.equal(day20.entries[2].courseTitle, 'Course B');
+    assert.equal(day20.entries[2].lectureNumber, 1);
+    assert.equal(day20.entries[2].lectureTitle, 'Intro to Course B');
+
+    // On 2026-09-21, practice day is captured
+    const day21 = aggregated['2026-09-21'];
+    assert.ok(day21);
+    assert.equal(day21.isPractice, true);
+    assert.equal(day21.practiceNote, 'Solved algorithms');
   });
 });

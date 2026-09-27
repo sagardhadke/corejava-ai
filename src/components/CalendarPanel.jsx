@@ -1,5 +1,6 @@
-import { useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { dateKey, formatDuration, WEEKDAYS, MONTHS } from '../utils/time';
+import { getAggregatedHistory, formatActivityDate } from '../utils/activityHistory';
 import Drawer from './Drawer';
 import './CalendarPanel.css';
 
@@ -52,10 +53,16 @@ function intensity(sec, targetSec) {
 export default function CalendarPanel({
   open, onClose, history, streak, longestStreak, targetSec, streakMode,
   isTodayPracticeDay, hasWatchedToday, onOpenPracticeModal, onUnmarkPracticeDay,
-  onOpenPracticeModalForDate, startDate,
+  onOpenPracticeModalForDate, startDate, courses, course,
 }) {
   const weeks = useMemo(() => buildWeeks(startDate), [startDate]);
   const todayKey = dateKey();
+  const [selectedDateKey, setSelectedDateKey] = useState(() => dateKey());
+
+  const aggregatedHistory = useMemo(
+    () => getAggregatedHistory(courses, course, history),
+    [courses, course, history]
+  );
 
   const monthLabels = useMemo(() => {
     const labels = [];
@@ -73,12 +80,24 @@ export default function CalendarPanel({
   }, [weeks, startDate]);
 
   const totalActiveDays = useMemo(
-    () => Object.values(history).filter((b) => b.watchedCount > 0 || b.isPractice).length,
-    [history]
+    () => Object.values(aggregatedHistory).filter((b) => b.watchedCount > 0 || b.isPractice).length,
+    [aggregatedHistory]
   );
 
+  const selectedBucket = aggregatedHistory[selectedDateKey] || {
+    watchedSec: 0,
+    watchedCount: 0,
+    entries: [],
+    isPractice: false,
+    practiceNote: '',
+  };
+  const selectedDateParts = selectedDateKey.split('-').map(Number);
+  const selectedDateObj = new Date(selectedDateParts[0], selectedDateParts[1] - 1, selectedDateParts[2]);
+  const isSelectedDateFuture = selectedDateObj > new Date();
+  const isSelectedDateMissed = !isSelectedDateFuture && selectedDateKey !== todayKey && !selectedBucket.isPractice && !(selectedBucket.watchedCount > 0);
+
   return (
-    <Drawer open={open} onClose={onClose} title="Streak" side="right">
+    <Drawer open={open} onClose={onClose} title="Activity & Streak" side="right">
       <div className="cal-summary">
         <div className="cal-stat">
           <div className="cal-stat__value cal-stat__value--fire">{streak}</div>
@@ -96,7 +115,7 @@ export default function CalendarPanel({
 
       <p className="cal-mode-note">
         Counting a day as active when {streakMode === 'target' ? 'you hit your daily target' : 'you mark at least 1 lecture watched'} — change this in Settings.
-        Click any greyed-out past day with no activity to mark it as a practice day retroactively.
+        Click any date in the calendar below to inspect course and lecture activity for that day.
       </p>
 
       <div className="practice-cta">
@@ -139,9 +158,10 @@ export default function CalendarPanel({
                 if (startDate && key < startDate) {
                   return <div key={di} className="cal-cell cal-cell--hidden" aria-hidden="true" />;
                 }
-                const bucket = history[key];
+                const bucket = aggregatedHistory[key];
                 const isFuture = day > new Date();
                 const isToday = key === todayKey;
+                const isSelected = key === selectedDateKey;
                 const isPractice = !!bucket?.isPractice;
                 const isMissed = !isFuture && !isToday && !isPractice && !(bucket?.watchedCount > 0);
                 const level = intensity(bucket?.watchedSec, targetSec);
@@ -149,21 +169,22 @@ export default function CalendarPanel({
                 let title = '';
                 if (!isFuture) {
                   if (isPractice) {
-                    title = `${day.toDateString()} · Practice day — ${bucket.practiceNote || ''}`;
+                    title = `${day.toDateString()} · Practice day — ${bucket.practiceNote || ''} (Click to inspect)`;
                   } else if (isMissed) {
-                    title = `${day.toDateString()} · No activity — click to mark as a practice day`;
+                    title = `${day.toDateString()} · No activity (Click to inspect)`;
                   } else {
-                    title = `${day.toDateString()} · ${bucket ? formatDuration(bucket.watchedSec) + ' watched, ' + bucket.watchedCount + ' lecture(s)' : 'no activity'}`;
+                    title = `${day.toDateString()} · ${bucket ? formatDuration(bucket.watchedSec) + ' watched, ' + bucket.watchedCount + ' lecture(s)' : 'no activity'} (Click to inspect)`;
                   }
                 }
                 return (
                   <div
                     key={di}
-                    className={`cal-cell ${cellClass}${isToday ? ' cal-cell--today' : ''}${isMissed ? ' cal-cell--clickable' : ''}`}
+                    className={`cal-cell ${cellClass}${isToday ? ' cal-cell--today' : ''}${isSelected ? ' cal-cell--selected' : ''}${!isFuture ? ' cal-cell--clickable' : ''}`}
                     title={title}
-                    onClick={isMissed ? () => onOpenPracticeModalForDate(day) : undefined}
-                    role={isMissed ? 'button' : undefined}
-                    tabIndex={isMissed ? 0 : undefined}
+                    onClick={!isFuture ? () => setSelectedDateKey(key) : undefined}
+                    role={!isFuture ? 'button' : undefined}
+                    tabIndex={!isFuture ? 0 : undefined}
+                    aria-label={`${key}: ${bucket ? bucket.watchedCount + ' lectures watched' : 'no activity'}`}
                   />
                 );
               })}
@@ -182,6 +203,64 @@ export default function CalendarPanel({
         <span>More</span>
         <span className="cal-legend__practice"><span className="cal-cell lvl-practice" /> Practice day</span>
       </div>
+
+      {/* Activity Details for Selected Date (GitHub Style) */}
+      <div className="cal-activity">
+        <div className="cal-activity__head">
+          <div className="cal-activity__title-group">
+            <h4>{formatActivityDate(selectedDateKey)}</h4>
+            {selectedDateKey === todayKey && <span className="cal-activity__today-tag">TODAY</span>}
+          </div>
+          <div className="cal-activity__meta-badge">
+            <span>{selectedBucket.watchedCount || 0} lecture{selectedBucket.watchedCount === 1 ? '' : 's'}</span>
+            <span className="cal-activity__dot">·</span>
+            <strong>{formatDuration(selectedBucket.watchedSec || 0)} watched</strong>
+          </div>
+        </div>
+
+        {selectedBucket.entries && selectedBucket.entries.length > 0 ? (
+          <div className="cal-activity__list">
+            {selectedBucket.entries.map((item, idx) => (
+              <div key={item.lectureId || idx} className="cal-activity__row">
+                <div className="cal-activity__row-icon">
+                  <CheckIcon />
+                </div>
+                <div className="cal-activity__row-content">
+                  <div className="cal-activity__row-header">
+                    <span className="cal-activity__course-pill">{item.courseTitle}</span>
+                    {item.lectureNumber && (
+                      <span className="cal-activity__lecture-num">#{item.lectureNumber}</span>
+                    )}
+                  </div>
+                  <span className="cal-activity__lecture-title">{item.lectureTitle}</span>
+                </div>
+                <span className="cal-activity__lecture-dur">
+                  {item.durationLabel || formatDuration(item.durationSec)}
+                </span>
+              </div>
+            ))}
+          </div>
+        ) : selectedBucket.isPractice ? (
+          <div className="cal-activity__practice-card">
+            <span className="cal-activity__practice-badge">PRACTICE DAY</span>
+            <p className="cal-activity__practice-note">
+              {selectedBucket.practiceNote || 'No notes entered for this practice day.'}
+            </p>
+          </div>
+        ) : (
+          <div className="cal-activity__empty">
+            <p className="cal-activity__empty-text">No lecture activity recorded on this day.</p>
+            {isSelectedDateMissed && (
+              <button
+                className="cal-activity__add-practice-btn"
+                onClick={() => onOpenPracticeModalForDate(selectedDateObj)}
+              >
+                <PencilIcon /> Mark as practice day retroactively
+              </button>
+            )}
+          </div>
+        )}
+      </div>
     </Drawer>
   );
 }
@@ -191,6 +270,14 @@ function PencilIcon() {
     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
       <path d="M12 20h9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
       <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function CheckIcon() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }

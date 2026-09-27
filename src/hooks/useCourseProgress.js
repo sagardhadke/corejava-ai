@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { useLocalStorage } from './useLocalStorage';
-import { dateKey } from '../utils/time';
+import { dateKey, formatDuration } from '../utils/time';
 
 const DEFAULT_SETTINGS = {
   dailyTargetHours: 1.5,          // selected by default from first load — no manual setup needed
@@ -104,16 +104,30 @@ export function useCourseProgress(course) {
         const already = bucket.lectureIds.includes(lectureId);
         let nextBucket;
         if (isNowWatched && !already) {
+          const lecIndex = allLectures.findIndex((l) => l.id === lectureId);
+          const lectureNumber = lecIndex >= 0 ? lecIndex + 1 : (lecture?.number || null);
+          const entry = {
+            courseId: course?.id || 'core-java-ai',
+            courseTitle: course?.title || 'Core Java + AI',
+            lectureId,
+            lectureNumber,
+            lectureTitle: lecture?.title || `Lecture ${lectureNumber || ''}`,
+            durationSec: lecture?.durationSec || 0,
+            durationLabel: lecture?.durationLabel || formatDuration(lecture?.durationSec || 0),
+            watchedAt: new Date().toISOString(),
+          };
           nextBucket = {
             watchedSec: bucket.watchedSec + (lecture?.durationSec || 0),
             watchedCount: bucket.watchedCount + 1,
             lectureIds: [...bucket.lectureIds, lectureId],
+            entries: [...(bucket.entries || []).filter((e) => e.lectureId !== lectureId), entry],
           };
         } else if (!isNowWatched && already) {
           nextBucket = {
             watchedSec: Math.max(0, bucket.watchedSec - (lecture?.durationSec || 0)),
             watchedCount: Math.max(0, bucket.watchedCount - 1),
             lectureIds: bucket.lectureIds.filter((id) => id !== lectureId),
+            entries: (bucket.entries || []).filter((e) => e.lectureId !== lectureId),
           };
         } else {
           nextBucket = bucket;
@@ -123,7 +137,7 @@ export function useCourseProgress(course) {
 
       return next;
     });
-  }, [setWatched, setHistory]);
+  }, [setWatched, setHistory, allLectures, course]);
 
   const markPracticeDay = useCallback((note, targetDateKey) => {
     const key = targetDateKey || dateKey();
