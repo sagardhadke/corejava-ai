@@ -30,9 +30,28 @@
   letter-spacing: 0.03em;
 }
 
-.today-card__total {
+.today-card__watched-today {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  padding: 6px 10px;
+  margin-bottom: 12px;
+}
+
+.today-card__watched-today-label {
+  font-size: 11px;
+  color: var(--ink-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 500;
+}
+
+.today-card__watched-today-val {
   font-family: var(--font-mono);
-  font-size: 15px;
+  font-size: 13px;
   font-weight: 700;
   color: var(--amber);
 }

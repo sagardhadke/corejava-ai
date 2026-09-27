@@ -20,6 +20,7 @@ export default function SettingsPanel({
   courses, activeCourseId, onSwitchCourse, onOpenImport,
   onCoursesChanged, onRestoredBackup, onDeleteEverything,
   course, stats, startDate, onUpdateStartDate,
+  isStartDateManual, onResetStartDateToAuto,
 }) {
   const [apiKey, setApiKey] = useState(() => getStoredApiKey());
   const [prevOpen, setPrevOpen] = useState(open);
@@ -142,13 +143,28 @@ export default function SettingsPanel({
 
             <div className="calc-target-row">
               <span className="calc-target-row__label">Course start date</span>
+              {isStartDateManual && (
+                <button
+                  type="button"
+                  className="calc-target-reset-btn"
+                  onClick={onResetStartDateToAuto}
+                  title="Reset to auto-detect from first watched lecture"
+                >
+                  Reset to auto
+                </button>
+              )}
             </div>
             <input
               type="date"
               className="calc-target-datepicker"
-              value={startDate}
+              value={startDate || ''}
               onChange={(e) => onUpdateStartDate?.(e.target.value)}
             />
+            <p className="settings-help settings-help--small">
+              {isStartDateManual
+                ? 'Manually overridden. Calendar and pacing start from this date.'
+                : 'Auto-detected from your first watched lecture. Change it above to override.'}
+            </p>
 
             <div className="calc-target-row">
               <span className="calc-target-row__label">Estimated completion</span>

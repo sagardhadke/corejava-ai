@@ -4,10 +4,10 @@ import './TodayPlanCard.css';
 export default function TodayPlanCard({
   plannedLectures, watchedSet, targetSec, autoPlan, onToggleWatched, lectureNumbers,
   isTodayPracticeDay, hasWatchedToday, onOpenPracticeModal, onUnmarkPracticeDay,
+  todayWatchedSec = 0,
 }) {
   const plannedSec = plannedLectures.reduce((a, l) => a + l.durationSec, 0);
-  const watchedSec = plannedLectures.filter((l) => watchedSet.has(l.id)).reduce((a, l) => a + l.durationSec, 0);
-  const pct = targetSec > 0 ? Math.min(100, Math.round((watchedSec / targetSec) * 100)) : 0;
+  const pct = targetSec > 0 ? Math.min(100, Math.round((todayWatchedSec / targetSec) * 100)) : 0;
 
   return (
     <div className="today-card">
@@ -16,10 +16,15 @@ export default function TodayPlanCard({
         <span className="today-card__total">{formatDuration(plannedSec)}</span>
       </div>
 
+      <div className="today-card__watched-today">
+        <span className="today-card__watched-today-label">Watched today</span>
+        <span className="today-card__watched-today-val">{formatDuration(todayWatchedSec)}</span>
+      </div>
+
       <div className="today-card__progress">
         <div className="progress-track"><div className="progress-track__fill" style={{ width: `${pct}%` }} /></div>
         <div className="today-card__progress-label">
-          {formatDuration(watchedSec)} / {formatDuration(targetSec)} target
+          {formatDuration(todayWatchedSec)} / {formatDuration(targetSec)} target {pct > 0 ? `(${pct}%)` : ''}
         </div>
       </div>
 

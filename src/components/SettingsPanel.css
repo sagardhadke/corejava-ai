@@ -164,6 +164,28 @@
 .calc-target-datepicker:focus { outline: none; border-color: var(--amber-dim); }
 .calc-target-datepicker:hover { border-color: var(--amber-dim); }
 
+.calc-target-reset-btn {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--ink-faint);
+  border-radius: var(--r-sm);
+  padding: 2px 7px;
+  font-size: 10px;
+  font-family: var(--font-mono);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.calc-target-reset-btn:hover {
+  color: var(--amber);
+  border-color: var(--amber);
+}
+
+.settings-help--small {
+  font-size: 11px;
+  margin-top: -6px;
+  margin-bottom: 12px;
+}
+
 .calc-target-info {
   display: flex;
   align-items: flex-start;
