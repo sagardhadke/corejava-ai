@@ -17,6 +17,7 @@ import MotivationPopup from './components/MotivationPopup';
 import CourseImportModal from './components/CourseImportModal';
 import DeveloperBadge from './components/DeveloperBadge';
 import { dateKey } from './utils/time';
+import { getActiveSectionId } from './utils/activeSection';
 import './App.css';
 
 export default function App() {
@@ -49,8 +50,9 @@ export default function App() {
 
   const [query, setQuery] = useState('');
   const [openSections, setOpenSections] = useState(() => {
+    const activeId = getActiveSectionId(course, watchedSet);
     const init = {};
-    course?.sections.forEach((s, idx) => { init[s.id] = idx === 0; });
+    course?.sections.forEach((s) => { init[s.id] = s.id === activeId; });
     return init;
   });
   const [calendarOpen, setCalendarOpen] = useState(false);
@@ -60,20 +62,17 @@ export default function App() {
   const [importOpen, setImportOpen] = useState(false);
 
   // When the active course changes (switch, import, replace), reset which
-  // sections are open so the new course's first section starts expanded —
-  // matches "the section active from the beginning should be expanded by
-  // default". This intentionally does NOT run on every render, only when the
-  // course identity actually changes, since it's synchronizing local UI state
-  // with an external change (course switch) rather than deriving from props.
+  // sections are open so the new course's active section starts expanded.
   const prevCourseIdForSectionsRef = useRef(course?.id);
   useEffect(() => {
     if (!course) return;
     if (prevCourseIdForSectionsRef.current === course.id) return;
     prevCourseIdForSectionsRef.current = course.id;
+    const activeId = getActiveSectionId(course, watchedSet);
     const init = {};
-    course.sections.forEach((s, idx) => { init[s.id] = idx === 0; });
+    course.sections.forEach((s) => { init[s.id] = s.id === activeId; });
     setOpenSections(init);
-  }, [course]);
+  }, [course, watchedSet]);
 
   const lectureNumbers = useMemo(() => {
     if (!course) return new Map();

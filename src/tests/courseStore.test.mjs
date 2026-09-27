@@ -44,6 +44,8 @@ const {
   getPerCourseStorageBytes,
 } = await import('../data/courseStore.js');
 
+const { getActiveSectionId } = await import('../utils/activeSection.js');
+
 const SAMPLE_COURSE_1 = {
   id: 'course-python-ai-101',
   title: 'Python for AI & ML',
@@ -285,5 +287,50 @@ describe('Course Flow & State Management Integration Tests', () => {
     assert.equal(restoredCourses.length, 2);
     assert.equal(localStorage.getItem('jct_watched__core-java-ai'), JSON.stringify({ 'w1': true }));
     assert.equal(localStorage.getItem(`jct_watched__${SAMPLE_COURSE_1.id}`), JSON.stringify({ 'w2': true }));
+  });
+
+  it('15. Active section opens automatically based on first unwatched lecture', () => {
+    const dummyCourse = {
+      id: 'test-course',
+      title: 'Test Course',
+      sections: [
+        {
+          id: 'sec-1',
+          number: 1,
+          title: 'Section 1',
+          lectures: [{ id: 'l1' }, { id: 'l2' }],
+        },
+        {
+          id: 'sec-2',
+          number: 2,
+          title: 'Section 2',
+          lectures: [{ id: 'l3' }, { id: 'l4' }],
+        },
+        {
+          id: 'sec-3',
+          number: 3,
+          title: 'Section 3',
+          lectures: [{ id: 'l5' }],
+        },
+      ],
+    };
+
+    // When nothing is watched, section 1 should be active
+    assert.equal(getActiveSectionId(dummyCourse, new Set()), 'sec-1');
+
+    // When only l1 is watched, section 1 still has unwatched l2 -> sec-1 is active
+    assert.equal(getActiveSectionId(dummyCourse, new Set(['l1'])), 'sec-1');
+
+    // When section 1 is fully watched (l1 & l2), section 2 should be active automatically
+    assert.equal(getActiveSectionId(dummyCourse, new Set(['l1', 'l2'])), 'sec-2');
+
+    // When section 2 is partially watched (l1, l2, l3), section 2 should be active
+    assert.equal(getActiveSectionId(dummyCourse, new Set(['l1', 'l2', 'l3'])), 'sec-2');
+
+    // When section 1 & 2 are fully watched (l1, l2, l3, l4), section 3 should be active
+    assert.equal(getActiveSectionId(dummyCourse, new Set(['l1', 'l2', 'l3', 'l4'])), 'sec-3');
+
+    // When all lectures are watched, it defaults gracefully to the last section
+    assert.equal(getActiveSectionId(dummyCourse, new Set(['l1', 'l2', 'l3', 'l4', 'l5'])), 'sec-3');
   });
 });
