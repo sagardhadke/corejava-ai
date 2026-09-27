@@ -3,6 +3,19 @@
   border: 1px solid var(--amber-dim);
   border-radius: var(--r-lg);
   padding: 16px;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+@media (max-width: 640px) {
+  .today-card {
+    padding: 14px 12px;
+  }
+  .today-card__list {
+    max-height: 240px;
+  }
 }
 
 .today-card__head {

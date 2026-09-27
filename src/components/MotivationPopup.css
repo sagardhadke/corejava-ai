@@ -7,7 +7,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 20px;
+  padding: 16px;
   animation: mpFadeIn 0.2s ease;
 }
 
@@ -16,6 +16,9 @@
 .mp-card {
   width: 100%;
   max-width: 420px;
+  max-height: calc(100dvh - 32px);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   background: var(--surface);
   border: 1px solid var(--amber-dim);
   border-radius: var(--r-lg);
@@ -23,6 +26,13 @@
   padding: 28px 24px 24px;
   text-align: center;
   animation: mpPopIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  box-sizing: border-box;
+}
+
+@media (max-width: 480px) {
+  .mp-card {
+    padding: 20px 16px 18px;
+  }
 }
 
 @keyframes mpPopIn {

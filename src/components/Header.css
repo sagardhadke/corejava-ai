@@ -17,6 +17,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 16px;
+  min-width: 0;
 }
 
 .brand {
@@ -24,6 +25,7 @@
   align-items: center;
   gap: 12px;
   min-width: 0;
+  flex: 1 1 auto;
 }
 
 .brand__mark {
@@ -42,7 +44,10 @@
   font-weight: 700;
 }
 
-.brand__text { min-width: 0; }
+.brand__text {
+  min-width: 0;
+  flex: 1;
+}
 
 .brand__text h1 {
   font-size: 16px;
@@ -122,8 +127,34 @@
   font-weight: 600;
 }
 
-@media (min-width: 720px) {
+@media (min-width: 860px) {
   .mini-progress { display: flex; }
+}
+
+@media (max-width: 860px) {
+  .header-mid { display: none; }
+}
+
+@media (max-width: 600px) {
+  .app-header__inner {
+    padding: 0 12px;
+    gap: 8px;
+  }
+  .brand {
+    gap: 8px;
+  }
+  .brand__mark {
+    width: 32px;
+    height: 32px;
+    font-size: 11.5px;
+  }
+  .brand__sub {
+    display: none;
+  }
+  .brand__text h1 {
+    font-size: 13.5px;
+    max-width: 180px;
+  }
 }
 
 .header-actions {

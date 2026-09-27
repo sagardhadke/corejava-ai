@@ -37,7 +37,13 @@
   margin: 0 0 18px;
 }
 
-.cal-grid-wrap { overflow-x: auto; padding-bottom: 4px; }
+.cal-grid-wrap {
+  overflow-x: auto;
+  padding-bottom: 6px;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-x pan-y;
+  max-width: 100%;
+}
 
 .cal-months {
   display: grid;
@@ -345,4 +351,39 @@
 .cal-activity__add-practice-btn:hover {
   border-color: var(--amber);
   color: var(--amber);
+}
+
+@media (max-width: 480px) {
+  .cal-summary {
+    gap: 6px;
+  }
+  .cal-stat {
+    padding: 8px 4px;
+  }
+  .cal-stat__value {
+    font-size: 18px;
+  }
+  .cal-stat__label {
+    font-size: 9px;
+  }
+  .cal-activity {
+    padding: 12px 10px;
+  }
+  .cal-activity__head {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  .cal-activity__row {
+    padding: 8px;
+    gap: 8px;
+  }
+  .cal-activity__lecture-title {
+    white-space: normal;
+    word-break: break-word;
+    font-size: 12px;
+  }
+  .cal-activity__lecture-dur {
+    font-size: 10px;
+  }
 }
