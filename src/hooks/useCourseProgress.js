@@ -139,17 +139,6 @@ export function useCourseProgress(course) {
     });
   }, [setWatched, setHistory, allLectures, course]);
 
-  const markPracticeDay = useCallback((note, targetDateKey) => {
-    const key = targetDateKey || dateKey();
-    setHistory((h) => {
-      const bucket = h[key] || { watchedSec: 0, watchedCount: 0, lectureIds: [] };
-      return {
-        ...h,
-        [key]: { ...bucket, isPractice: true, practiceNote: note },
-      };
-    });
-  }, [setHistory]);
-
   const unmarkPracticeDay = useCallback((targetDateKey) => {
     const key = targetDateKey || dateKey();
     setHistory((h) => {
@@ -192,6 +181,18 @@ export function useCourseProgress(course) {
     if (firstWatchedDate) return firstWatchedDate;
     return storedStartDate || today;
   }, [isStartDateManual, storedStartDate, firstWatchedDate, today]);
+
+  const markPracticeDay = useCallback((note, targetDateKey) => {
+    const key = targetDateKey || dateKey();
+    if (startDate && key < startDate) return; // Strict: disallow marking practice before start date!
+    setHistory((h) => {
+      const bucket = h[key] || { watchedSec: 0, watchedCount: 0, lectureIds: [] };
+      return {
+        ...h,
+        [key]: { ...bucket, isPractice: true, practiceNote: note },
+      };
+    });
+  }, [setHistory, startDate]);
 
   const resetAll = useCallback(() => {
     setWatched({});
@@ -310,7 +311,7 @@ export function useCourseProgress(course) {
     return best;
   }, [history, settings.streakMode, targetSec]);
 
-  const isTodayPracticeDay = !!history[dateKey()]?.isPractice;
+  const isTodayPracticeDay = !!history[dateKey()]?.isPractice && (!startDate || dateKey() >= startDate);
   const hasWatchedToday = (history[dateKey()]?.watchedCount || 0) > 0;
 
   return {

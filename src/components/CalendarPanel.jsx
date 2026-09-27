@@ -1,42 +1,54 @@
-import { useState, useMemo } from 'react';
-import { dateKey, formatDuration, WEEKDAYS, MONTHS } from '../utils/time';
+import { useState, useMemo, useEffect, useRef } from 'react';
+import { dateKey, formatDuration, MONTHS } from '../utils/time';
 import { getAggregatedHistory, formatActivityDate } from '../utils/activityHistory';
 import Drawer from './Drawer';
 import './CalendarPanel.css';
 
-function buildWeeks(startDateStr) {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+const GITHUB_WEEKDAYS = ['', 'Mon', '', 'Wed', '', 'Fri', ''];
 
-  let start = new Date(today);
-  if (startDateStr) {
-    const parts = startDateStr.split('-').map(Number);
-    if (parts.length === 3 && !isNaN(parts[0])) {
-      start = new Date(parts[0], parts[1] - 1, parts[2]);
-      start.setHours(0, 0, 0, 0);
-    }
-  }
-
-  const effectiveEnd = today >= start ? today : start;
-  const endDow = effectiveEnd.getDay();
-  const gridEnd = new Date(effectiveEnd);
-  gridEnd.setDate(gridEnd.getDate() + (6 - endDow));
-
-  const startDow = start.getDay();
-  const gridStart = new Date(start);
-  gridStart.setDate(gridStart.getDate() - startDow);
-
+function buildWeeksForYear(year, isCurrentYear) {
   const weeks = [];
-  const cursor = new Date(gridStart);
-  let safety = 0;
-  while (cursor <= gridEnd && safety < 1000) {
-    safety++;
-    const week = [];
-    for (let d = 0; d < 7; d++) {
-      week.push(new Date(cursor));
-      cursor.setDate(cursor.getDate() + 1);
+  if (isCurrentYear) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const endDow = today.getDay();
+    const gridEnd = new Date(today);
+    gridEnd.setDate(gridEnd.getDate() + (6 - endDow)); // Saturday of current week
+
+    const gridStart = new Date(gridEnd);
+    gridStart.setDate(gridStart.getDate() - (52 * 7 - 1)); // 52 weeks back
+
+    const cursor = new Date(gridStart);
+    for (let w = 0; w < 52; w++) {
+      const week = [];
+      for (let d = 0; d < 7; d++) {
+        week.push(new Date(cursor));
+        cursor.setDate(cursor.getDate() + 1);
+      }
+      weeks.push(week);
     }
-    weeks.push(week);
+  } else {
+    const jan1 = new Date(year, 0, 1);
+    const dec31 = new Date(year, 11, 31);
+    const startDow = jan1.getDay();
+    const gridStart = new Date(jan1);
+    gridStart.setDate(gridStart.getDate() - startDow);
+
+    const endDow = dec31.getDay();
+    const gridEnd = new Date(dec31);
+    gridEnd.setDate(gridEnd.getDate() + (6 - endDow));
+
+    const cursor = new Date(gridStart);
+    let safety = 0;
+    while (cursor <= gridEnd && safety < 60) {
+      safety++;
+      const week = [];
+      for (let d = 0; d < 7; d++) {
+        week.push(new Date(cursor));
+        cursor.setDate(cursor.getDate() + 1);
+      }
+      weeks.push(week);
+    }
   }
   return weeks;
 }
@@ -55,9 +67,44 @@ export default function CalendarPanel({
   isTodayPracticeDay, hasWatchedToday, onOpenPracticeModal, onUnmarkPracticeDay,
   onOpenPracticeModalForDate, startDate, courses, course,
 }) {
-  const weeks = useMemo(() => buildWeeks(startDate), [startDate]);
+  const currentYear = new Date().getFullYear();
+  const courseStartYear = useMemo(() => {
+    if (!startDate) return currentYear;
+    const y = parseInt(startDate.slice(0, 4), 10);
+    return isNaN(y) ? currentYear : Math.min(y, currentYear);
+  }, [startDate, currentYear]);
+
+  const availableYears = useMemo(() => {
+    const yrs = [];
+    for (let y = currentYear; y >= courseStartYear; y--) {
+      yrs.push(y);
+    }
+    return yrs;
+  }, [currentYear, courseStartYear]);
+
+  const [selectedYearState, setSelectedYear] = useState(currentYear);
+  const selectedYear = (selectedYearState < courseStartYear || selectedYearState > currentYear)
+    ? currentYear
+    : selectedYearState;
+
+  const isCurrentYear = selectedYear === currentYear;
+  const weeks = useMemo(() => buildWeeksForYear(selectedYear, isCurrentYear), [selectedYear, isCurrentYear]);
+
   const todayKey = dateKey();
   const [selectedDateKey, setSelectedDateKey] = useState(() => dateKey());
+  const [showLearnMore, setShowLearnMore] = useState(false);
+  const gridWrapRef = useRef(null);
+
+  // Auto-scroll calendar grid to latest/current week on open or year change
+  useEffect(() => {
+    if (open && gridWrapRef.current) {
+      requestAnimationFrame(() => {
+        if (gridWrapRef.current) {
+          gridWrapRef.current.scrollLeft = gridWrapRef.current.scrollWidth;
+        }
+      });
+    }
+  }, [open, selectedYear]);
 
   const aggregatedHistory = useMemo(
     () => getAggregatedHistory(courses, course, history),
@@ -66,18 +113,17 @@ export default function CalendarPanel({
 
   const monthLabels = useMemo(() => {
     const labels = [];
-    let lastMonth = null;
+    let lastMonth = -1;
     weeks.forEach((week, wi) => {
-      const firstValid = week.find((d) => !startDate || dateKey(d) >= startDate);
-      if (!firstValid) return;
-      const m = firstValid.getMonth();
+      const midDay = week[3];
+      const m = midDay.getMonth();
       if (m !== lastMonth) {
-        labels.push({ index: wi, label: MONTHS[m] });
+        labels.push({ colIndex: wi, label: MONTHS[m] });
         lastMonth = m;
       }
     });
     return labels;
-  }, [weeks, startDate]);
+  }, [weeks]);
 
   const totalActiveDays = useMemo(
     () => Object.values(aggregatedHistory).filter((b) => b.watchedCount > 0 || b.isPractice).length,
@@ -91,13 +137,16 @@ export default function CalendarPanel({
     isPractice: false,
     practiceNote: '',
   };
+
   const selectedDateParts = selectedDateKey.split('-').map(Number);
   const selectedDateObj = new Date(selectedDateParts[0], selectedDateParts[1] - 1, selectedDateParts[2]);
   const isSelectedDateFuture = selectedDateObj > new Date();
-  const isSelectedDateMissed = !isSelectedDateFuture && selectedDateKey !== todayKey && !selectedBucket.isPractice && !(selectedBucket.watchedCount > 0);
+  const isSelectedDateBeforeStart = !!(startDate && selectedDateKey < startDate);
+  const isSelectedDateMissed = !isSelectedDateFuture && !isSelectedDateBeforeStart && selectedDateKey !== todayKey && !selectedBucket.isPractice && !(selectedBucket.watchedCount > 0);
+  const isTodayBeforeStart = !!(startDate && todayKey < startDate);
 
   return (
-    <Drawer open={open} onClose={onClose} title="Activity & Streak" side="right" className="drawer--wide">
+    <Drawer open={open} onClose={onClose} title="Activity & Streak" side="right">
       <div className="cal-summary">
         <div className="cal-stat">
           <div className="cal-stat__value cal-stat__value--fire">{streak}</div>
@@ -113,11 +162,6 @@ export default function CalendarPanel({
         </div>
       </div>
 
-      <p className="cal-mode-note">
-        Counting a day as active when {streakMode === 'target' ? 'you hit your daily target' : 'you mark at least 1 lecture watched'} — change this in Settings.
-        Click any date in the calendar below to inspect course and lecture activity for that day.
-      </p>
-
       <div className="practice-cta">
         {isTodayPracticeDay ? (
           <div className="practice-cta__active">
@@ -128,8 +172,14 @@ export default function CalendarPanel({
           <button
             className="practice-cta__btn"
             onClick={onOpenPracticeModal}
-            disabled={hasWatchedToday}
-            title={hasWatchedToday ? "You've already watched a lecture today" : 'No lecture today? Log it as a practice day instead'}
+            disabled={hasWatchedToday || isTodayBeforeStart}
+            title={
+              isTodayBeforeStart
+                ? `Cannot mark practice day before course start date (${startDate})`
+                : hasWatchedToday
+                ? "You've already watched a lecture today"
+                : 'No lecture today? Log it as a practice day instead'
+            }
           >
             <PencilIcon /> Mark today as a practice day
           </button>
@@ -137,74 +187,140 @@ export default function CalendarPanel({
         {hasWatchedToday && !isTodayPracticeDay && (
           <p className="practice-cta__hint">You've already watched a lecture today — no need for a practice day.</p>
         )}
+        {isTodayBeforeStart && (
+          <p className="practice-cta__hint">Course start date is in the future ({startDate}).</p>
+        )}
       </div>
 
-      <div className="cal-grid-wrap">
-        <div className="cal-months">
-          {monthLabels.map((m) => (
-            <span key={m.index} style={{ gridColumnStart: m.index + 2 }}>{m.label}</span>
-          ))}
-        </div>
-        <div className="cal-grid">
-          <div className="cal-dow-col">
-            {WEEKDAYS.map((d, i) => (
-              <span key={d} className="cal-dow">{i % 2 === 1 ? d.slice(0, 1) : ''}</span>
+      {/* GitHub Contribution Calendar Grid */}
+      <div className="cal-card">
+        <div className="cal-grid-wrap" ref={gridWrapRef}>
+          <div className="cal-months-track">
+            {monthLabels.map((m) => (
+              <span
+                key={`${m.colIndex}-${m.label}`}
+                className="cal-month-label"
+                style={{ left: `${26 + m.colIndex * 14}px` }}
+              >
+                {m.label}
+              </span>
             ))}
           </div>
-          {weeks.map((week, wi) => (
-            <div className="cal-week" key={wi}>
-              {week.map((day, di) => {
-                const key = dateKey(day);
-                if (startDate && key < startDate) {
-                  return <div key={di} className="cal-cell cal-cell--hidden" aria-hidden="true" />;
-                }
-                const bucket = aggregatedHistory[key];
-                const isFuture = day > new Date();
-                const isToday = key === todayKey;
-                const isSelected = key === selectedDateKey;
-                const isPractice = !!bucket?.isPractice;
-                const isMissed = !isFuture && !isToday && !isPractice && !(bucket?.watchedCount > 0);
-                const level = intensity(bucket?.watchedSec, targetSec);
-                const cellClass = isFuture ? 'lvl-future' : isPractice ? 'lvl-practice' : `lvl-${level}`;
-                let title = '';
-                if (!isFuture) {
-                  if (isPractice) {
-                    title = `${day.toDateString()} · Practice day — ${bucket.practiceNote || ''} (Click to inspect)`;
-                  } else if (isMissed) {
-                    title = `${day.toDateString()} · No activity (Click to inspect)`;
-                  } else {
-                    title = `${day.toDateString()} · ${bucket ? formatDuration(bucket.watchedSec) + ' watched, ' + bucket.watchedCount + ' lecture(s)' : 'no activity'} (Click to inspect)`;
-                  }
-                }
-                return (
-                  <div
-                    key={di}
-                    className={`cal-cell ${cellClass}${isToday ? ' cal-cell--today' : ''}${isSelected ? ' cal-cell--selected' : ''}${!isFuture ? ' cal-cell--clickable' : ''}`}
-                    title={title}
-                    onClick={!isFuture ? () => setSelectedDateKey(key) : undefined}
-                    role={!isFuture ? 'button' : undefined}
-                    tabIndex={!isFuture ? 0 : undefined}
-                    aria-label={`${key}: ${bucket ? bucket.watchedCount + ' lectures watched' : 'no activity'}`}
-                  />
-                );
-              })}
+          <div className="cal-grid">
+            <div className="cal-dow-col" aria-hidden="true">
+              {GITHUB_WEEKDAYS.map((d, i) => (
+                <span key={i} className="cal-dow">{d}</span>
+              ))}
             </div>
-          ))}
+            {weeks.map((week, wi) => (
+              <div className="cal-week" key={wi}>
+                {week.map((day, di) => {
+                  const key = dateKey(day);
+                  const bucket = aggregatedHistory[key];
+                  const isFuture = day > new Date();
+                  const isToday = key === todayKey;
+                  const isSelected = key === selectedDateKey;
+                  const isPractice = !!bucket?.isPractice;
+                  const isBeforeStart = !!(startDate && key < startDate);
+                  const isMissed = !isFuture && !isToday && !isPractice && !(bucket?.watchedCount > 0);
+                  const level = intensity(bucket?.watchedSec, targetSec);
+                  const cellClass = isFuture
+                    ? 'lvl-future'
+                    : isBeforeStart
+                    ? 'lvl-0'
+                    : isPractice
+                    ? 'lvl-practice'
+                    : `lvl-${level}`;
+
+                  let title = '';
+                  if (!isFuture) {
+                    if (isBeforeStart) {
+                      title = `${day.toDateString()} · Prior to course start date (${startDate})`;
+                    } else if (isPractice) {
+                      title = `${day.toDateString()} · Practice day — ${bucket.practiceNote || ''} (Click to inspect)`;
+                    } else if (isMissed) {
+                      title = `${day.toDateString()} · No activity (Click to inspect)`;
+                    } else {
+                      title = `${day.toDateString()} · ${bucket ? formatDuration(bucket.watchedSec) + ' watched, ' + bucket.watchedCount + ' lecture(s)' : 'no activity'} (Click to inspect)`;
+                    }
+                  }
+
+                  return (
+                    <div
+                      key={di}
+                      className={`cal-cell ${cellClass}${isToday ? ' cal-cell--today' : ''}${isSelected ? ' cal-cell--selected' : ''}${!isFuture ? ' cal-cell--clickable' : ''}`}
+                      title={title}
+                      onClick={!isFuture ? () => setSelectedDateKey(key) : undefined}
+                      role={!isFuture ? 'button' : undefined}
+                      tabIndex={!isFuture ? 0 : undefined}
+                      aria-label={`${key}: ${bucket ? bucket.watchedCount + ' lectures watched' : 'no activity'}`}
+                    />
+                  );
+                })}
+              </div>
+            ))}
+          </div>
         </div>
+
+        {/* Calendar Footer: Learn how we count + Legend */}
+        <div className="cal-footer">
+          <button
+            className="cal-learn-btn"
+            onClick={() => setShowLearnMore((v) => !v)}
+            type="button"
+          >
+            Learn how we count contributions
+          </button>
+          <div className="cal-legend">
+            <span>Less</span>
+            <div className="cal-cell lvl-0" />
+            <div className="cal-cell lvl-1" />
+            <div className="cal-cell lvl-2" />
+            <div className="cal-cell lvl-3" />
+            <div className="cal-cell lvl-4" />
+            <span>More</span>
+          </div>
+        </div>
+
+        {showLearnMore && (
+          <div className="cal-learn-box">
+            <p>
+              Activity is counted when {streakMode === 'target' ? 'you hit your daily target' : 'you mark at least 1 lecture watched'}.
+              Days marked as Practice count toward streaks as well. You can change the streak calculation mode in Settings.
+            </p>
+          </div>
+        )}
       </div>
 
-      <div className="cal-legend">
-        <span>Less</span>
-        <div className="cal-cell lvl-0" />
-        <div className="cal-cell lvl-1" />
-        <div className="cal-cell lvl-2" />
-        <div className="cal-cell lvl-3" />
-        <div className="cal-cell lvl-4" />
-        <span>More</span>
-        <span className="cal-legend__practice"><span className="cal-cell lvl-practice" /> Practice day</span>
+      {/* GitHub-Style Contribution Activity Section with Year Selector */}
+      <div className="cal-section-bar">
+        <h3 className="cal-section-title">Contribution activity</h3>
+        {availableYears.length > 0 && (
+          <div className="cal-year-selector">
+            <label htmlFor="cal-year-select" className="cal-year-label">Year:</label>
+            <select
+              id="cal-year-select"
+              className="cal-year-select"
+              value={selectedYear}
+              onChange={(e) => {
+                const yr = Number(e.target.value);
+                setSelectedYear(yr);
+                if (yr === currentYear) {
+                  setSelectedDateKey(todayKey);
+                } else {
+                  setSelectedDateKey(`${yr}-12-31`);
+                }
+              }}
+            >
+              {availableYears.map((yr) => (
+                <option key={yr} value={yr}>{yr}</option>
+              ))}
+            </select>
+          </div>
+        )}
       </div>
 
-      {/* Activity Details for Selected Date (GitHub Style) */}
+      {/* Activity Details for Selected Date */}
       <div className="cal-activity">
         <div className="cal-activity__head">
           <div className="cal-activity__title-group">
@@ -222,21 +338,27 @@ export default function CalendarPanel({
           <div className="cal-activity__list">
             {selectedBucket.entries.map((item, idx) => (
               <div key={item.lectureId || idx} className="cal-activity__row">
-                <div className="cal-activity__row-icon">
-                  <CheckIcon />
-                </div>
-                <div className="cal-activity__row-content">
-                  <div className="cal-activity__row-header">
-                    <span className="cal-activity__course-pill">{item.courseTitle}</span>
-                    {item.lectureNumber && (
-                      <span className="cal-activity__lecture-num">#{item.lectureNumber}</span>
-                    )}
+                {item.courseTitle && (
+                  <div className="cal-activity__course-tag" title={item.courseTitle}>
+                    <span className="cal-activity__course-title">{item.courseTitle}</span>
                   </div>
-                  <span className="cal-activity__lecture-title">{item.lectureTitle}</span>
+                )}
+                <div className="cal-activity__main-row">
+                  <div className="cal-activity__left">
+                    <span className="cal-activity__check"><CheckIcon /></span>
+                    <span className="cal-activity__lecture-line">
+                      {item.lectureNumber && (
+                        <span className="cal-activity__lecture-num">{item.lectureNumber}</span>
+                      )}
+                      <span className="cal-activity__lecture-name">{item.lectureTitle}</span>
+                    </span>
+                  </div>
+                  <div className="cal-activity__right">
+                    <span className="cal-activity__lecture-time">
+                      {item.durationLabel || formatDuration(item.durationSec)}
+                    </span>
+                  </div>
                 </div>
-                <span className="cal-activity__lecture-dur">
-                  {item.durationLabel || formatDuration(item.durationSec)}
-                </span>
               </div>
             ))}
           </div>
@@ -245,6 +367,13 @@ export default function CalendarPanel({
             <span className="cal-activity__practice-badge">PRACTICE DAY</span>
             <p className="cal-activity__practice-note">
               {selectedBucket.practiceNote || 'No notes entered for this practice day.'}
+            </p>
+          </div>
+        ) : isSelectedDateBeforeStart ? (
+          <div className="cal-activity__empty">
+            <span className="cal-activity__before-start-badge">Before Course Start Date</span>
+            <p className="cal-activity__empty-text">
+              This date is before the course started ({startDate}). Practice activities cannot be recorded before the course start date.
             </p>
           </div>
         ) : (
@@ -277,7 +406,7 @@ function PencilIcon() {
 function CheckIcon() {
   return (
     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
