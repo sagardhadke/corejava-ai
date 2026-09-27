@@ -3,20 +3,33 @@ import { dateKey, formatDuration, WEEKDAYS, MONTHS } from '../utils/time';
 import Drawer from './Drawer';
 import './CalendarPanel.css';
 
-function buildWeeks(weeksBack = 17) {
+function buildWeeks(startDateStr) {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  const endDow = today.getDay();
-  const gridEnd = new Date(today);
+
+  let start = new Date(today);
+  if (startDateStr) {
+    const parts = startDateStr.split('-').map(Number);
+    if (parts.length === 3 && !isNaN(parts[0])) {
+      start = new Date(parts[0], parts[1] - 1, parts[2]);
+      start.setHours(0, 0, 0, 0);
+    }
+  }
+
+  const effectiveEnd = today >= start ? today : start;
+  const endDow = effectiveEnd.getDay();
+  const gridEnd = new Date(effectiveEnd);
   gridEnd.setDate(gridEnd.getDate() + (6 - endDow));
 
-  const totalDays = weeksBack * 7;
-  const gridStart = new Date(gridEnd);
-  gridStart.setDate(gridStart.getDate() - totalDays + 1);
+  const startDow = start.getDay();
+  const gridStart = new Date(start);
+  gridStart.setDate(gridStart.getDate() - startDow);
 
   const weeks = [];
-  let cursor = new Date(gridStart);
-  for (let w = 0; w < weeksBack; w++) {
+  const cursor = new Date(gridStart);
+  let safety = 0;
+  while (cursor <= gridEnd && safety < 1000) {
+    safety++;
     const week = [];
     for (let d = 0; d < 7; d++) {
       week.push(new Date(cursor));
@@ -39,24 +52,25 @@ function intensity(sec, targetSec) {
 export default function CalendarPanel({
   open, onClose, history, streak, longestStreak, targetSec, streakMode,
   isTodayPracticeDay, hasWatchedToday, onOpenPracticeModal, onUnmarkPracticeDay,
-  onOpenPracticeModalForDate,
+  onOpenPracticeModalForDate, startDate,
 }) {
-  const weeks = useMemo(() => buildWeeks(17), []);
+  const weeks = useMemo(() => buildWeeks(startDate), [startDate]);
   const todayKey = dateKey();
 
   const monthLabels = useMemo(() => {
     const labels = [];
     let lastMonth = null;
     weeks.forEach((week, wi) => {
-      const first = week[0];
-      const m = first.getMonth();
+      const firstValid = week.find((d) => !startDate || dateKey(d) >= startDate);
+      if (!firstValid) return;
+      const m = firstValid.getMonth();
       if (m !== lastMonth) {
         labels.push({ index: wi, label: MONTHS[m] });
         lastMonth = m;
       }
     });
     return labels;
-  }, [weeks]);
+  }, [weeks, startDate]);
 
   const totalActiveDays = useMemo(
     () => Object.values(history).filter((b) => b.watchedCount > 0 || b.isPractice).length,
@@ -122,6 +136,9 @@ export default function CalendarPanel({
             <div className="cal-week" key={wi}>
               {week.map((day, di) => {
                 const key = dateKey(day);
+                if (startDate && key < startDate) {
+                  return <div key={di} className="cal-cell cal-cell--hidden" aria-hidden="true" />;
+                }
                 const bucket = history[key];
                 const isFuture = day > new Date();
                 const isToday = key === todayKey;

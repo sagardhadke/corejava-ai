@@ -333,4 +333,33 @@ describe('Course Flow & State Management Integration Tests', () => {
     // When all lectures are watched, it defaults gracefully to the last section
     assert.equal(getActiveSectionId(dummyCourse, new Set(['l1', 'l2', 'l3', 'l4', 'l5'])), 'sec-3');
   });
+
+  it('16. Course start date is auto-detected from first watched lecture or overridden manually', () => {
+    function resolveStartDate(history, isManual, manualDate, today) {
+      if (isManual && manualDate) return manualDate;
+      const dates = Object.entries(history)
+        .filter(([, b]) => (b?.watchedCount > 0 || (Array.isArray(b?.lectureIds) && b.lectureIds.length > 0)))
+        .map(([d]) => d)
+        .sort();
+      return dates[0] || manualDate || today;
+    }
+
+    const today = '2026-09-27';
+
+    // No history, not manual -> defaults to today
+    assert.equal(resolveStartDate({}, false, null, today), '2026-09-27');
+
+    // First lecture watched on 2026-01-01 -> auto-detected as 2026-01-01
+    const historyWithFirstLecture = {
+      '2026-01-01': { watchedCount: 1, lectureIds: ['l1'] },
+      '2026-01-05': { watchedCount: 2, lectureIds: ['l2', 'l3'] },
+    };
+    assert.equal(resolveStartDate(historyWithFirstLecture, false, null, today), '2026-01-01');
+
+    // User manually overrides course start date to 2025-12-15
+    assert.equal(resolveStartDate(historyWithFirstLecture, true, '2025-12-15', today), '2025-12-15');
+
+    // User resets manual override -> falls back to auto-detected 2026-01-01
+    assert.equal(resolveStartDate(historyWithFirstLecture, false, '2025-12-15', today), '2026-01-01');
+  });
 });

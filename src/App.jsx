@@ -43,8 +43,8 @@ export default function App() {
 
   const {
     watchedSet, planSet, settings, history, stats, sectionProgress, streak, longestStreak, targetSec, today,
-    startDate, isTodayPracticeDay, hasWatchedToday,
-    toggleWatched, togglePlan, clearPlan, resetAll, updateSettings, updateStartDate,
+    startDate, isStartDateManual, todayWatchedSec, isTodayPracticeDay, hasWatchedToday,
+    toggleWatched, togglePlan, clearPlan, resetAll, updateSettings, updateStartDate, resetStartDateToAuto,
     markPracticeDay, unmarkPracticeDay,
   } = useCourseProgress(course);
 
@@ -222,6 +222,7 @@ export default function App() {
                 hasWatchedToday={hasWatchedToday}
                 onOpenPracticeModal={openPracticeModalForToday}
                 onUnmarkPracticeDay={() => unmarkPracticeDay()}
+                todayWatchedSec={todayWatchedSec}
               />
               <PerSectionProgress sectionProgress={sectionProgress} onJumpToSection={handleJumpToSection} />
             </div>
@@ -248,6 +249,7 @@ export default function App() {
         onOpenPracticeModal={openPracticeModalForToday}
         onUnmarkPracticeDay={() => unmarkPracticeDay()}
         onOpenPracticeModalForDate={openPracticeModalForDate}
+        startDate={startDate}
       />
 
       <PracticeDayModal
@@ -282,6 +284,8 @@ export default function App() {
         stats={stats}
         startDate={startDate}
         onUpdateStartDate={updateStartDate}
+        isStartDateManual={isStartDateManual}
+        onResetStartDateToAuto={resetStartDateToAuto}
       />
 
       <DeveloperBadge />

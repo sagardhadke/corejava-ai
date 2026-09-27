@@ -33,12 +33,14 @@ export function useCourseProgress(course) {
   const SETTINGS_KEY = `jct_settings__${courseId}`;
   const HISTORY_KEY = `jct_history__${courseId}`;
   const START_DATE_KEY = `jct_start_date__${courseId}`;
+  const START_DATE_MANUAL_KEY = `jct_start_date_manual__${courseId}`;
 
   const [watched, setWatched] = useLocalStorage(WATCHED_KEY, {});
   const [planStore, setPlanStore] = useLocalStorage(PLAN_KEY, { date: null, ids: [], auto: true });
   const [settings, setSettings] = useLocalStorage(SETTINGS_KEY, DEFAULT_SETTINGS);
   const [history, setHistory] = useLocalStorage(HISTORY_KEY, {});
-  const [startDate, setStartDate] = useLocalStorage(START_DATE_KEY, dateKey());
+  const [storedStartDate, setStoredStartDate] = useLocalStorage(START_DATE_KEY, null);
+  const [isStartDateManual, setIsStartDateManual] = useLocalStorage(START_DATE_MANUAL_KEY, false);
   const [today, setToday] = useState(() => dateKey());
 
   const watchedSet = useMemo(() => new Set(Object.keys(watched).filter((id) => watched[id])), [watched]);
@@ -163,19 +165,46 @@ export function useCourseProgress(course) {
     setPlanStore({ date: today, ids, auto: true });
   }, [targetSec, watchedSet, today, setPlanStore, allLectures]);
 
+  const firstWatchedDate = useMemo(() => {
+    const dates = Object.entries(history)
+      .filter(([, b]) => (b?.watchedCount > 0 || (Array.isArray(b?.lectureIds) && b.lectureIds.length > 0)))
+      .map(([d]) => d)
+      .sort();
+    return dates[0] || null;
+  }, [history]);
+
+  const startDate = useMemo(() => {
+    if (isStartDateManual && storedStartDate) return storedStartDate;
+    if (firstWatchedDate) return firstWatchedDate;
+    return storedStartDate || today;
+  }, [isStartDateManual, storedStartDate, firstWatchedDate, today]);
+
   const resetAll = useCallback(() => {
     setWatched({});
     setPlanStore({ date: dateKey(), ids: settings.autoPlan ? computeAutoPlanIds(targetSec, new Set(), allLectures) : [], auto: settings.autoPlan });
     setHistory({});
-  }, [setWatched, setPlanStore, setHistory, settings.autoPlan, targetSec, allLectures]);
+    setIsStartDateManual(false);
+    setStoredStartDate(null);
+  }, [setWatched, setPlanStore, setHistory, settings.autoPlan, targetSec, allLectures, setIsStartDateManual, setStoredStartDate]);
 
   const updateSettings = useCallback((patch) => {
     setSettings((prev) => ({ ...prev, ...patch }));
   }, [setSettings]);
 
   const updateStartDate = useCallback((newDate) => {
-    setStartDate(newDate);
-  }, [setStartDate]);
+    if (newDate) {
+      setIsStartDateManual(true);
+      setStoredStartDate(newDate);
+    } else {
+      setIsStartDateManual(false);
+      setStoredStartDate(null);
+    }
+  }, [setIsStartDateManual, setStoredStartDate]);
+
+  const resetStartDateToAuto = useCallback(() => {
+    setIsStartDateManual(false);
+    setStoredStartDate(null);
+  }, [setIsStartDateManual, setStoredStartDate]);
 
   const planSet = useMemo(() => new Set(planStore.ids), [planStore.ids]);
 
@@ -282,6 +311,8 @@ export function useCourseProgress(course) {
     today,
     targetSec,
     startDate,
+    isStartDateManual,
+    todayWatchedSec: history[today]?.watchedSec || 0,
     isTodayPracticeDay,
     hasWatchedToday,
     toggleWatched,
@@ -293,5 +324,6 @@ export function useCourseProgress(course) {
     resetAll,
     updateSettings,
     updateStartDate,
+    resetStartDateToAuto,
   };
 }

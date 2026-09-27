@@ -65,6 +65,14 @@
 
 .cal-cell--today { box-shadow: 0 0 0 1.5px var(--amber); }
 
+.cal-cell--hidden {
+  visibility: hidden;
+  pointer-events: none;
+  background: transparent !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
+
 .cal-cell--clickable { cursor: pointer; }
 .cal-cell--clickable:hover { box-shadow: 0 0 0 1.5px var(--ink-faint); }
 
