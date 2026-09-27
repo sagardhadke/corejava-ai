@@ -4,10 +4,11 @@ import './TodayPlanCard.css';
 export default function TodayPlanCard({
   plannedLectures, watchedSet, targetSec, autoPlan, onToggleWatched, lectureNumbers,
   isTodayPracticeDay, hasWatchedToday, onOpenPracticeModal, onUnmarkPracticeDay,
-  todayWatchedSec = 0,
+  todayWatchedSec = 0, startDate,
 }) {
   const plannedSec = plannedLectures.reduce((a, l) => a + l.durationSec, 0);
   const pct = targetSec > 0 ? Math.min(100, Math.round((todayWatchedSec / targetSec) * 100)) : 0;
+  const isBeforeStart = !!(startDate && new Date().toISOString().slice(0, 10) < startDate);
 
   return (
     <div className="today-card">
@@ -60,8 +61,14 @@ export default function TodayPlanCard({
           <button
             className="today-card__practice-btn"
             onClick={onOpenPracticeModal}
-            disabled={hasWatchedToday}
-            title={hasWatchedToday ? "You've already watched a lecture today" : 'No lecture today? Log a practice day instead'}
+            disabled={hasWatchedToday || isBeforeStart}
+            title={
+              isBeforeStart
+                ? `Cannot mark practice day before course start date (${startDate})`
+                : hasWatchedToday
+                ? "You've already watched a lecture today"
+                : 'No lecture today? Log a practice day instead'
+            }
           >
             No lecture today? Mark as practice day
           </button>

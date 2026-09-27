@@ -223,6 +223,7 @@ export default function App() {
                 onOpenPracticeModal={openPracticeModalForToday}
                 onUnmarkPracticeDay={() => unmarkPracticeDay()}
                 todayWatchedSec={todayWatchedSec}
+                startDate={startDate}
               />
               <PerSectionProgress sectionProgress={sectionProgress} onJumpToSection={handleJumpToSection} />
             </div>
@@ -259,6 +260,7 @@ export default function App() {
         onClose={() => setPracticeModalOpen(false)}
         onConfirm={(note) => markPracticeDay(note, practiceModalDate ? dateKey(practiceModalDate) : undefined)}
         targetDate={practiceModalDate}
+        startDate={startDate}
       />
 
       <CourseImportModal

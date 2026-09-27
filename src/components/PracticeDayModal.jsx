@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { dateKey } from '../utils/time';
 import './PracticeDayModal.css';
 
 function countWords(text) {
@@ -9,7 +10,7 @@ function generateCode() {
   return String(Math.floor(100000 + Math.random() * 900000));
 }
 
-export default function PracticeDayModal({ open, onClose, onConfirm, targetDate }) {
+export default function PracticeDayModal({ open, onClose, onConfirm, targetDate, startDate }) {
   const [step, setStep] = useState('note');
   const [note, setNote] = useState('');
   const [codeInput, setCodeInput] = useState('');
@@ -20,6 +21,9 @@ export default function PracticeDayModal({ open, onClose, onConfirm, targetDate 
   const noteValid = wordCount >= 10;
 
   if (!open) return null;
+
+  const targetDateKey = targetDate ? dateKey(targetDate) : dateKey();
+  const isBeforeStart = !!(startDate && targetDateKey < startDate);
 
   const dateLabel = targetDate
     ? targetDate.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })
@@ -34,6 +38,10 @@ export default function PracticeDayModal({ open, onClose, onConfirm, targetDate 
   };
 
   const handleContinue = () => {
+    if (isBeforeStart) {
+      setError(`Cannot mark practice day before the course start date (${startDate}).`);
+      return;
+    }
     if (!noteValid) {
       setError(`Write at least 10 words about what you practiced (currently ${wordCount}).`);
       return;
