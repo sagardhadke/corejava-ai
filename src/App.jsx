@@ -250,6 +250,8 @@ export default function App() {
         onUnmarkPracticeDay={() => unmarkPracticeDay()}
         onOpenPracticeModalForDate={openPracticeModalForDate}
         startDate={startDate}
+        courses={courses}
+        course={course}
       />
 
       <PracticeDayModal

@@ -143,3 +143,206 @@
   cursor: pointer;
 }
 .practice-cta__undo:hover { color: var(--danger); border-color: var(--danger); }
+
+.cal-cell--selected {
+  outline: 2px solid var(--amber) !important;
+  outline-offset: 1px;
+  z-index: 2;
+}
+
+/* Activity Details Inspector (GitHub Style) */
+.cal-activity {
+  margin-top: 22px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  padding: 16px;
+}
+
+.cal-activity__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 14px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border-soft);
+}
+
+.cal-activity__title-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cal-activity__title-group h4 {
+  margin: 0;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.cal-activity__today-tag {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  padding: 1px 5px;
+  border-radius: 3px;
+  background: var(--amber-wash-strong);
+  color: var(--amber);
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+
+.cal-activity__meta-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  color: var(--ink-soft);
+  font-family: var(--font-mono);
+  background: var(--surface);
+  border: 1px solid var(--border-soft);
+  padding: 3px 8px;
+  border-radius: 4px;
+}
+
+.cal-activity__dot {
+  color: var(--ink-faint);
+}
+
+.cal-activity__list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cal-activity__row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  border: 1px solid var(--border-soft);
+  transition: border-color 0.15s ease;
+}
+.cal-activity__row:hover {
+  border-color: var(--border);
+}
+
+.cal-activity__row-icon {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: rgba(74, 222, 128, 0.15);
+  color: var(--good);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.cal-activity__row-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.cal-activity__row-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 2px;
+}
+
+.cal-activity__course-pill {
+  font-size: 9.5px;
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 1px 5px;
+  border-radius: 3px;
+  background: var(--surface-3);
+  color: var(--ink-faint);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.cal-activity__lecture-num {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--amber);
+}
+
+.cal-activity__lecture-title {
+  font-size: 12.5px;
+  color: var(--ink);
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cal-activity__lecture-dur {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--ink-faint);
+  flex-shrink: 0;
+}
+
+.cal-activity__practice-card {
+  padding: 12px;
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  border: 1px dashed var(--border);
+}
+
+.cal-activity__practice-badge {
+  display: inline-block;
+  font-size: 9.5px;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: var(--ink-soft);
+  background: var(--surface-3);
+  padding: 2px 6px;
+  border-radius: 3px;
+  margin-bottom: 6px;
+}
+
+.cal-activity__practice-note {
+  margin: 0;
+  font-size: 12px;
+  color: var(--ink-soft);
+  line-height: 1.5;
+}
+
+.cal-activity__empty {
+  padding: 14px 10px;
+  text-align: center;
+}
+
+.cal-activity__empty-text {
+  margin: 0 0 10px;
+  font-size: 12px;
+  color: var(--ink-faint);
+}
+
+.cal-activity__add-practice-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: 1px dashed var(--border);
+  color: var(--ink-soft);
+  padding: 6px 12px;
+  border-radius: var(--r-sm);
+  font-size: 11.5px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.cal-activity__add-practice-btn:hover {
+  border-color: var(--amber);
+  color: var(--amber);
+}
