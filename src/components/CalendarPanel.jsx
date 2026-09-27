@@ -97,7 +97,7 @@ export default function CalendarPanel({
   const isSelectedDateMissed = !isSelectedDateFuture && selectedDateKey !== todayKey && !selectedBucket.isPractice && !(selectedBucket.watchedCount > 0);
 
   return (
-    <Drawer open={open} onClose={onClose} title="Activity & Streak" side="right">
+    <Drawer open={open} onClose={onClose} title="Activity & Streak" side="right" className="drawer--wide">
       <div className="cal-summary">
         <div className="cal-stat">
           <div className="cal-stat__value cal-stat__value--fire">{streak}</div>

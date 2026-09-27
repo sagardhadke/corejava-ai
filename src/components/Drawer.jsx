@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import './Drawer.css';
 
-export default function Drawer({ open, onClose, title, children, side = 'right' }) {
+export default function Drawer({ open, onClose, title, children, side = 'right', className = '' }) {
   useEffect(() => {
     if (!open) return;
     const onKey = (e) => { if (e.key === 'Escape') onClose(); };
@@ -18,7 +18,7 @@ export default function Drawer({ open, onClose, title, children, side = 'right' 
   return (
     <div className="drawer-overlay" onClick={onClose}>
       <aside
-        className={`drawer drawer--${side}`}
+        className={`drawer drawer--${side} ${className}`.trim()}
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"

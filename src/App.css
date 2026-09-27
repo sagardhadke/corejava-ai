@@ -17,22 +17,28 @@
   width: 100%;
   margin: 0 auto;
   padding: 24px 24px 40px;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 .app-layout {
   display: flex;
   gap: 20px;
   align-items: flex-start;
+  min-width: 0;
+  width: 100%;
 }
 
 .app-layout__main {
   flex: 1;
   min-width: 0;
+  max-width: 100%;
 }
 
 .app-layout__side {
   width: 320px;
   flex-shrink: 0;
+  min-width: 0;
 }
 
 /* This is the key sticky behavior: as the page scrolls, this wrapper sticks
@@ -57,15 +63,50 @@
   height: 0;
 }
 
-@media (max-width: 900px) {
-  .app-layout { flex-direction: column; }
-  .app-layout__side { width: 100%; }
+/* Tablet layout: side-by-side Today's Plan and Per-Section Progress above syllabus */
+@media (min-width: 641px) and (max-width: 900px) {
+  .app-layout {
+    flex-direction: column;
+    gap: 18px;
+  }
+  .app-layout__side {
+    width: 100%;
+    order: -1;
+    min-width: 0;
+  }
   .sticky-side-panel {
     position: static;
     max-height: none;
     overflow-y: visible;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+    align-items: start;
+    width: 100%;
+    min-width: 0;
   }
-  .app-main { padding: 18px 14px 32px; }
+  .app-main { padding: 18px 16px 36px; }
+}
+
+/* Mobile layout: stacked Today's Plan and Per-Section Progress above syllabus */
+@media (max-width: 640px) {
+  .app-layout {
+    flex-direction: column;
+    gap: 16px;
+  }
+  .app-layout__side {
+    width: 100%;
+    order: -1;
+  }
+  .sticky-side-panel {
+    position: static;
+    max-height: none;
+    overflow-y: visible;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .app-main { padding: 12px 10px 28px; }
 }
 
 .empty-state {

@@ -4,6 +4,9 @@
   border-radius: var(--r-lg);
   margin-bottom: 10px;
   overflow: hidden;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .section-card--open { border-color: var(--border); }
@@ -11,6 +14,8 @@
 
 .section-card__head {
   width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
   display: flex;
   align-items: center;
   gap: 12px;
@@ -20,6 +25,7 @@
   cursor: pointer;
   text-align: left;
   color: var(--ink);
+  min-width: 0;
 }
 .section-card__head:hover { background: var(--surface-3); }
 
@@ -108,4 +114,30 @@
 .section-card__body {
   padding: 6px 8px 10px;
   border-top: 1px solid var(--border-soft);
+}
+
+@media (max-width: 600px) {
+  .section-card__head {
+    flex-wrap: wrap;
+    gap: 8px 10px;
+    padding: 12px 10px;
+  }
+  .section-card__title {
+    flex: 1 1 calc(100% - 68px);
+    white-space: normal;
+    line-height: 1.35;
+    font-size: 13.5px;
+  }
+  .section-card__mini-bar {
+    display: none !important;
+  }
+  .section-card__meta {
+    width: 100%;
+    margin-left: 28px;
+    font-size: 10.5px;
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    white-space: normal;
+  }
 }

@@ -4,6 +4,26 @@
   border-radius: var(--r-lg);
   padding: 16px;
   margin-top: 14px;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+@media (min-width: 641px) and (max-width: 900px) {
+  .psp-card {
+    margin-top: 0;
+  }
+}
+
+@media (max-width: 640px) {
+  .psp-card {
+    margin-top: 0;
+    padding: 14px 12px;
+  }
+  .psp-list {
+    max-height: 240px;
+  }
 }
 
 .psp-card__head {
@@ -51,6 +71,8 @@
   background: var(--surface-2);
   border: 1px solid transparent;
   transition: all 0.15s ease;
+  min-width: 0;
+  box-sizing: border-box;
 }
 .psp-item:hover {
   background: var(--surface-3);
@@ -73,6 +95,7 @@
   justify-content: space-between;
   gap: 8px;
   margin-bottom: 8px;
+  min-width: 0;
 }
 
 .psp-item__left {
@@ -173,6 +196,7 @@
   font-family: var(--font-mono);
   font-size: 10px;
   color: var(--ink-faint);
+  min-width: 0;
 }
 
 .psp-item__remaining {

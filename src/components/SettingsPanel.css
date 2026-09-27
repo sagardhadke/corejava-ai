@@ -42,10 +42,15 @@
 }
 .import-btn:hover { border-color: var(--amber-dim); color: var(--amber); border-style: solid; }
 
-.preset-row { display: flex; gap: 8px; }
+.preset-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
 
 .preset-chip {
-  flex: 1;
+  flex: 1 1 calc(25% - 8px);
+  min-width: 60px;
   padding: 9px 0;
   border-radius: var(--r-sm);
   background: var(--surface-2);
@@ -55,6 +60,7 @@
   font-size: 12.5px;
   cursor: pointer;
   transition: all 0.15s ease;
+  text-align: center;
 }
 .preset-chip:hover { border-color: var(--amber-dim); }
 .preset-chip--active {
@@ -340,4 +346,16 @@
   color: var(--ink-faint);
   text-align: center;
   margin-top: 8px;
+}
+
+@media (max-width: 480px) {
+  .preset-chip {
+    flex: 1 1 calc(50% - 8px);
+  }
+  .reset-confirm__actions {
+    flex-direction: column;
+  }
+  .reset-confirm__actions .danger-btn {
+    width: 100%;
+  }
 }

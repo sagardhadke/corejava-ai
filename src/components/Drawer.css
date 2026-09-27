@@ -12,7 +12,8 @@
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
 .drawer {
-  width: min(460px, 100vw);
+  width: 100%;
+  max-width: 480px;
   height: 100%;
   background: var(--surface);
   border-left: 1px solid var(--border);
@@ -20,6 +21,11 @@
   flex-direction: column;
   animation: slideIn 0.22s cubic-bezier(0.16, 1, 0.3, 1);
   box-shadow: -24px 0 48px -24px rgba(0,0,0,0.5);
+  box-sizing: border-box;
+}
+
+.drawer--wide {
+  max-width: 640px;
 }
 
 @keyframes slideIn {
@@ -54,6 +60,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
 }
 .drawer__close:hover { color: var(--amber); border-color: var(--amber-dim); }
 
@@ -61,8 +68,19 @@
   padding: 20px;
   overflow-y: auto;
   flex: 1;
+  box-sizing: border-box;
 }
 
-@media (max-width: 480px) {
-  .drawer { width: 100vw; }
+@media (max-width: 540px) {
+  .drawer {
+    max-width: 100%;
+    border-left: none;
+  }
+  .drawer__head {
+    padding: 14px 16px;
+  }
+  .drawer__body {
+    padding: 16px 12px;
+    padding-bottom: max(24px, env(safe-area-inset-bottom, 24px));
+  }
 }

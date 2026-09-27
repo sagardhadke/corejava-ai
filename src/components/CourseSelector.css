@@ -10,7 +10,14 @@
 }
 
 .cs-root--header {
-  max-width: 300px;
+  max-width: 280px;
+  min-width: 0;
+}
+
+@media (max-width: 600px) {
+  .cs-root--header {
+    max-width: min(200px, 46vw);
+  }
 }
 
 /* ---- Trigger button ---- */
@@ -21,6 +28,7 @@
   justify-content: space-between;
   gap: 8px;
   width: 100%;
+  min-width: 0;
   text-align: left;
   cursor: pointer;
   border-radius: var(--r-md);
@@ -28,6 +36,7 @@
   border: 1px solid var(--border);
   color: var(--ink);
   transition: all 0.18s ease;
+  box-sizing: border-box;
 }
 
 .cs-root--settings .cs-trigger {
@@ -61,6 +70,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
+  overflow: hidden;
 }
 
 .cs-trigger__title {
@@ -69,6 +79,8 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  min-width: 0;
+  flex: 1;
 }
 
 .cs-root--settings .cs-trigger__title {
@@ -77,6 +89,15 @@
 
 .cs-root--header .cs-trigger__title {
   font-size: 15px;
+}
+
+@media (max-width: 600px) {
+  .cs-root--header .cs-trigger {
+    padding: 4px 6px;
+  }
+  .cs-root--header .cs-trigger__title {
+    font-size: 13px;
+  }
 }
 
 .cs-trigger__badge {
@@ -124,10 +145,21 @@
   padding: 6px;
   animation: csSlideIn 0.15s cubic-bezier(0.16, 1, 0.3, 1);
   overflow: hidden;
+  box-sizing: border-box;
 }
 
 .cs-dropdown--header {
-  min-width: 340px;
+  min-width: 300px;
+  max-width: calc(100vw - 24px);
+}
+
+@media (max-width: 600px) {
+  .cs-dropdown--header {
+    min-width: unset;
+    width: calc(100vw - 24px);
+    max-width: 340px;
+    left: 0;
+  }
 }
 
 @keyframes csSlideIn {
