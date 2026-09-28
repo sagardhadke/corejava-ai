@@ -17,7 +17,7 @@ import MotivationPopup from './components/MotivationPopup';
 import CourseImportModal from './components/CourseImportModal';
 import DeveloperBadge from './components/DeveloperBadge';
 import { dateKey } from './utils/time';
-import { getActiveSectionId } from './utils/activeSection';
+import { getActiveSectionIds } from './utils/activeSection';
 import './App.css';
 
 export default function App() {
@@ -49,10 +49,16 @@ export default function App() {
   } = useCourseProgress(course);
 
   const [query, setQuery] = useState('');
-  const activeSectionId = useMemo(() => getActiveSectionId(course, watchedSet), [course, watchedSet]);
+  const activeSectionIds = useMemo(
+    () => getActiveSectionIds(course, watchedSet, planSet),
+    [course, watchedSet, planSet]
+  );
+  const activeSectionIdsKey = useMemo(() => [...activeSectionIds].sort().join(','), [activeSectionIds]);
+
   const [openSections, setOpenSections] = useState(() => {
     const init = {};
-    course?.sections.forEach((s) => { init[s.id] = s.id === activeSectionId; });
+    const activeSet = new Set(activeSectionIds);
+    course?.sections.forEach((s) => { init[s.id] = activeSet.has(s.id); });
     return init;
   });
   const [calendarOpen, setCalendarOpen] = useState(false);
@@ -61,49 +67,56 @@ export default function App() {
   const [practiceModalDate, setPracticeModalDate] = useState(null);
   const [importOpen, setImportOpen] = useState(false);
 
-  // Automatically keep only the active section expanded. When switching courses
-  // or when the active section changes (e.g. current section completes, moving
-  // to the next section, or lectures are unmarked), automatically expand the
-  // active section and collapse completed/inactive sections, while preserving
-  // any manual user expansion on other sections.
+  // Automatically keep all active sections (sections with today's plan / yellow dot,
+  // plus the primary unwatched progress section) expanded. When switching courses
+  // or when active sections change (e.g. lectures added/removed from today's plan,
+  // section completed, lectures marked/unmarked), automatically expand the active
+  // sections and collapse completed/inactive sections, while preserving manual user toggles.
   const prevCourseIdForSectionsRef = useRef(null);
-  const prevActiveSectionIdRef = useRef(null);
+  const prevActiveSectionsKeyRef = useRef(null);
 
   useEffect(() => {
     if (!course) return;
     const courseChanged = prevCourseIdForSectionsRef.current !== course.id;
-    const activeSectionChanged = prevActiveSectionIdRef.current !== activeSectionId;
+    const activeSectionsChanged = prevActiveSectionsKeyRef.current !== activeSectionIdsKey;
 
     if (courseChanged) {
       prevCourseIdForSectionsRef.current = course.id;
-      prevActiveSectionIdRef.current = activeSectionId;
+      prevActiveSectionsKeyRef.current = activeSectionIdsKey;
       const init = {};
-      course.sections.forEach((s) => { init[s.id] = s.id === activeSectionId; });
+      const activeSet = new Set(activeSectionIds);
+      course.sections.forEach((s) => { init[s.id] = activeSet.has(s.id); });
       setOpenSections(init);
-    } else if (activeSectionChanged) {
-      const prevActiveId = prevActiveSectionIdRef.current;
-      prevActiveSectionIdRef.current = activeSectionId;
+    } else if (activeSectionsChanged) {
+      const prevActiveSet = new Set((prevActiveSectionsKeyRef.current || '').split(',').filter(Boolean));
+      prevActiveSectionsKeyRef.current = activeSectionIdsKey;
+      const currentActiveSet = new Set(activeSectionIds);
+
       setOpenSections((prev) => {
         const next = { ...prev };
-        if (prevActiveId) {
-          next[prevActiveId] = false;
-        }
-        // Collapse any completed sections that are no longer active
+        // Collapse sections that were previously active but are no longer active
+        prevActiveSet.forEach((id) => {
+          if (!currentActiveSet.has(id)) {
+            next[id] = false;
+          }
+        });
+        // Collapse any completed sections that are no longer active (no yellow dot)
         course.sections.forEach((s) => {
-          if (s.id !== activeSectionId) {
+          if (!currentActiveSet.has(s.id)) {
             const isSecComplete = s.lectures && s.lectures.length > 0 && s.lectures.every((l) => watchedSet.has(l.id));
             if (isSecComplete) {
               next[s.id] = false;
             }
           }
         });
-        if (activeSectionId) {
-          next[activeSectionId] = true;
-        }
+        // Automatically expand all active sections (including any section with today's plan / yellow dot!)
+        currentActiveSet.forEach((id) => {
+          next[id] = true;
+        });
         return next;
       });
     }
-  }, [course, activeSectionId, watchedSet]);
+  }, [course, activeSectionIds, activeSectionIdsKey, watchedSet]);
 
   const lectureNumbers = useMemo(() => {
     if (!course) return new Map();

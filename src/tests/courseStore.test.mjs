@@ -44,7 +44,7 @@ const {
   getPerCourseStorageBytes,
 } = await import('../data/courseStore.js');
 
-const { getActiveSectionId } = await import('../utils/activeSection.js');
+const { getActiveSectionId, getActiveSectionIds } = await import('../utils/activeSection.js');
 const { getAggregatedHistory } = await import('../utils/activityHistory.js');
 
 const SAMPLE_COURSE_1 = {
@@ -543,5 +543,61 @@ describe('Course Flow & State Management Integration Tests', () => {
     assert.equal(state.openSections['sec-1'], true);
     assert.equal(state.openSections['sec-2'], false);
     assert.equal(state.openSections['sec-3'], false);
+  });
+
+  it('19. Sections containing lectures in Today\'s Plan (with active yellow dot) are automatically expanded', () => {
+    const course = {
+      id: 'test-course-plan-expansion',
+      title: 'Plan Expansion Course',
+      sections: [
+        {
+          id: 'sec-1',
+          number: 1,
+          title: 'Section 1 (Complete)',
+          lectures: [{ id: 'l1' }, { id: 'l2' }],
+        },
+        {
+          id: 'sec-2',
+          number: 2,
+          title: 'Section 2 (In Progress)',
+          lectures: [{ id: 'l3' }, { id: 'l4' }, { id: 'l5' }],
+        },
+        {
+          id: 'sec-3',
+          number: 3,
+          title: 'Section 3 (Not Planned)',
+          lectures: [{ id: 'l6' }, { id: 'l7' }],
+        },
+        {
+          id: 'sec-4',
+          number: 4,
+          title: 'Section 4 (Project with Planned Lecture)',
+          lectures: [{ id: 'l8' }, { id: 'l9' }],
+        },
+        {
+          id: 'sec-5',
+          number: 5,
+          title: 'Section 5 (Not Planned)',
+          lectures: [{ id: 'l10' }],
+        },
+      ],
+    };
+
+    // User has completed Section 1 (l1, l2) and part of Section 2 (l3, l4)
+    const watchedSet = new Set(['l1', 'l2', 'l3', 'l4']);
+
+    // User marks lecture l5 (in Section 2) AND lecture l8 (in Section 4) for Today's Plan
+    const planSet = new Set(['l5', 'l8']);
+
+    const activeIds = getActiveSectionIds(course, watchedSet, planSet);
+
+    // Both Section 2 and Section 4 must be considered active because they contain today's planned lectures (yellow dot)
+    assert.ok(activeIds.includes('sec-2'), 'Section 2 must be active');
+    assert.ok(activeIds.includes('sec-4'), 'Section 4 must be active (has planned lecture with yellow dot)');
+
+    // Section 1 (complete, no planned lectures) and Section 3 & 5 (no planned lectures) must NOT be active
+    assert.ok(!activeIds.includes('sec-1'), 'Completed Section 1 without planned lectures must not be active');
+    assert.ok(!activeIds.includes('sec-3'), 'Section 3 without planned lectures must not be active');
+    assert.ok(!activeIds.includes('sec-5'), 'Section 5 without planned lectures must not be active');
   });
 });
