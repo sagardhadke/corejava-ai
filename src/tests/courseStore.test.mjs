@@ -457,4 +457,91 @@ describe('Course Flow & State Management Integration Tests', () => {
     assert.equal(day21.isPractice, true);
     assert.equal(day21.practiceNote, 'Solved algorithms');
   });
+
+  it('18. Only active section is automatically expanded, completed sections collapse when active section changes', () => {
+    const dummyCourse = {
+      id: 'test-course-expansion',
+      title: 'Expansion Test Course',
+      sections: [
+        {
+          id: 'sec-1',
+          number: 1,
+          title: 'Section 1',
+          lectures: [{ id: 'l1' }, { id: 'l2' }, { id: 'l3' }],
+        },
+        {
+          id: 'sec-2',
+          number: 2,
+          title: 'Section 2',
+          lectures: [{ id: 'l4' }, { id: 'l5' }],
+        },
+        {
+          id: 'sec-3',
+          number: 3,
+          title: 'Section 3',
+          lectures: [{ id: 'l6' }],
+        },
+      ],
+    };
+
+    function computeAutoOpenSections(course, watchedSet, prevActiveId = null, currentOpen = {}) {
+      const activeId = getActiveSectionId(course, watchedSet);
+      const next = { ...currentOpen };
+      if (Object.keys(currentOpen).length === 0) {
+        course.sections.forEach((s) => { next[s.id] = s.id === activeId; });
+        return { activeId, openSections: next };
+      }
+      if (prevActiveId && prevActiveId !== activeId) {
+        next[prevActiveId] = false;
+      }
+      course.sections.forEach((s) => {
+        if (s.id !== activeId) {
+          const isComplete = s.lectures && s.lectures.length > 0 && s.lectures.every((l) => watchedSet.has(l.id));
+          if (isComplete) next[s.id] = false;
+        }
+      });
+      if (activeId) next[activeId] = true;
+      return { activeId, openSections: next };
+    }
+
+    // Step 1: Initial load, no lectures watched -> only Section 1 is open
+    let state = computeAutoOpenSections(dummyCourse, new Set());
+    assert.equal(state.activeId, 'sec-1');
+    assert.equal(state.openSections['sec-1'], true);
+    assert.equal(state.openSections['sec-2'], false);
+    assert.equal(state.openSections['sec-3'], false);
+
+    // Step 2: Section 1 is partially watched (l1, l2) -> Section 1 still active and open
+    state = computeAutoOpenSections(dummyCourse, new Set(['l1', 'l2']), state.activeId, state.openSections);
+    assert.equal(state.activeId, 'sec-1');
+    assert.equal(state.openSections['sec-1'], true);
+    assert.equal(state.openSections['sec-2'], false);
+
+    // Step 3: Section 1 becomes fully watched (l1, l2, l3) -> Section 2 becomes active, Section 1 collapses
+    state = computeAutoOpenSections(dummyCourse, new Set(['l1', 'l2', 'l3']), state.activeId, state.openSections);
+    assert.equal(state.activeId, 'sec-2');
+    assert.equal(state.openSections['sec-1'], false);
+    assert.equal(state.openSections['sec-2'], true);
+    assert.equal(state.openSections['sec-3'], false);
+
+    // Step 4: Section 2 partially watched (l4) -> Section 2 still active, Section 1 remains collapsed
+    state = computeAutoOpenSections(dummyCourse, new Set(['l1', 'l2', 'l3', 'l4']), state.activeId, state.openSections);
+    assert.equal(state.activeId, 'sec-2');
+    assert.equal(state.openSections['sec-1'], false);
+    assert.equal(state.openSections['sec-2'], true);
+
+    // Step 5: Section 2 completed (l5) -> Section 3 becomes active, Section 2 collapses
+    state = computeAutoOpenSections(dummyCourse, new Set(['l1', 'l2', 'l3', 'l4', 'l5']), state.activeId, state.openSections);
+    assert.equal(state.activeId, 'sec-3');
+    assert.equal(state.openSections['sec-1'], false);
+    assert.equal(state.openSections['sec-2'], false);
+    assert.equal(state.openSections['sec-3'], true);
+
+    // Step 6: User unmarks l1 in Section 1 -> Section 1 becomes active again, Section 3 collapses
+    state = computeAutoOpenSections(dummyCourse, new Set(['l2', 'l3', 'l4', 'l5']), state.activeId, state.openSections);
+    assert.equal(state.activeId, 'sec-1');
+    assert.equal(state.openSections['sec-1'], true);
+    assert.equal(state.openSections['sec-2'], false);
+    assert.equal(state.openSections['sec-3'], false);
+  });
 });

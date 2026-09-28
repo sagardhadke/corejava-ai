@@ -49,10 +49,10 @@ export default function App() {
   } = useCourseProgress(course);
 
   const [query, setQuery] = useState('');
+  const activeSectionId = useMemo(() => getActiveSectionId(course, watchedSet), [course, watchedSet]);
   const [openSections, setOpenSections] = useState(() => {
-    const activeId = getActiveSectionId(course, watchedSet);
     const init = {};
-    course?.sections.forEach((s) => { init[s.id] = s.id === activeId; });
+    course?.sections.forEach((s) => { init[s.id] = s.id === activeSectionId; });
     return init;
   });
   const [calendarOpen, setCalendarOpen] = useState(false);
@@ -61,18 +61,49 @@ export default function App() {
   const [practiceModalDate, setPracticeModalDate] = useState(null);
   const [importOpen, setImportOpen] = useState(false);
 
-  // When the active course changes (switch, import, replace), reset which
-  // sections are open so the new course's active section starts expanded.
-  const prevCourseIdForSectionsRef = useRef(course?.id);
+  // Automatically keep only the active section expanded. When switching courses
+  // or when the active section changes (e.g. current section completes, moving
+  // to the next section, or lectures are unmarked), automatically expand the
+  // active section and collapse completed/inactive sections, while preserving
+  // any manual user expansion on other sections.
+  const prevCourseIdForSectionsRef = useRef(null);
+  const prevActiveSectionIdRef = useRef(null);
+
   useEffect(() => {
     if (!course) return;
-    if (prevCourseIdForSectionsRef.current === course.id) return;
-    prevCourseIdForSectionsRef.current = course.id;
-    const activeId = getActiveSectionId(course, watchedSet);
-    const init = {};
-    course.sections.forEach((s) => { init[s.id] = s.id === activeId; });
-    setOpenSections(init);
-  }, [course, watchedSet]);
+    const courseChanged = prevCourseIdForSectionsRef.current !== course.id;
+    const activeSectionChanged = prevActiveSectionIdRef.current !== activeSectionId;
+
+    if (courseChanged) {
+      prevCourseIdForSectionsRef.current = course.id;
+      prevActiveSectionIdRef.current = activeSectionId;
+      const init = {};
+      course.sections.forEach((s) => { init[s.id] = s.id === activeSectionId; });
+      setOpenSections(init);
+    } else if (activeSectionChanged) {
+      const prevActiveId = prevActiveSectionIdRef.current;
+      prevActiveSectionIdRef.current = activeSectionId;
+      setOpenSections((prev) => {
+        const next = { ...prev };
+        if (prevActiveId) {
+          next[prevActiveId] = false;
+        }
+        // Collapse any completed sections that are no longer active
+        course.sections.forEach((s) => {
+          if (s.id !== activeSectionId) {
+            const isSecComplete = s.lectures && s.lectures.length > 0 && s.lectures.every((l) => watchedSet.has(l.id));
+            if (isSecComplete) {
+              next[s.id] = false;
+            }
+          }
+        });
+        if (activeSectionId) {
+          next[activeSectionId] = true;
+        }
+        return next;
+      });
+    }
+  }, [course, activeSectionId, watchedSet]);
 
   const lectureNumbers = useMemo(() => {
     if (!course) return new Map();
