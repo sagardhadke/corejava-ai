@@ -5,62 +5,7 @@ import Drawer from './Drawer';
 import './CalendarPanel.css';
 
 const GITHUB_WEEKDAYS = ['', 'Mon', '', 'Wed', '', 'Fri', ''];
-
-function buildWeeksForYear(year, isCurrentYear) {
-  const weeks = [];
-  if (isCurrentYear) {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const endDow = today.getDay();
-    const gridEnd = new Date(today);
-    gridEnd.setDate(gridEnd.getDate() + (6 - endDow)); // Saturday of current week
-
-    const gridStart = new Date(gridEnd);
-    gridStart.setDate(gridStart.getDate() - (52 * 7 - 1)); // 52 weeks back
-
-    const cursor = new Date(gridStart);
-    for (let w = 0; w < 52; w++) {
-      const week = [];
-      for (let d = 0; d < 7; d++) {
-        week.push(new Date(cursor));
-        cursor.setDate(cursor.getDate() + 1);
-      }
-      weeks.push(week);
-    }
-  } else {
-    const jan1 = new Date(year, 0, 1);
-    const dec31 = new Date(year, 11, 31);
-    const startDow = jan1.getDay();
-    const gridStart = new Date(jan1);
-    gridStart.setDate(gridStart.getDate() - startDow);
-
-    const endDow = dec31.getDay();
-    const gridEnd = new Date(dec31);
-    gridEnd.setDate(gridEnd.getDate() + (6 - endDow));
-
-    const cursor = new Date(gridStart);
-    let safety = 0;
-    while (cursor <= gridEnd && safety < 60) {
-      safety++;
-      const week = [];
-      for (let d = 0; d < 7; d++) {
-        week.push(new Date(cursor));
-        cursor.setDate(cursor.getDate() + 1);
-      }
-      weeks.push(week);
-    }
-  }
-  return weeks;
-}
-
-function intensity(sec, targetSec) {
-  if (!sec) return 0;
-  const ratio = sec / targetSec;
-  if (ratio >= 1) return 4;
-  if (ratio >= 0.66) return 3;
-  if (ratio >= 0.33) return 2;
-  return 1;
-}
+import { buildWeeksForYear, intensity } from '../utils/calendarGrid';
 
 export default function CalendarPanel({
   open, onClose, history, streak, longestStreak, targetSec, streakMode,
@@ -243,17 +188,19 @@ export default function CalendarPanel({
                     } else {
                       title = `${day.toDateString()} · ${bucket ? formatDuration(bucket.watchedSec) + ' watched, ' + bucket.watchedCount + ' lecture(s)' : 'no activity'} (Click to inspect)`;
                     }
+                  } else {
+                    title = `${day.toDateString()} · Upcoming schedule (Click to inspect)`;
                   }
 
                   return (
                     <div
                       key={di}
-                      className={`cal-cell ${cellClass}${isToday ? ' cal-cell--today' : ''}${isSelected ? ' cal-cell--selected' : ''}${!isFuture ? ' cal-cell--clickable' : ''}`}
+                      className={`cal-cell ${cellClass}${isToday ? ' cal-cell--today' : ''}${isSelected ? ' cal-cell--selected' : ''} cal-cell--clickable`}
                       title={title}
-                      onClick={!isFuture ? () => setSelectedDateKey(key) : undefined}
-                      role={!isFuture ? 'button' : undefined}
-                      tabIndex={!isFuture ? 0 : undefined}
-                      aria-label={`${key}: ${bucket ? bucket.watchedCount + ' lectures watched' : 'no activity'}`}
+                      onClick={() => setSelectedDateKey(key)}
+                      role="button"
+                      tabIndex={0}
+                      aria-label={`${key}: ${isFuture ? 'upcoming date' : bucket ? bucket.watchedCount + ' lectures watched' : 'no activity'}`}
                     />
                   );
                 })}
@@ -272,13 +219,19 @@ export default function CalendarPanel({
             Learn how we count contributions
           </button>
           <div className="cal-legend">
-            <span>Less</span>
-            <div className="cal-cell lvl-0" />
-            <div className="cal-cell lvl-1" />
-            <div className="cal-cell lvl-2" />
-            <div className="cal-cell lvl-3" />
-            <div className="cal-cell lvl-4" />
-            <span>More</span>
+            <span className="cal-legend__label">Less</span>
+            <div className="cal-cell lvl-0" title="No activity" />
+            <div className="cal-cell lvl-1" title="Low activity" />
+            <div className="cal-cell lvl-2" title="Medium activity" />
+            <div className="cal-cell lvl-3" title="High activity" />
+            <div className="cal-cell lvl-4" title="Target met" />
+            <span className="cal-legend__label">More</span>
+            <span className="cal-legend__sep">·</span>
+            <div className="cal-cell lvl-practice" title="Practice day" />
+            <span className="cal-legend__label">Practice</span>
+            <span className="cal-legend__sep">·</span>
+            <div className="cal-cell lvl-future" title="Upcoming month ahead" />
+            <span className="cal-legend__label">Upcoming</span>
           </div>
         </div>
 
@@ -367,6 +320,13 @@ export default function CalendarPanel({
             <span className="cal-activity__practice-badge">PRACTICE DAY</span>
             <p className="cal-activity__practice-note">
               {selectedBucket.practiceNote || 'No notes entered for this practice day.'}
+            </p>
+          </div>
+        ) : isSelectedDateFuture ? (
+          <div className="cal-activity__empty">
+            <span className="cal-activity__future-badge">Upcoming Date</span>
+            <p className="cal-activity__empty-text">
+              This date is in the upcoming month. Lectures you watch or practice days you log will appear here once you reach this date.
             </p>
           </div>
         ) : isSelectedDateBeforeStart ? (
