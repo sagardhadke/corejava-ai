@@ -7,6 +7,7 @@
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
+  scroll-margin-top: calc(var(--header-h) + 16px);
 }
 
 .section-card--open { border-color: var(--border); }
@@ -85,9 +86,9 @@
 
 .section-card__mini-bar {
   display: none;
-  width: 70px;
-  height: 5px;
-  border-radius: 3px;
+  width: 90px;
+  height: 7px;
+  border-radius: 4px;
   background: var(--surface-3);
   overflow: hidden;
   flex-shrink: 0;
@@ -96,6 +97,7 @@
 .section-card__mini-bar span {
   display: block;
   height: 100%;
+  border-radius: 4px;
   background: linear-gradient(90deg, var(--amber-dim), var(--amber));
 }
 
