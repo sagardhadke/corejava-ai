@@ -3,9 +3,11 @@
   top: 0;
   z-index: 30;
   height: var(--header-h);
-  background: rgba(12, 13, 16, 0.88);
-  backdrop-filter: blur(10px);
+  background: rgba(12, 13, 16, 0.92);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--border-soft);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
 }
 
 .app-header__inner {
@@ -18,7 +20,10 @@
   justify-content: space-between;
   gap: 16px;
   min-width: 0;
+  position: relative;
 }
+
+/* ---- Brand & Title ---- */
 
 .brand {
   display: flex;
@@ -29,19 +34,32 @@
 }
 
 .brand__mark {
-  width: 36px;
-  height: 36px;
+  width: 38px;
+  height: 38px;
   flex-shrink: 0;
-  border-radius: var(--r-sm);
-  background: var(--surface-2);
-  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: linear-gradient(135deg, var(--surface-2) 0%, var(--surface-3) 100%);
+  border: 1px solid rgba(255, 184, 0, 0.25);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.05);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-family: var(--font-mono);
   color: var(--amber);
+  font-family: var(--font-mono);
   font-size: 13px;
   font-weight: 700;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.brand__mark:hover {
+  border-color: var(--amber);
+  box-shadow: 0 0 12px rgba(255, 184, 0, 0.3);
+  transform: translateY(-1px);
+}
+
+.brand__glyph {
+  display: inline-block;
+  line-height: 1;
 }
 
 .brand__text {
@@ -50,112 +68,95 @@
 }
 
 .brand__text h1 {
-  font-size: 16px;
+  font-size: 15.5px;
   font-weight: 700;
   color: var(--ink);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 320px;
+  max-width: min(520px, 42vw);
+  margin: 0;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
 }
-
-.course-switcher {
-  background: var(--surface-2);
-  border: 1px solid var(--border);
-  color: var(--ink);
-  font-size: 14px;
-  font-weight: 700;
-  font-family: var(--font-display);
-  border-radius: var(--r-sm);
-  padding: 5px 8px;
-  max-width: 260px;
-  cursor: pointer;
-}
-.course-switcher:hover { border-color: var(--amber-dim); }
 
 .brand__sub {
-  margin: 3px 0 0;
+  margin: 2px 0 0;
   font-size: 11px;
   color: var(--ink-faint);
   font-family: var(--font-mono);
   white-space: nowrap;
+  letter-spacing: 0.02em;
 }
+
+/* ---- Header Center: Clock & Mini Progress Bar ---- */
 
 .header-mid {
   display: flex;
   align-items: center;
-  gap: 18px;
-  flex: 1;
+  gap: 12px;
+  flex: 0 1 auto;
   justify-content: center;
   min-width: 0;
 }
 
 .clock {
   font-family: var(--font-mono);
-  font-size: 12.5px;
-  color: var(--ink-soft);
+  font-size: 12px;
+  color: var(--ink-faint);
   white-space: nowrap;
-  letter-spacing: 0.01em;
+  letter-spacing: 0.02em;
   font-variant-numeric: tabular-nums;
+  background: var(--surface-2);
+  border: 1px solid var(--border-soft);
+  padding: 5px 9px;
+  border-radius: var(--r-sm);
 }
 
 .mini-progress {
-  display: none;
+  display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  padding: 5px 12px;
+  border-radius: 999px;
+  transition: all 0.18s ease;
+  user-select: none;
+}
+
+.mini-progress:hover {
+  border-color: var(--amber-dim);
+  background: var(--surface-3);
 }
 
 .mini-progress__bar {
-  width: 120px;
-  height: 6px;
-  border-radius: 3px;
+  width: 140px;
+  height: 7px;
+  border-radius: 4px;
   background: var(--surface-3);
   overflow: hidden;
   border: 1px solid var(--border-soft);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.4);
 }
 
 .mini-progress__bar > div {
   height: 100%;
-  background: linear-gradient(90deg, var(--amber-dim), var(--amber));
+  border-radius: 4px;
+  background: linear-gradient(90deg, #d97706 0%, #ffb800 65%, #ffd54a 100%);
+  box-shadow: 0 0 6px rgba(255, 184, 0, 0.45);
   transition: width 0.4s ease;
 }
 
 .mini-progress__label {
   font-family: var(--font-mono);
-  font-size: 11.5px;
-  color: var(--amber);
-  font-weight: 600;
+  font-size: 12px;
+  color: var(--amber-bright);
+  font-weight: 700;
+  letter-spacing: 0.02em;
 }
 
-@media (min-width: 860px) {
-  .mini-progress { display: flex; }
-}
-
-@media (max-width: 860px) {
-  .header-mid { display: none; }
-}
-
-@media (max-width: 600px) {
-  .app-header__inner {
-    padding: 0 12px;
-    gap: 8px;
-  }
-  .brand {
-    gap: 8px;
-  }
-  .brand__mark {
-    width: 32px;
-    height: 32px;
-    font-size: 11.5px;
-  }
-  .brand__sub {
-    display: none;
-  }
-  .brand__text h1 {
-    font-size: 13.5px;
-    max-width: 180px;
-  }
-}
+/* ---- Header Right: Actions & Badges ---- */
 
 .header-actions {
   display: flex;
@@ -164,30 +165,184 @@
   flex-shrink: 0;
 }
 
+.mobile-pct-badge {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--amber);
+  background: var(--amber-wash);
+  border: 1px solid rgba(255, 184, 0, 0.3);
+  padding: 0 9px;
+  height: 36px;
+  border-radius: var(--r-sm);
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
 .icon-btn {
   display: flex;
   align-items: center;
-  gap: 6px;
+  justify-content: center;
+  gap: 7px;
   height: 36px;
-  padding: 0 10px;
+  min-width: 36px;
+  padding: 0 11px;
   border-radius: var(--r-sm);
   background: var(--surface-2);
   border: 1px solid var(--border);
   color: var(--ink-soft);
   cursor: pointer;
-  transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
+  transition: all 0.16s ease;
+  user-select: none;
+  box-sizing: border-box;
 }
 
 .icon-btn:hover {
   border-color: var(--amber-dim);
-  color: var(--amber);
+  color: var(--ink);
   background: var(--surface-3);
+  transform: translateY(-1px);
 }
 
-.streak-btn { color: var(--amber); }
+.icon-btn:active {
+  transform: translateY(0);
+}
+
+.streak-btn {
+  color: var(--amber);
+  background: linear-gradient(135deg, rgba(255, 184, 0, 0.14) 0%, rgba(25, 28, 34, 0.95) 100%);
+  border-color: rgba(255, 184, 0, 0.3);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+}
+
+.streak-btn:hover {
+  border-color: var(--amber);
+  background: linear-gradient(135deg, rgba(255, 184, 0, 0.22) 0%, rgba(33, 37, 45, 1) 100%);
+  box-shadow: 0 0 12px rgba(255, 184, 0, 0.25);
+}
 
 .streak-count {
   font-family: var(--font-mono);
   font-size: 13px;
   font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+/* ---- Bottom Horizontal Progress Bar (Full Header Width) ---- */
+
+.header-progress-track {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 2.5px;
+  background: rgba(255, 255, 255, 0.04);
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.header-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #d97706 0%, #f59e0b 45%, #ffb800 80%, #ffd54a 100%);
+  box-shadow: 0 0 8px rgba(255, 184, 0, 0.6), 0 0 2px #ffb800;
+  transition: width 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* ---- Responsive Breakpoints ---- */
+
+/* Tablet (641px to 940px) */
+@media (max-width: 940px) {
+  .clock {
+    display: none;
+  }
+  .mini-progress__bar {
+    width: 100px;
+  }
+  .brand__text h1 {
+    max-width: min(340px, 35vw);
+    font-size: 14.5px;
+  }
+}
+
+/* Narrow Tablet & Large Mobile (601px to 768px) */
+@media (max-width: 768px) {
+  .mini-progress {
+    padding: 4px 9px;
+    gap: 8px;
+  }
+  .mini-progress__bar {
+    width: 80px;
+  }
+}
+
+/* Mobile (< 640px) */
+@media (max-width: 640px) {
+  .header-mid {
+    display: none;
+  }
+  .mobile-pct-badge {
+    display: inline-flex;
+  }
+  .app-header__inner {
+    padding: 0 12px;
+    gap: 8px;
+  }
+  .brand {
+    gap: 8px;
+    min-width: 0;
+    flex: 1 1 auto;
+  }
+  .brand__mark {
+    width: 34px;
+    height: 34px;
+    font-size: 11.5px;
+    border-radius: var(--r-sm);
+  }
+  .brand__sub {
+    display: none;
+  }
+  .brand__text h1 {
+    font-size: 13.5px;
+    max-width: min(190px, 42vw);
+  }
+  .header-actions {
+    gap: 6px;
+  }
+  .icon-btn {
+    height: 34px;
+    padding: 0 9px;
+  }
+  .mobile-pct-badge {
+    height: 34px;
+    padding: 0 7px;
+    font-size: 11px;
+  }
+}
+
+/* Tiny Mobile (< 380px) */
+@media (max-width: 380px) {
+  .app-header__inner {
+    padding: 0 8px;
+    gap: 6px;
+  }
+  .brand__text h1 {
+    font-size: 12.5px;
+    max-width: min(130px, 36vw);
+  }
+  .icon-btn {
+    height: 32px;
+    padding: 0 6px;
+    gap: 4px;
+  }
+  .mobile-pct-badge {
+    height: 32px;
+    padding: 0 5px;
+    font-size: 10px;
+  }
+  .streak-count {
+    font-size: 11.5px;
+  }
 }
