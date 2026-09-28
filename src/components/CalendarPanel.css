@@ -145,36 +145,77 @@
   width: 11px;
   height: 11px;
   border-radius: 2px;
-  background: #161b22;
+  background: #181b21;
   border: 1px solid rgba(255, 255, 255, 0.04);
   box-sizing: border-box;
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
 }
 
 .cal-cell--today {
-  box-shadow: 0 0 0 1.5px var(--amber-bright);
+  box-shadow: 0 0 0 1.5px var(--amber-bright), 0 0 8px rgba(255, 213, 74, 0.5);
+  position: relative;
+  z-index: 2;
 }
 
 .cal-cell--selected {
   outline: 2px solid var(--amber) !important;
   outline-offset: 1px;
-  z-index: 2;
+  z-index: 3;
 }
 
 .cal-cell--clickable {
   cursor: pointer;
 }
 .cal-cell--clickable:hover {
-  box-shadow: 0 0 0 1.5px var(--ink-soft);
+  box-shadow: 0 0 0 1.5px var(--amber-bright);
+  transform: scale(1.2);
+  z-index: 4;
 }
 
-/* GitHub Intensity Levels */
-.lvl-0 { background: #161b22; }
-.lvl-1 { background: #0e4429; border-color: #0e4429; }
-.lvl-2 { background: #006d32; border-color: #006d32; }
-.lvl-3 { background: #26a641; border-color: #26a641; }
-.lvl-4 { background: #39d353; border-color: #39d353; }
-.lvl-future { background: transparent; border-color: transparent; }
-.lvl-practice { background: #388bfd; border-color: #388bfd; }
+/* Theme Intensity Levels (Amber / Gold theme) */
+.lvl-0 {
+  background: #181b21;
+  border-color: #232730;
+}
+
+.lvl-1 {
+  background: rgba(255, 184, 0, 0.24);
+  border-color: rgba(255, 184, 0, 0.38);
+}
+
+.lvl-2 {
+  background: rgba(255, 184, 0, 0.52);
+  border-color: rgba(255, 184, 0, 0.68);
+  box-shadow: 0 0 3px rgba(255, 184, 0, 0.25);
+}
+
+.lvl-3 {
+  background: #f59e0b;
+  border-color: #fbbf24;
+  box-shadow: 0 0 5px rgba(245, 158, 11, 0.45);
+}
+
+.lvl-4 {
+  background: #ffd54a;
+  border-color: #ffe685;
+  box-shadow: 0 0 8px rgba(255, 213, 74, 0.65);
+}
+
+.lvl-future {
+  background: rgba(255, 184, 0, 0.03);
+  border: 1px dashed rgba(255, 184, 0, 0.22);
+  border-radius: 2px;
+}
+.lvl-future:hover {
+  background: rgba(255, 184, 0, 0.08);
+  border-color: rgba(255, 184, 0, 0.4);
+}
+
+.lvl-practice {
+  background: #6366f1;
+  border-color: #818cf8;
+  box-shadow: 0 0 6px rgba(99, 102, 241, 0.45);
+}
 
 /* Calendar Footer */
 .cal-footer {
@@ -211,6 +252,16 @@
   gap: 4px;
   font-size: 10.5px;
   color: var(--ink-faint);
+  flex-wrap: wrap;
+}
+.cal-legend__label {
+  font-size: 10px;
+  color: var(--ink-faint);
+  font-family: var(--font-mono);
+}
+.cal-legend__sep {
+  margin: 0 3px;
+  color: var(--border);
 }
 .cal-legend .cal-cell {
   width: 11px;
@@ -488,6 +539,21 @@
   margin: 0 0 10px;
   font-size: 12px;
   color: var(--ink-faint);
+}
+
+.cal-activity__future-badge {
+  display: inline-block;
+  font-size: 9.5px;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--amber);
+  background: var(--amber-wash);
+  border: 1px solid rgba(255, 184, 0, 0.25);
+  padding: 2px 7px;
+  border-radius: 3px;
+  margin-bottom: 8px;
 }
 
 .cal-activity__before-start-badge {

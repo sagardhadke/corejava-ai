@@ -46,6 +46,7 @@ const {
 
 const { getActiveSectionId, getActiveSectionIds } = await import('../utils/activeSection.js');
 const { getAggregatedHistory } = await import('../utils/activityHistory.js');
+const { buildWeeksForYear, intensity } = await import('../utils/calendarGrid.js');
 
 const SAMPLE_COURSE_1 = {
   id: 'course-python-ai-101',
@@ -599,5 +600,29 @@ describe('Course Flow & State Management Integration Tests', () => {
     assert.ok(!activeIds.includes('sec-1'), 'Completed Section 1 without planned lectures must not be active');
     assert.ok(!activeIds.includes('sec-3'), 'Section 3 without planned lectures must not be active');
     assert.ok(!activeIds.includes('sec-5'), 'Section 5 without planned lectures must not be active');
+  });
+
+  it('20. Calendar shows 1 additional month ahead in current year and accurate intensity levels', () => {
+    const currentYear = new Date().getFullYear();
+    const weeks = buildWeeksForYear(currentYear, true);
+
+    // 52 past weeks + ~4-5 weeks of 1 additional month ahead
+    assert.ok(weeks.length >= 56, `Expected at least 56 weeks, got ${weeks.length}`);
+
+    // Verify last day of calendar is at least 25 days in the future
+    const lastWeek = weeks[weeks.length - 1];
+    const lastDay = lastWeek[6];
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const diffDays = Math.round((lastDay - today) / (1000 * 60 * 60 * 24));
+    assert.ok(diffDays >= 25, `Expected calendar to extend roughly 1 month into future, got ${diffDays} days`);
+
+    // Verify heatmap intensity calculation
+    assert.equal(intensity(0, 3600), 0);
+    assert.equal(intensity(600, 3600), 1);
+    assert.equal(intensity(1500, 3600), 2);
+    assert.equal(intensity(2700, 3600), 3);
+    assert.equal(intensity(3600, 3600), 4);
+    assert.equal(intensity(7200, 3600), 4);
   });
 });
