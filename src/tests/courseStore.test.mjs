@@ -47,6 +47,7 @@ const {
 const { getActiveSectionId, getActiveSectionIds } = await import('../utils/activeSection.js');
 const { getAggregatedHistory } = await import('../utils/activityHistory.js');
 const { buildWeeksForYear, intensity } = await import('../utils/calendarGrid.js');
+const { DEFAULT_MOTIVATION_MESSAGES, pickDefaultMotivation } = await import('../utils/motivation.js');
 
 const SAMPLE_COURSE_1 = {
   id: 'course-python-ai-101',
@@ -624,5 +625,18 @@ describe('Course Flow & State Management Integration Tests', () => {
     assert.equal(intensity(2700, 3600), 3);
     assert.equal(intensity(3600, 3600), 4);
     assert.equal(intensity(7200, 3600), 4);
+  });
+
+  it('21. Default motivation provides 10 curated messages and rotates deterministically', () => {
+    assert.equal(DEFAULT_MOTIVATION_MESSAGES.length, 10, 'Must have exactly 10 curated motivation messages');
+    DEFAULT_MOTIVATION_MESSAGES.forEach((msg, idx) => {
+      assert.ok(typeof msg === 'string' && msg.length > 20, `Message ${idx} must be a substantial encouraging string`);
+    });
+
+    // Verify pickDefaultMotivation returns valid message
+    const msg1 = pickDefaultMotivation(0, '2026-09-29');
+    const msg2 = pickDefaultMotivation(1, '2026-09-30');
+    assert.ok(DEFAULT_MOTIVATION_MESSAGES.includes(msg1));
+    assert.ok(DEFAULT_MOTIVATION_MESSAGES.includes(msg2));
   });
 });
