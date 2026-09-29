@@ -223,7 +223,9 @@ export default function SettingsPanel({
       <section className="settings-section">
         <h3>Daily motivation popup</h3>
         <p className="settings-help">
-          Add an OpenAI API key in Settings for a fresh AI-written message each day. If left blank, the tracker automatically displays one of 10 curated daily motivational messages. Your key is stored only in this browser and sent directly to OpenAI.
+          {apiKey?.trim()
+            ? '✓ OpenAI API key is active. A fresh AI-written message will be generated daily.'
+            : 'Enter an OpenAI API key below for fresh AI-written messages each day, or leave blank to use the 10 built-in messages.'}
         </p>
         <input
           type="password"
