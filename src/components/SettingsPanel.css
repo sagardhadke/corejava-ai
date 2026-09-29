@@ -3,25 +3,6 @@
    Dark Amber/Gold Design System with Live API Key Verification & Modern Controls
    ========================================================================== */
 
-/* Drawer sizing */
-.drawer.settings-drawer {
-  max-width: 520px;
-  width: 100%;
-  min-width: 0;
-}
-
-@media (min-width: 1400px) {
-  .drawer.settings-drawer {
-    max-width: 560px;
-  }
-}
-
-@media (max-width: 540px) {
-  .drawer.settings-drawer {
-    max-width: 100%;
-    width: 100%;
-  }
-}
 
 .settings-section {
   margin-bottom: 24px;
