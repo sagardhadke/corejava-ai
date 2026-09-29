@@ -91,19 +91,28 @@ export default function CalendarPanel({
   const isTodayBeforeStart = !!(startDate && todayKey < startDate);
 
   return (
-    <Drawer open={open} onClose={onClose} title="Activity & Streak" side="right">
+    <Drawer open={open} onClose={onClose} title="Activity & Streak" side="right" className="cal-drawer">
       <div className="cal-summary">
-        <div className="cal-stat">
-          <div className="cal-stat__value cal-stat__value--fire">{streak}</div>
-          <div className="cal-stat__label">current streak</div>
+        <div className="cal-stat cal-stat--current">
+          <div className="cal-stat__icon">🔥</div>
+          <div className="cal-stat__data">
+            <div className="cal-stat__value cal-stat__value--fire">{streak}</div>
+            <div className="cal-stat__label">Current Streak</div>
+          </div>
         </div>
         <div className="cal-stat">
-          <div className="cal-stat__value">{longestStreak}</div>
-          <div className="cal-stat__label">longest streak</div>
+          <div className="cal-stat__icon">🏆</div>
+          <div className="cal-stat__data">
+            <div className="cal-stat__value">{longestStreak}</div>
+            <div className="cal-stat__label">Longest Streak</div>
+          </div>
         </div>
         <div className="cal-stat">
-          <div className="cal-stat__value">{totalActiveDays}</div>
-          <div className="cal-stat__label">active days</div>
+          <div className="cal-stat__icon">📅</div>
+          <div className="cal-stat__data">
+            <div className="cal-stat__value">{totalActiveDays}</div>
+            <div className="cal-stat__label">Active Days</div>
+          </div>
         </div>
       </div>
 
@@ -338,15 +347,18 @@ export default function CalendarPanel({
           </div>
         ) : (
           <div className="cal-activity__empty">
-            <p className="cal-activity__empty-text">No lecture activity recorded on this day.</p>
-            {isSelectedDateMissed && (
+            <div className="cal-activity__empty-icon">☕</div>
+            <p className="cal-activity__empty-text">No lecture activity recorded for this day.</p>
+            {isSelectedDateMissed ? (
               <button
                 className="cal-activity__add-practice-btn"
                 onClick={() => onOpenPracticeModalForDate(selectedDateObj)}
               >
                 <PencilIcon /> Mark as practice day retroactively
               </button>
-            )}
+            ) : selectedDateKey === todayKey ? (
+              <p className="cal-activity__empty-hint">Complete a lecture from today's plan to build your streak!</p>
+            ) : null}
           </div>
         )}
       </div>

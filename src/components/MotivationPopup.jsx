@@ -54,7 +54,7 @@ export default function MotivationPopup({ today, stats, streak, courseTitle }) {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    const alreadyShown = getShownDate() === today;
+    const alreadyShown = getShownDate() === today || (typeof window !== 'undefined' && window.location.search.includes('nomodal'));
     if (alreadyShown) return;
 
     let cancelled = false;

@@ -61,8 +61,17 @@ export default function App() {
     course?.sections.forEach((s) => { init[s.id] = activeSet.has(s.id); });
     return init;
   });
-  const [calendarOpen, setCalendarOpen] = useState(false);
-  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [calendarOpen, setCalendarOpen] = useState(() => typeof window !== 'undefined' && window.location.hash === '#calendar');
+  const [settingsOpen, setSettingsOpen] = useState(() => typeof window !== 'undefined' && window.location.hash === '#settings');
+
+  useEffect(() => {
+    const handleHash = () => {
+      if (window.location.hash === '#calendar') setCalendarOpen(true);
+      if (window.location.hash === '#settings') setSettingsOpen(true);
+    };
+    window.addEventListener('hashchange', handleHash);
+    return () => window.removeEventListener('hashchange', handleHash);
+  }, []);
   const [practiceModalOpen, setPracticeModalOpen] = useState(false);
   const [practiceModalDate, setPracticeModalDate] = useState(null);
   const [importOpen, setImportOpen] = useState(false);
