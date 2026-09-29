@@ -3,25 +3,6 @@
    Matches the Dark Amber/Gold Theme with GitHub-style Contribution Calendar
    ========================================================================== */
 
-/* Expand drawer width on desktop so the calendar grid and stats have room */
-.drawer.cal-drawer {
-  max-width: 580px;
-  width: 100%;
-  min-width: 0;
-}
-
-@media (min-width: 1400px) {
-  .drawer.cal-drawer {
-    max-width: 620px;
-  }
-}
-
-@media (max-width: 540px) {
-  .drawer.cal-drawer {
-    max-width: 100%;
-    width: 100%;
-  }
-}
 
 /* ---- Stat Summary Cards ---- */
 .cal-summary {
@@ -35,10 +16,13 @@
   background: linear-gradient(145deg, var(--surface-2) 0%, rgba(25, 28, 34, 0.75) 100%);
   border: 1px solid var(--border);
   border-radius: var(--r-md);
-  padding: 12px 14px;
+  padding: 10px 6px;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 11px;
+  justify-content: center;
+  text-align: center;
+  gap: 3px;
   min-width: 0;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
   transition: border-color 0.15s ease, transform 0.15s ease;
@@ -59,7 +43,8 @@
 }
 
 .cal-stat__icon {
-  font-size: 22px;
+  font-size: 18px;
+  line-height: 1;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -69,12 +54,15 @@
 
 .cal-stat__data {
   min-width: 0;
-  flex: 1;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 .cal-stat__value {
   font-family: var(--font-mono);
-  font-size: 22px;
+  font-size: 20px;
   font-weight: 700;
   color: var(--ink);
   line-height: 1.1;
@@ -87,14 +75,12 @@
 
 .cal-stat__label {
   margin-top: 3px;
-  font-size: 10px;
+  font-size: 9.5px;
   color: var(--ink-faint);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.04em;
   font-weight: 600;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 /* ---- Practice Day CTA ---- */
