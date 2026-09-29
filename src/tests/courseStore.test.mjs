@@ -48,6 +48,7 @@ const { getActiveSectionId, getActiveSectionIds } = await import('../utils/activ
 const { getAggregatedHistory } = await import('../utils/activityHistory.js');
 const { buildWeeksForYear, intensity } = await import('../utils/calendarGrid.js');
 const { DEFAULT_MOTIVATION_MESSAGES, pickDefaultMotivation } = await import('../utils/motivation.js');
+const { verifyOpenAiApiKey } = await import('../utils/apiKey.js');
 
 const SAMPLE_COURSE_1 = {
   id: 'course-python-ai-101',
@@ -639,4 +640,57 @@ describe('Course Flow & State Management Integration Tests', () => {
     assert.ok(DEFAULT_MOTIVATION_MESSAGES.includes(msg1));
     assert.ok(DEFAULT_MOTIVATION_MESSAGES.includes(msg2));
   });
+
+  it('22. OpenAI API key verification handles validation, timeouts, and response states', async () => {
+    // 1. Empty or missing key
+    const emptyRes = await verifyOpenAiApiKey('');
+    assert.equal(emptyRes.ok, false);
+    assert.ok(emptyRes.error.includes('Please enter'));
+
+    const nullRes = await verifyOpenAiApiKey(null);
+    assert.equal(nullRes.ok, false);
+
+    // 2. Invalid key prefix (not starting with sk-)
+    const invalidPrefix = await verifyOpenAiApiKey('invalid-token-12345');
+    assert.equal(invalidPrefix.ok, false);
+    assert.ok(invalidPrefix.error.includes('start with "sk-"'));
+
+    // 3. Mock fetch to test 200, 401, 429
+    const originalFetch = globalThis.fetch;
+    try {
+      // Test 200 OK
+      globalThis.fetch = async () => ({
+        status: 200,
+        json: async () => ({ data: [{ id: 'gpt-4o' }, { id: 'gpt-4o-mini' }] }),
+      });
+      const okRes = await verifyOpenAiApiKey('sk-validtest1234567890abcdef');
+      assert.equal(okRes.ok, true);
+      assert.equal(okRes.status, 200);
+      assert.ok(okRes.message.includes('verified and working'));
+      assert.ok(okRes.message.includes('2 models active'));
+
+      // Test 401 Unauthorized
+      globalThis.fetch = async () => ({
+        status: 401,
+        json: async () => ({ error: { message: 'Incorrect API key provided' } }),
+      });
+      const unauthRes = await verifyOpenAiApiKey('sk-revoked1234567890abcdef');
+      assert.equal(unauthRes.ok, false);
+      assert.equal(unauthRes.status, 401);
+      assert.ok(unauthRes.error.includes('invalid, expired, or was revoked'));
+
+      // Test 429 Quota Exceeded
+      globalThis.fetch = async () => ({
+        status: 429,
+        json: async () => ({ error: { message: 'Rate limit or quota exceeded' } }),
+      });
+      const quotaRes = await verifyOpenAiApiKey('sk-overquota1234567890abcdef');
+      assert.equal(quotaRes.ok, false);
+      assert.equal(quotaRes.status, 429);
+      assert.ok(quotaRes.error.includes('Quota exceeded'));
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
 });
+

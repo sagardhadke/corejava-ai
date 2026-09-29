@@ -4,7 +4,7 @@ import MemoryManagement from './MemoryManagement';
 import BackupRestore from './BackupRestore';
 import DeleteConfirmModal from './DeleteConfirmModal';
 import CourseSelector from './CourseSelector';
-import { getStoredApiKey, setStoredApiKey } from '../utils/apiKey';
+import { getStoredApiKey, setStoredApiKey, verifyOpenAiApiKey } from '../utils/apiKey';
 import { formatDuration } from '../utils/time';
 import './SettingsPanel.css';
 
@@ -23,22 +23,50 @@ export default function SettingsPanel({
   isStartDateManual, onResetStartDateToAuto,
 }) {
   const [apiKey, setApiKey] = useState(() => getStoredApiKey());
+  const [showKey, setShowKey] = useState(false);
+  const [testStatus, setTestStatus] = useState(null);
+  const [saved, setSaved] = useState(false);
+  const [deleteEverythingOpen, setDeleteEverythingOpen] = useState(false);
+  const [resetProgressOpen, setResetProgressOpen] = useState(false);
+
   const [prevOpen, setPrevOpen] = useState(open);
   if (open !== prevOpen) {
     setPrevOpen(open);
     if (open) {
       setApiKey(getStoredApiKey());
+      setTestStatus(null);
     }
   }
-
-  const [saved, setSaved] = useState(false);
-  const [deleteEverythingOpen, setDeleteEverythingOpen] = useState(false);
-  const [resetProgressOpen, setResetProgressOpen] = useState(false);
 
   const handleSaveKey = () => {
     setStoredApiKey(apiKey.trim());
     setSaved(true);
     setTimeout(() => setSaved(false), 1800);
+  };
+
+  const handleClearKey = () => {
+    setApiKey('');
+    setStoredApiKey('');
+    setTestStatus(null);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 1800);
+  };
+
+  const handleTestKey = async () => {
+    if (!apiKey.trim()) return;
+    setTestStatus({ loading: true });
+    const result = await verifyOpenAiApiKey(apiKey.trim());
+    setTestStatus({
+      loading: false,
+      ok: result.ok,
+      message: result.message,
+      error: result.error,
+    });
+    if (result.ok) {
+      setStoredApiKey(apiKey.trim());
+      setSaved(true);
+      setTimeout(() => setSaved(false), 1800);
+    }
   };
 
   const handleDeleteEverything = () => {
@@ -80,7 +108,7 @@ export default function SettingsPanel({
   }, [course, stats, settings.dailyTargetHours, startDate]);
 
   return (
-    <Drawer open={open} onClose={onClose} title="Settings" side="right">
+    <Drawer open={open} onClose={onClose} title="Settings" side="right" className="settings-drawer">
       <section className="settings-section">
         <h3>Active / default course</h3>
         <p className="settings-help">
@@ -221,30 +249,115 @@ export default function SettingsPanel({
       </section>
 
       <section className="settings-section">
-        <h3>Daily motivation popup</h3>
+        <div className="settings-section__head">
+          <h3>Daily motivation popup</h3>
+          {apiKey?.trim() ? (
+            <span className="api-status-badge api-status-badge--active">
+              <span className="api-status-badge__dot" /> OpenAI Active
+            </span>
+          ) : (
+            <span className="api-status-badge api-status-badge--default">
+              Curated (10)
+            </span>
+          )}
+        </div>
+
         <p className="settings-help">
           {apiKey?.trim()
             ? '✓ OpenAI API key is active. A fresh AI-written message will be generated daily.'
             : 'Enter an OpenAI API key below for fresh AI-written messages each day, or leave blank to use the 10 built-in messages.'}
         </p>
-        <input
-          type="password"
-          className="api-key-input"
-          placeholder="sk-..."
-          value={apiKey}
-          onChange={(e) => {
-            const val = e.target.value;
-            setApiKey(val);
-            setStoredApiKey(val.trim());
-          }}
-          onBlur={(e) => {
-            setStoredApiKey(e.target.value.trim());
-          }}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') handleSaveKey();
-          }}
-        />
-        <button className="save-key-btn" onClick={handleSaveKey}>{saved ? 'Saved ✓' : 'Save API key'}</button>
+
+        <div className="api-key-box">
+          <div className="api-key-input-wrap">
+            <span className="api-key-icon" aria-hidden="true"><KeyIcon /></span>
+            <input
+              type={showKey ? 'text' : 'password'}
+              className="api-key-input"
+              placeholder="sk-proj-..."
+              value={apiKey}
+              onChange={(e) => {
+                const val = e.target.value;
+                setApiKey(val);
+                setStoredApiKey(val.trim());
+                setTestStatus(null);
+              }}
+              onBlur={(e) => {
+                setStoredApiKey(e.target.value.trim());
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleSaveKey();
+              }}
+              spellCheck={false}
+              autoComplete="off"
+            />
+            {apiKey && (
+              <button
+                type="button"
+                className="api-key-icon-btn"
+                onClick={() => setShowKey((v) => !v)}
+                title={showKey ? 'Hide key' : 'Show key'}
+                aria-label={showKey ? 'Hide key' : 'Show key'}
+              >
+                {showKey ? <EyeOffIcon /> : <EyeIcon />}
+              </button>
+            )}
+            {apiKey && (
+              <button
+                type="button"
+                className="api-key-icon-btn"
+                onClick={handleClearKey}
+                title="Clear key"
+                aria-label="Clear key"
+              >
+                ✕
+              </button>
+            )}
+          </div>
+
+          <div className="api-key-actions">
+            <button
+              type="button"
+              className="api-btn api-btn--test"
+              onClick={handleTestKey}
+              disabled={!apiKey.trim() || testStatus?.loading}
+            >
+              {testStatus?.loading ? (
+                <>
+                  <span className="api-btn__spinner" /> Testing connection...
+                </>
+              ) : (
+                <>
+                  <LightningIcon /> Test API key
+                </>
+              )}
+            </button>
+            <button
+              type="button"
+              className="api-btn api-btn--save"
+              onClick={handleSaveKey}
+              disabled={testStatus?.loading}
+            >
+              {saved ? 'Saved ✓' : 'Save key'}
+            </button>
+          </div>
+
+          {testStatus && !testStatus.loading && (
+            <div className={`api-test-result ${testStatus.ok ? 'api-test-result--success' : 'api-test-result--error'}`}>
+              <div className="api-test-result__icon">
+                {testStatus.ok ? '✓' : '✕'}
+              </div>
+              <div className="api-test-result__content">
+                <div className="api-test-result__title">
+                  {testStatus.ok ? 'API Key Valid & Connected' : 'Verification Failed'}
+                </div>
+                <div className="api-test-result__desc">
+                  {testStatus.ok ? testStatus.message : testStatus.error}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
       </section>
 
       <section className="settings-section">
@@ -331,6 +444,40 @@ function InfoIcon() {
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
       <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.8" />
       <path d="M12 16v-4m0-4h.01" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function KeyIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M21 2l-2 2m-1.5 1.5L14 9l-1.5-1.5L11 9l1.5 1.5L11 12l-1.5-1.5L8 12l1.5 1.5-4.24 4.24a5 5 0 1 1-1.41-1.41L8 12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function EyeIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.8" />
+    </svg>
+  );
+}
+
+function EyeOffIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+      <line x1="1" y1="1" x2="23" y2="23" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function LightningIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" fill="rgba(255, 184, 0, 0.25)" />
     </svg>
   );
 }
