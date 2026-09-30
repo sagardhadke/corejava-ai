@@ -691,13 +691,13 @@ describe('Course Flow & State Management Integration Tests', () => {
     }
   });
 
-  it('23. Per-section progress display setting defaults to 10 and clamps correctly between 5 and 10', () => {
-    // 1. Verify default visible count is 10
-    const defaultVisibleCount = 10;
-    assert.equal(defaultVisibleCount, 10, 'Default visible section count must be 10');
+  it('23. Per-section progress display setting defaults to 7 and clamps correctly between 5 and 10', () => {
+    // 1. Verify default visible count is 7
+    const defaultVisibleCount = 7;
+    assert.equal(defaultVisibleCount, 7, 'Default visible section count must be 7');
 
     // 2. Test clamping logic used by component
-    const clampVisibleCount = (count) => Math.max(5, Math.min(10, count || 10));
+    const clampVisibleCount = (count) => Math.max(5, Math.min(10, count || 7));
     assert.equal(clampVisibleCount(10), 10);
     assert.equal(clampVisibleCount(9), 9);
     assert.equal(clampVisibleCount(8), 8);
@@ -706,7 +706,7 @@ describe('Course Flow & State Management Integration Tests', () => {
     assert.equal(clampVisibleCount(5), 5);
     assert.equal(clampVisibleCount(15), 10, 'Values over 10 must clamp to 10');
     assert.equal(clampVisibleCount(2), 5, 'Values under 5 must clamp to 5');
-    assert.equal(clampVisibleCount(undefined), 10, 'Undefined values must default to 10');
+    assert.equal(clampVisibleCount(undefined), 7, 'Undefined values must default to 7');
 
     // 3. Test auto-adjustment when course has fewer sections than configured limit
     const getEffectiveCount = (configured, sectionCount) => {

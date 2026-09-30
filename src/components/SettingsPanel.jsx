@@ -16,12 +16,12 @@ const TARGET_PRESETS = [
 ];
 
 const PER_SECTION_OPTIONS = [
-  { value: 10, label: '10 items', tag: 'Default · Max', desc: 'Expanded view showing 10 sections before scrolling' },
+  { value: 10, label: '10 items', tag: 'Max', desc: 'Expanded view showing 10 sections before scrolling' },
   { value: 9, label: '9 items', tag: 'Tall', desc: 'Shows 9 sections before scrolling' },
   { value: 8, label: '8 items', tag: 'Balanced', desc: 'Shows 8 sections before scrolling' },
-  { value: 7, label: '7 items', tag: 'Medium', desc: 'Shows 7 sections before scrolling' },
+  { value: 7, label: '7 items', tag: 'Default · Medium', desc: 'Balanced view showing 7 sections before scrolling' },
   { value: 6, label: '6 items', tag: 'Standard', desc: 'Shows 6 sections before scrolling' },
-  { value: 5, label: '5 items', tag: 'Compact', desc: 'Minimal height (previous default)' },
+  { value: 5, label: '5 items', tag: 'Compact', desc: 'Minimal height (compact default)' },
 ];
 
 export default function SettingsPanel({
@@ -238,15 +238,15 @@ export default function SettingsPanel({
         <div className="settings-section__head">
           <h3>Per-section progress display</h3>
           <span className="api-status-badge api-status-badge--default">
-            {settings.perSectionVisibleCount || 10} items
+            {settings.perSectionVisibleCount || 7} items
           </span>
         </div>
         <p className="settings-help">
           Sets how many section cards are visible at once in the sidebar before scrolling.
-          Defaults to 10 items (maximum 10). Automatically adapts if a course has fewer sections.
+          Defaults to 7 items (maximum 10). Automatically adapts if a course has fewer sections.
         </p>
         <PerSectionDropdown
-          value={settings.perSectionVisibleCount || 10}
+          value={settings.perSectionVisibleCount || 7}
           onChange={(val) => onUpdate({ perSectionVisibleCount: val })}
         />
       </section>
@@ -516,7 +516,7 @@ function LayersIcon() {
   );
 }
 
-function PerSectionDropdown({ value = 10, onChange }) {
+function PerSectionDropdown({ value = 7, onChange }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
 
@@ -536,7 +536,7 @@ function PerSectionDropdown({ value = 10, onChange }) {
     };
   }, [open]);
 
-  const selected = PER_SECTION_OPTIONS.find((o) => o.value === value) || PER_SECTION_OPTIONS[0];
+  const selected = PER_SECTION_OPTIONS.find((o) => o.value === value) || PER_SECTION_OPTIONS.find((o) => o.value === 7) || PER_SECTION_OPTIONS[0];
 
   return (
     <div className="ps-select-root" ref={ref}>

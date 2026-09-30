@@ -1,8 +1,8 @@
 import { formatDuration } from '../utils/time';
 import './PerSectionProgress.css';
 
-export default function PerSectionProgress({ sectionProgress = [], onJumpToSection, visibleCount = 10 }) {
-  const configuredCount = Math.max(5, Math.min(10, Number(visibleCount) || 10));
+export default function PerSectionProgress({ sectionProgress = [], onJumpToSection, visibleCount = 7 }) {
+  const configuredCount = Math.max(5, Math.min(10, Number(visibleCount) || 7));
   const totalSections = sectionProgress.length;
   // Automatically adjust visible count if course has fewer sections than the configured limit
   const count = totalSections > 0 ? Math.min(configuredCount, totalSections) : configuredCount;
