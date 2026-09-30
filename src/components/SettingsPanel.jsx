@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import Drawer from './Drawer';
 import MemoryManagement from './MemoryManagement';
 import BackupRestore from './BackupRestore';
@@ -13,6 +13,15 @@ const TARGET_PRESETS = [
   { label: '1.5h', value: 1.5 },
   { label: '2h', value: 2 },
   { label: '3h', value: 3 },
+];
+
+const PER_SECTION_OPTIONS = [
+  { value: 10, label: '10 items', tag: 'Default · Max', desc: 'Expanded view showing 10 sections before scrolling' },
+  { value: 9, label: '9 items', tag: 'Tall', desc: 'Shows 9 sections before scrolling' },
+  { value: 8, label: '8 items', tag: 'Balanced', desc: 'Shows 8 sections before scrolling' },
+  { value: 7, label: '7 items', tag: 'Medium', desc: 'Shows 7 sections before scrolling' },
+  { value: 6, label: '6 items', tag: 'Standard', desc: 'Shows 6 sections before scrolling' },
+  { value: 5, label: '5 items', tag: 'Compact', desc: 'Minimal height (previous default)' },
 ];
 
 export default function SettingsPanel({
@@ -222,6 +231,23 @@ export default function SettingsPanel({
           label="Auto-pick today's lectures"
           checked={settings.autoPlan}
           onChange={(v) => onUpdate({ autoPlan: v })}
+        />
+      </section>
+
+      <section className="settings-section">
+        <div className="settings-section__head">
+          <h3>Per-section progress display</h3>
+          <span className="api-status-badge api-status-badge--default">
+            {settings.perSectionVisibleCount || 10} items
+          </span>
+        </div>
+        <p className="settings-help">
+          Sets how many section cards are visible at once in the sidebar before scrolling.
+          Defaults to 10 items (maximum 10). Automatically adapts if a course has fewer sections.
+        </p>
+        <PerSectionDropdown
+          value={settings.perSectionVisibleCount || 10}
+          onChange={(val) => onUpdate({ perSectionVisibleCount: val })}
         />
       </section>
 
@@ -481,3 +507,95 @@ function LightningIcon() {
     </svg>
   );
 }
+
+function LayersIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function PerSectionDropdown({ value = 10, onChange }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const handleClick = (e) => {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+    };
+    const handleKey = (e) => {
+      if (e.key === 'Escape') setOpen(false);
+    };
+    document.addEventListener('mousedown', handleClick);
+    document.addEventListener('keydown', handleKey);
+    return () => {
+      document.removeEventListener('mousedown', handleClick);
+      document.removeEventListener('keydown', handleKey);
+    };
+  }, [open]);
+
+  const selected = PER_SECTION_OPTIONS.find((o) => o.value === value) || PER_SECTION_OPTIONS[0];
+
+  return (
+    <div className="ps-select-root" ref={ref}>
+      <button
+        type="button"
+        className={`ps-select-trigger ${open ? 'ps-select-trigger--open' : ''}`}
+        onClick={() => setOpen(!open)}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        title="Change number of visible section items"
+      >
+        <div className="ps-select-trigger__left">
+          <span className="ps-select-trigger__icon" aria-hidden="true"><LayersIcon /></span>
+          <span className="ps-select-trigger__value">{selected.label}</span>
+          {selected.tag && (
+            <span className="ps-select-trigger__tag">{selected.tag}</span>
+          )}
+        </div>
+        <span className={`ps-select-trigger__arrow ${open ? 'ps-select-trigger__arrow--open' : ''}`}>▾</span>
+      </button>
+
+      {open && (
+        <div className="ps-select-dropdown" role="listbox">
+          <div className="ps-select-dropdown__header">Visible section cards (Max 10)</div>
+          {PER_SECTION_OPTIONS.map((opt) => {
+            const isSelected = opt.value === value;
+            return (
+              <button
+                type="button"
+                key={opt.value}
+                className={`ps-select-option ${isSelected ? 'ps-select-option--selected' : ''}`}
+                onClick={() => {
+                  onChange(opt.value);
+                  setOpen(false);
+                }}
+                role="option"
+                aria-selected={isSelected}
+              >
+                <div className="ps-select-option__left">
+                  <div className="ps-select-option__radio">
+                    <div className={`ps-select-option__dot ${isSelected ? 'ps-select-option__dot--on' : ''}`} />
+                  </div>
+                  <div className="ps-select-option__info">
+                    <div className="ps-select-option__title">
+                      {opt.label}
+                      {opt.tag && <span className="ps-select-option__tag">{opt.tag}</span>}
+                    </div>
+                    <div className="ps-select-option__desc">{opt.desc}</div>
+                  </div>
+                </div>
+                {isSelected && (
+                  <span className="ps-select-option__check" aria-hidden="true">✓</span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+

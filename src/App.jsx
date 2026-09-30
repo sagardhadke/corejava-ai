@@ -278,7 +278,11 @@ export default function App() {
                 todayWatchedSec={todayWatchedSec}
                 startDate={startDate}
               />
-              <PerSectionProgress sectionProgress={sectionProgress} onJumpToSection={handleJumpToSection} />
+              <PerSectionProgress
+                sectionProgress={sectionProgress}
+                onJumpToSection={handleJumpToSection}
+                visibleCount={settings.perSectionVisibleCount || 10}
+              />
             </div>
           </div>
         </div>

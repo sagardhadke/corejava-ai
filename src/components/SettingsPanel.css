@@ -337,6 +337,222 @@
   background: var(--amber);
 }
 
+/* ---- Per-section visible items dropdown ---- */
+.ps-select-root {
+  position: relative;
+  width: 100%;
+}
+
+.ps-select-trigger {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 14px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  color: var(--ink);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  box-sizing: border-box;
+}
+
+.ps-select-trigger:hover {
+  border-color: var(--amber-dim);
+  background: var(--surface-3);
+}
+
+.ps-select-trigger--open {
+  border-color: var(--amber);
+  box-shadow: 0 0 0 2px var(--amber-wash);
+}
+
+.ps-select-trigger__left {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+}
+
+.ps-select-trigger__icon {
+  display: flex;
+  align-items: center;
+  color: var(--amber);
+  opacity: 0.85;
+}
+
+.ps-select-trigger__value {
+  font-weight: 600;
+  font-family: var(--font-mono);
+  color: var(--ink);
+  font-size: 13px;
+}
+
+.ps-select-trigger__tag {
+  font-size: 10px;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 2px 6px;
+  border-radius: 3px;
+  background: var(--amber-wash-strong);
+  color: var(--amber);
+  border: 1px solid rgba(255, 184, 0, 0.25);
+}
+
+.ps-select-trigger__arrow {
+  color: var(--ink-faint);
+  font-size: 12px;
+  transition: transform 0.2s ease;
+}
+
+.ps-select-trigger__arrow--open {
+  transform: rotate(180deg);
+  color: var(--amber);
+}
+
+.ps-select-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  padding: 6px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.05);
+  z-index: 100;
+  animation: psSelectFadeIn 0.15s ease;
+}
+
+@keyframes psSelectFadeIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.ps-select-dropdown__header {
+  font-size: 10px;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ink-faint);
+  padding: 6px 10px 4px;
+}
+
+.ps-select-option {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: var(--r-sm);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.12s ease;
+  box-sizing: border-box;
+}
+
+.ps-select-option:hover {
+  background: var(--surface-2);
+}
+
+.ps-select-option--selected {
+  background: var(--amber-wash);
+}
+.ps-select-option--selected:hover {
+  background: var(--amber-wash-strong);
+}
+
+.ps-select-option__left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.ps-select-option__radio {
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  border: 1.5px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.ps-select-option--selected .ps-select-option__radio {
+  border-color: var(--amber);
+}
+
+.ps-select-option__dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: transparent;
+  transition: background 0.15s ease;
+}
+
+.ps-select-option__dot--on {
+  background: var(--amber);
+}
+
+.ps-select-option__info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.ps-select-option__title {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ps-select-option--selected .ps-select-option__title {
+  color: var(--amber-bright);
+}
+
+.ps-select-option__tag {
+  font-size: 9px;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 1px 5px;
+  border-radius: 3px;
+  background: var(--surface-3);
+  color: var(--ink-faint);
+}
+
+.ps-select-option--selected .ps-select-option__tag {
+  background: var(--amber-wash-strong);
+  color: var(--amber);
+}
+
+.ps-select-option__desc {
+  font-size: 11px;
+  color: var(--ink-faint);
+}
+
+.ps-select-option__check {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--amber);
+  margin-right: 4px;
+}
+
 /* ---- API Status Badge & Box ---- */
 
 .api-status-badge {

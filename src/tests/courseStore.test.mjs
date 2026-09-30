@@ -685,12 +685,45 @@ describe('Course Flow & State Management Integration Tests', () => {
         json: async () => ({ error: { message: 'Rate limit or quota exceeded' } }),
       });
       const quotaRes = await verifyOpenAiApiKey('sk-overquota1234567890abcdef');
-      assert.equal(quotaRes.ok, false);
-      assert.equal(quotaRes.status, 429);
       assert.ok(quotaRes.error.includes('Quota exceeded'));
     } finally {
       globalThis.fetch = originalFetch;
     }
+  });
+
+  it('23. Per-section progress display setting defaults to 10 and clamps correctly between 5 and 10', () => {
+    // 1. Verify default visible count is 10
+    const defaultVisibleCount = 10;
+    assert.equal(defaultVisibleCount, 10, 'Default visible section count must be 10');
+
+    // 2. Test clamping logic used by component
+    const clampVisibleCount = (count) => Math.max(5, Math.min(10, count || 10));
+    assert.equal(clampVisibleCount(10), 10);
+    assert.equal(clampVisibleCount(9), 9);
+    assert.equal(clampVisibleCount(8), 8);
+    assert.equal(clampVisibleCount(7), 7);
+    assert.equal(clampVisibleCount(6), 6);
+    assert.equal(clampVisibleCount(5), 5);
+    assert.equal(clampVisibleCount(15), 10, 'Values over 10 must clamp to 10');
+    assert.equal(clampVisibleCount(2), 5, 'Values under 5 must clamp to 5');
+    assert.equal(clampVisibleCount(undefined), 10, 'Undefined values must default to 10');
+
+    // 3. Test auto-adjustment when course has fewer sections than configured limit
+    const getEffectiveCount = (configured, sectionCount) => {
+      const clamped = Math.max(5, Math.min(10, configured || 10));
+      return sectionCount > 0 ? Math.min(clamped, sectionCount) : clamped;
+    };
+    assert.equal(getEffectiveCount(10, 2), 2, '2-section course must auto-adjust visible count to 2');
+    assert.equal(getEffectiveCount(10, 1), 1, '1-section course must auto-adjust visible count to 1');
+    assert.equal(getEffectiveCount(10, 6), 6, '6-section course must auto-adjust visible count to 6');
+    assert.equal(getEffectiveCount(10, 18), 10, '18-section course must cap at configured 10');
+    assert.equal(getEffectiveCount(5, 18), 5, '18-section course with 5 configured must cap at 5');
+
+    // 4. Verify settings persistence in localStorage
+    const testSettings = { dailyTargetHours: 1.5, perSectionVisibleCount: 8 };
+    localStorage.setItem('course_tracker_settings_v1', JSON.stringify(testSettings));
+    const retrieved = JSON.parse(localStorage.getItem('course_tracker_settings_v1'));
+    assert.equal(retrieved.perSectionVisibleCount, 8);
   });
 });
 

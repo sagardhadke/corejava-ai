@@ -6,6 +6,7 @@ const DEFAULT_SETTINGS = {
   dailyTargetHours: 1.5,          // selected by default from first load — no manual setup needed
   autoPlan: true,                 // Mode A: auto-pick next unwatched lectures until target reached
   streakMode: 'any',              // 'any' = >=1 lecture watched, 'target' = full daily target hit
+  perSectionVisibleCount: 10,     // Number of sections visible at once in sidebar (5 to 10, default 10)
 };
 
 function computeAutoPlanIds(targetSec, watchedSet, allLectures) {
