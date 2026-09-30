@@ -42,26 +42,17 @@
   min-width: 0;
 }
 
-/* This is the key sticky behavior: as the page scrolls, this wrapper sticks
-   just below the header and scrolls WITH the page rather than staying pinned
-   to the very top of the viewport — so Today's Plan and Per-section progress
-   stay visible while working through sections further down the syllabus. */
+/* Sticky sidebar: Today's Plan + Per-section progress travel together
+   as the user scrolls down the syllabus. Removed restrictive viewport max-height
+   and hidden overflow so that Per-section progress can expand to show up to 10 items
+   without getting chopped off in the middle of cards. */
 .sticky-side-panel {
+  position: -webkit-sticky;
   position: sticky;
-  top: calc(var(--header-h) + 20px);
-  max-height: calc(100vh - var(--header-h) - 40px);
-  overflow-y: auto;
+  top: calc(var(--header-h) + 16px);
   display: flex;
   flex-direction: column;
   gap: 0;
-  scrollbar-width: none; /* Firefox */
-  -ms-overflow-style: none; /* IE and Edge */
-}
-
-.sticky-side-panel::-webkit-scrollbar {
-  display: none; /* Chrome, Safari, Opera */
-  width: 0;
-  height: 0;
 }
 
 /* Tablet layout: side-by-side Today's Plan and Per-Section Progress above syllabus */

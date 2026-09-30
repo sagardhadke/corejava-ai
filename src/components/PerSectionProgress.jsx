@@ -1,16 +1,24 @@
 import { formatDuration } from '../utils/time';
 import './PerSectionProgress.css';
 
-export default function PerSectionProgress({ sectionProgress, onJumpToSection }) {
+export default function PerSectionProgress({ sectionProgress = [], onJumpToSection, visibleCount = 10 }) {
+  const configuredCount = Math.max(5, Math.min(10, Number(visibleCount) || 10));
+  const totalSections = sectionProgress.length;
+  // Automatically adjust visible count if course has fewer sections than the configured limit
+  const count = totalSections > 0 ? Math.min(configuredCount, totalSections) : configuredCount;
+
   return (
-    <div className="psp-card">
+    <div className="psp-card" style={{ '--psp-visible-items': count }}>
       <div className="psp-card__head">
         <h3>Per-section progress</h3>
         <span className="psp-card__summary">
-          {sectionProgress.filter((s) => s.isComplete).length}/{sectionProgress.length} done
+          {sectionProgress.filter((s) => s.isComplete).length}/{totalSections} done
         </span>
       </div>
-      <ul className="psp-list">
+      {totalSections === 0 ? (
+        <div className="psp-empty">No sections available for this course.</div>
+      ) : (
+        <ul className="psp-list">
         {sectionProgress.map((s) => {
           const pct = s.total ? Math.round((s.watchedCount / s.total) * 100) : 0;
           return (
@@ -50,6 +58,7 @@ export default function PerSectionProgress({ sectionProgress, onJumpToSection })
           );
         })}
       </ul>
+      )}
     </div>
   );
 }
