@@ -281,7 +281,7 @@ export default function App() {
               <PerSectionProgress
                 sectionProgress={sectionProgress}
                 onJumpToSection={handleJumpToSection}
-                visibleCount={settings.perSectionVisibleCount || 10}
+                visibleCount={settings.perSectionVisibleCount || 7}
               />
             </div>
           </div>
