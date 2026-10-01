@@ -330,8 +330,8 @@
   }
   .mobile-hamburger-btn:hover,
   .mobile-hamburger-btn:active {
-    background: rgba(255, 255, 255, 0.08);
-    color: #ef4444;
+    background: rgba(255, 184, 0, 0.12);
+    color: var(--amber-bright, #ffd54a);
   }
   .mini-progress {
     padding: 5px 10px;

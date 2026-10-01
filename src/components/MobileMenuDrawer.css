@@ -1,6 +1,6 @@
 /* ==========================================================================
    MOBILE MENU DRAWER
-   Matches Screenshot 1 layout, styling, and dark theme
+   Matches Core Java Dark Amber / Gold Theme (Zero Red)
    ========================================================================== */
 
 .mobile-drawer-root {
@@ -14,9 +14,9 @@
 .mobile-drawer-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.72);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
+  background: rgba(0, 0, 0, 0.76);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   animation: mobileFadeIn 0.22s ease-out forwards;
 }
 
@@ -28,8 +28,8 @@
   height: 100%;
   max-height: 100dvh;
   background: #0f1217;
-  border-right: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 8px 0 32px rgba(0, 0, 0, 0.65);
+  border-right: 1px solid var(--border-soft, rgba(255, 255, 255, 0.08));
+  box-shadow: 8px 0 36px rgba(0, 0, 0, 0.7);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -46,14 +46,14 @@
   to { transform: translateX(0); }
 }
 
-/* ---- Drawer Header ---- */
+/* ---- Drawer Header with Gold Brand Mark ---- */
 .mobile-drawer-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 18px 18px 16px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
-  background: rgba(18, 22, 29, 0.6);
+  border-bottom: 1px solid var(--border-soft, rgba(255, 255, 255, 0.08));
+  background: rgba(18, 22, 29, 0.75);
 }
 
 .mobile-drawer-brand {
@@ -67,13 +67,21 @@
   width: 38px;
   height: 38px;
   border-radius: var(--r-md, 8px);
-  background: rgba(239, 68, 68, 0.1);
-  border: 1px solid rgba(239, 68, 68, 0.3);
+  background: linear-gradient(135deg, var(--surface-2, #181b22) 0%, var(--surface-3, #222631) 100%);
+  border: 1px solid rgba(255, 184, 0, 0.35);
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  box-shadow: 0 0 12px rgba(239, 68, 68, 0.2);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4), 0 0 14px rgba(255, 184, 0, 0.2);
+}
+
+.mobile-drawer-glyph {
+  color: var(--amber, #ffb800);
+  font-family: var(--font-mono, monospace);
+  font-size: 13.5px;
+  font-weight: 700;
+  line-height: 1;
 }
 
 .mobile-drawer-brand-text {
@@ -96,7 +104,7 @@
   color: var(--ink-faint, #71717a);
   font-family: var(--font-mono, monospace);
   display: block;
-  margin-top: 1px;
+  margin-top: 2px;
 }
 
 .mobile-drawer-close-btn {
@@ -116,8 +124,9 @@
 }
 
 .mobile-drawer-close-btn:hover {
-  background: rgba(255, 255, 255, 0.12);
-  color: #ffffff;
+  background: rgba(255, 184, 0, 0.12);
+  color: var(--amber-bright, #ffd54a);
+  border-color: rgba(255, 184, 0, 0.3);
 }
 
 /* ---- Drawer Navigation Menu ---- */
@@ -141,13 +150,13 @@
   width: 100%;
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 13px;
   padding: 11px 14px;
   border-radius: var(--r-sm, 6px);
   background: transparent;
   border: none;
-  color: #f4f4f5;
-  font-size: 14px;
+  color: #e4e4e7;
+  font-size: 13.5px;
   font-weight: 500;
   text-align: left;
   cursor: pointer;
@@ -155,13 +164,18 @@
 }
 
 .mobile-menu-item:hover {
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(255, 184, 0, 0.08);
   color: #ffffff;
   transform: translateX(2px);
 }
 
+.mobile-menu-item:hover .mobile-menu-icon {
+  color: var(--amber-bright, #ffd54a);
+  filter: drop-shadow(0 0 6px rgba(255, 184, 0, 0.5));
+}
+
 .mobile-menu-item:active {
-  background: rgba(239, 68, 68, 0.12);
+  background: rgba(255, 184, 0, 0.14);
 }
 
 .mobile-menu-icon {
@@ -171,6 +185,8 @@
   width: 22px;
   height: 22px;
   flex-shrink: 0;
+  color: var(--amber, #ffb800);
+  transition: all 0.15s ease;
 }
 
 .mobile-menu-label {
@@ -184,17 +200,17 @@
   font-size: 11px;
   font-weight: 700;
   font-family: var(--font-mono, monospace);
-  padding: 1px 7px;
+  padding: 2px 7px;
   border-radius: 999px;
-  background: rgba(239, 68, 68, 0.2);
-  border: 1px solid rgba(239, 68, 68, 0.4);
-  color: #f87171;
+  background: var(--amber-wash, rgba(255, 184, 0, 0.12));
+  border: 1px solid rgba(255, 184, 0, 0.35);
+  color: var(--amber-bright, #ffd54a);
 }
 
 .mobile-menu-badge--gold {
-  background: rgba(255, 184, 0, 0.15);
-  border-color: rgba(255, 184, 0, 0.4);
-  color: #fbbf24;
+  background: rgba(255, 213, 74, 0.16);
+  border-color: rgba(255, 213, 74, 0.4);
+  color: #ffd54a;
 }
 
 .mobile-menu-streak-tag {
@@ -217,27 +233,29 @@
 .mobile-menu-kbd {
   font-family: var(--font-mono, monospace);
   font-size: 10px;
-  color: #71717a;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--amber, #ffb800);
+  background: rgba(255, 184, 0, 0.1);
+  border: 1px solid rgba(255, 184, 0, 0.25);
   border-radius: 4px;
   padding: 1px 5px;
 }
 
-/* ---- Drawer Footer ---- */
+/* ---- Drawer Footer Controls ---- */
 .mobile-drawer-footer {
-  padding: 16px 18px calc(16px + env(safe-area-inset-bottom, 0px));
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(18, 22, 29, 0.85);
+  padding: 16px 16px calc(16px + env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid var(--border-soft, rgba(255, 255, 255, 0.08));
+  background: rgba(18, 22, 29, 0.9);
   display: flex;
   flex-direction: column;
   gap: 12px;
 }
 
 .mobile-drawer-label {
-  font-size: 12px;
+  font-size: 11.5px;
   color: #a1a1aa;
-  font-weight: 500;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
 /* Course Switcher in Drawer */
@@ -249,104 +267,65 @@
 
 .mobile-drawer-select {
   width: 100%;
-  height: 34px;
+  height: 36px;
   background: #14171d;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: 6px;
   padding: 0 10px;
   color: #ffffff;
-  font-size: 12px;
+  font-size: 12.5px;
   outline: none;
+  transition: border-color 0.15s ease;
 }
 
-/* Language Switcher Row matching Screenshot 1 */
-.mobile-drawer-lang-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
+.mobile-drawer-select:focus {
+  border-color: var(--amber, #ffb800);
 }
 
-.mobile-drawer-lang-pills {
+/* Progress Card in Drawer Footer */
+.mobile-drawer-progress-card {
   display: flex;
+  flex-direction: column;
   gap: 6px;
+  padding: 10px 12px;
+  border-radius: var(--r-sm, 6px);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
 }
 
-.mobile-lang-pill {
-  height: 28px;
-  padding: 0 10px;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 4px;
-  color: #a1a1aa;
-  font-size: 11px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.14s ease;
-}
-
-.mobile-lang-pill:hover {
-  background: rgba(255, 255, 255, 0.12);
-  color: #ffffff;
-}
-
-.mobile-lang-pill.active {
-  background: rgba(239, 68, 68, 0.2);
-  border-color: rgba(239, 68, 68, 0.5);
-  color: #ffffff;
-  box-shadow: 0 0 8px rgba(239, 68, 68, 0.3);
-}
-
-/* Theme Toggle Button matching Screenshot 1 */
-.mobile-drawer-theme-btn {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 10px 14px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 8px;
-  color: #e4e4e7;
-  font-size: 13px;
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.mobile-drawer-theme-btn:hover {
-  background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(255, 255, 255, 0.15);
-}
-
-.mobile-drawer-theme-left {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.mobile-drawer-theme-icon {
-  font-size: 15px;
-}
-
-.mobile-drawer-theme-arrow {
-  color: #71717a;
-  font-size: 18px;
-  font-weight: 300;
-}
-
-/* Progress Info in Drawer */
 .mobile-drawer-progress-info {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: 11px;
-  color: #71717a;
-  padding-top: 4px;
-  border-top: 1px dashed rgba(255, 255, 255, 0.06);
+  font-size: 11.5px;
+  color: #a1a1aa;
 }
 
 .mobile-drawer-progress-info strong {
   color: var(--amber-bright, #ffd54a);
   font-family: var(--font-mono, monospace);
-  font-size: 12px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.mobile-drawer-progress-track {
+  width: 100%;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.mobile-drawer-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #d97706 0%, #ffb800 65%, #ffd54a 100%);
+  border-radius: 999px;
+  box-shadow: 0 0 6px rgba(255, 184, 0, 0.6);
+  transition: width 0.4s ease;
+}
+
+.mobile-drawer-stats-sub {
+  font-size: 10.5px;
+  color: var(--ink-faint, #71717a);
+  font-family: var(--font-mono, monospace);
 }
