@@ -2,6 +2,7 @@
  * Streak Feature Barrel
  */
 export * from './models/streakModel.js';
+export * from './models/streakFreezeModel.js';
 export * from './models/calendarGridModel.js';
 export * from './models/activityHistoryModel.js';
 export { useStreakViewModel } from './viewmodels/useStreakViewModel.js';

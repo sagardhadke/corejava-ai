@@ -7,6 +7,7 @@ import { dateKey } from '../../../utils/time.js';
 export function isBucketQualifying(bucket, streakMode = 'any', targetSec = 5400) {
   if (!bucket) return false;
   if (bucket.isPractice) return true;
+  if (bucket.isStreakFreeze || bucket.isTrialStreak) return true;
   if (streakMode === 'target') return (bucket.watchedSec || 0) >= targetSec;
   return (bucket.watchedCount || 0) > 0;
 }

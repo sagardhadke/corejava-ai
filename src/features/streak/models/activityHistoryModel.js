@@ -38,6 +38,12 @@ export function getAggregatedHistory(courses = [], activeCourse = null, activeHi
           merged[dateKey].practiceNote = bucket.practiceNote || merged[dateKey].practiceNote;
         }
 
+        if (bucket.isStreakFreeze || bucket.isTrialStreak) {
+          merged[dateKey].isStreakFreeze = true;
+          merged[dateKey].isTrialStreak = true;
+          merged[dateKey].freezeNote = bucket.freezeNote || merged[dateKey].freezeNote || '🛡️ Auto-applied streak shield (missed day saved)';
+        }
+
         if (Array.isArray(bucket.entries) && bucket.entries.length > 0) {
           bucket.entries.forEach((e) => {
             const exists = merged[dateKey].entries.some(

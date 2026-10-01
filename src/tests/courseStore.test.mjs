@@ -784,6 +784,91 @@ describe('Course Flow & State Management Integration Tests', () => {
     localStorage.setItem(badgeKey, JSON.stringify({ completion_10: '2026-10-01' }));
     assert.ok(localStorage.getItem(badgeKey));
   });
+
+  it('25. Auto-use trial streak protection provides default 2 shields, auto-bridges missed days, and supports promo codes and email requests', async () => {
+    const {
+      DEFAULT_STREAK_FREEZE_COUNT,
+      createInitialStreakFreezeState,
+      autoApplyStreakFreezes,
+      redeemStreakPromoCode,
+      getStreakPromoEmailUrl,
+      SUPPORT_EMAIL,
+    } = await import('../features/streak/models/streakFreezeModel.js');
+    const { isBucketQualifying } = await import('../features/streak/models/streakModel.js');
+
+    // 1. Initial State has default 2 available freezes
+    assert.equal(DEFAULT_STREAK_FREEZE_COUNT, 2, 'Default shields must be 2');
+    const fresh = createInitialStreakFreezeState();
+    assert.equal(fresh.availableFreezes, 2);
+    assert.deepEqual(fresh.usedFreezes, []);
+    assert.deepEqual(fresh.redeemedCodes, []);
+
+    // 2. isBucketQualifying recognizes streak freeze and trial streak
+    assert.equal(isBucketQualifying({ isStreakFreeze: true }), true, 'Streak freeze must qualify');
+    assert.equal(isBucketQualifying({ isTrialStreak: true }), true, 'Trial streak must qualify');
+    assert.equal(isBucketQualifying({ watchedCount: 0 }), false);
+
+    // 3. Auto-apply streak freezes when user misses days
+    // Scenario: user studied on Day 1 (anchor), missed Day 2 and Day 3, today is Day 4
+    const history = {
+      '2026-09-28': { watchedCount: 2, watchedSec: 3600 },
+    };
+    const freezeStore = { availableFreezes: 2, usedFreezes: [], redeemedCodes: [] };
+
+    // Reference date: 2026-10-01 (Oct 1)
+    const result = autoApplyStreakFreezes({
+      history,
+      startDate: '2026-09-28',
+      freezeStore,
+      streakMode: 'any',
+      targetSec: 3600,
+      referenceDate: new Date('2026-10-01T12:00:00Z'),
+    });
+
+    assert.equal(result.appliedCount, 2, 'Should bridge 2 missed days (Sept 29 & Sept 30)');
+    assert.equal(result.freezeStore.availableFreezes, 0, 'Remaining freezes should be 0');
+    assert.equal(result.freezeStore.usedFreezes.length, 2);
+    assert.ok(result.history['2026-09-29']?.isStreakFreeze, 'Sept 29 must have streak freeze');
+    assert.ok(result.history['2026-09-30']?.isStreakFreeze, 'Sept 30 must have streak freeze');
+
+    // With the auto-applied freezes, streak from Sept 28 is saved!
+    const updatedHistoryWithToday = {
+      ...result.history,
+      '2026-10-01': { watchedCount: 1, watchedSec: 1800 },
+    };
+    assert.ok(isBucketQualifying(updatedHistoryWithToday['2026-09-28']));
+    assert.ok(isBucketQualifying(updatedHistoryWithToday['2026-09-29']));
+    assert.ok(isBucketQualifying(updatedHistoryWithToday['2026-09-30']));
+    assert.ok(isBucketQualifying(updatedHistoryWithToday['2026-10-01']));
+
+    // 4. Promo code redemption
+    const redeem1 = redeemStreakPromoCode('STREAKBOOST', result.freezeStore);
+    assert.equal(redeem1.success, true, 'STREAKBOOST should redeem successfully');
+    assert.equal(redeem1.addedShields, 2, 'STREAKBOOST should add 2 shields');
+    assert.equal(redeem1.updatedStore.availableFreezes, 2, 'Balance should increase from 0 to 2');
+    assert.ok(redeem1.updatedStore.redeemedCodes.includes('STREAKBOOST'));
+
+    // Duplicate redemption prevention
+    const redeemDup = redeemStreakPromoCode('STREAKBOOST', redeem1.updatedStore);
+    assert.equal(redeemDup.success, false, 'Duplicate code redemption must fail');
+    assert.ok(redeemDup.error.includes('already been redeemed'));
+
+    // Invalid promo code rejection
+    const redeemBad = redeemStreakPromoCode('FAKECODE999', redeem1.updatedStore);
+    assert.equal(redeemBad.success, false, 'Invalid code must be rejected');
+
+    // Investor promo code (+3 shields)
+    const redeemVIP = redeemStreakPromoCode('INVESTOR10B', redeem1.updatedStore);
+    assert.equal(redeemVIP.success, true);
+    assert.equal(redeemVIP.addedShields, 3);
+    assert.equal(redeemVIP.updatedStore.availableFreezes, 5);
+
+    // 5. Support email url generation
+    const emailUrl = getStreakPromoEmailUrl('Core Java + AI');
+    assert.ok(emailUrl.startsWith('mailto:'), 'Must generate a valid mailto link');
+    assert.ok(emailUrl.includes(SUPPORT_EMAIL));
+    assert.ok(emailUrl.includes('Core%20Java%20%2B%20AI'));
+  });
 });
 
 

@@ -7,7 +7,7 @@
 /* ---- Stat Summary Cards ---- */
 .cal-summary {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 10px;
   margin-bottom: 18px;
 }
@@ -40,6 +40,20 @@
 
 .cal-stat--current:hover {
   border-color: rgba(255, 184, 0, 0.5);
+}
+
+.cal-stat--shield {
+  background: linear-gradient(145deg, rgba(14, 165, 233, 0.08) 0%, var(--surface-2) 100%);
+  border-color: rgba(56, 189, 248, 0.35);
+}
+
+.cal-stat--shield:hover {
+  border-color: rgba(56, 189, 248, 0.6);
+}
+
+.cal-stat__value--shield {
+  color: #38bdf8;
+  text-shadow: 0 0 10px rgba(56, 189, 248, 0.4);
 }
 
 .cal-stat__icon {
@@ -405,6 +419,13 @@
   background: #6366f1;
   border-color: #818cf8;
   box-shadow: 0 0 6px rgba(99, 102, 241, 0.45);
+}
+
+/* Streak Shield badge: vibrant cyan glow */
+.lvl-shield {
+  background: #0284c7;
+  border-color: #38bdf8;
+  box-shadow: 0 0 7px rgba(56, 189, 248, 0.65);
 }
 
 /* Calendar Footer */
@@ -851,7 +872,290 @@
   .cal-activity__lecture-name {
     font-size: 12px;
   }
-  .cal-activity__lecture-time {
-    font-size: 10.5px;
-  }
+/* ---- Streak Shield Protection & Promo Card ---- */
+.cal-shield-card {
+  background: linear-gradient(135deg, rgba(14, 165, 233, 0.08) 0%, rgba(20, 24, 33, 0.95) 100%);
+  border: 1px solid rgba(56, 189, 248, 0.28);
+  border-radius: var(--r-md);
+  padding: 14px 16px;
+  margin-bottom: 16px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+}
+
+.cal-shield-card__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.cal-shield-card__title-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.cal-shield-card__icon {
+  font-size: 20px;
+  line-height: 1;
+  filter: drop-shadow(0 2px 6px rgba(56, 189, 248, 0.4));
+  margin-top: 2px;
+}
+
+.cal-shield-card__title {
+  margin: 0;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--ink);
+  letter-spacing: -0.01em;
+}
+
+.cal-shield-card__desc {
+  margin: 2px 0 0;
+  font-size: 11px;
+  color: var(--ink-soft);
+  line-height: 1.4;
+}
+
+.cal-shield-card__badge {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(14, 165, 233, 0.15);
+  border: 1px solid rgba(56, 189, 248, 0.4);
+  border-radius: var(--r-sm);
+  padding: 4px 10px;
+  min-width: 58px;
+}
+
+.cal-shield-card__count {
+  font-family: var(--font-mono);
+  font-size: 18px;
+  font-weight: 800;
+  color: #38bdf8;
+  line-height: 1;
+}
+
+.cal-shield-card__badge-label {
+  font-size: 9px;
+  color: var(--ink-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-top: 2px;
+}
+
+/* Promo Code Input & Form */
+.cal-shield-promo-form {
+  margin-bottom: 10px;
+}
+
+.cal-shield-promo-input-wrap {
+  display: flex;
+  gap: 8px;
+}
+
+.cal-shield-promo-input {
+  flex: 1;
+  height: 34px;
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  padding: 0 12px;
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  transition: all 0.15s ease;
+}
+
+.cal-shield-promo-input:focus {
+  outline: none;
+  border-color: #38bdf8;
+  box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.2);
+}
+
+.cal-shield-promo-btn {
+  height: 34px;
+  padding: 0 14px;
+  background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+  border: 1px solid #38bdf8;
+  border-radius: var(--r-sm);
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.16s ease;
+  white-space: nowrap;
+}
+
+.cal-shield-promo-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+  box-shadow: 0 0 10px rgba(56, 189, 248, 0.4);
+  transform: translateY(-1px);
+}
+
+.cal-shield-promo-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Promo Feedback Message */
+.cal-shield-promo-msg {
+  padding: 6px 10px;
+  border-radius: var(--r-sm);
+  font-size: 11.5px;
+  margin-bottom: 10px;
+  line-height: 1.35;
+}
+
+.cal-shield-promo-msg--success {
+  background: rgba(34, 197, 94, 0.15);
+  border: 1px solid rgba(34, 197, 94, 0.35);
+  color: #4ade80;
+}
+
+.cal-shield-promo-msg--error {
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  color: #f87171;
+}
+
+/* Actions Row (Email & Bonus codes) */
+.cal-shield-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+}
+
+.cal-shield-email-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: #38bdf8;
+  text-decoration: none;
+  font-weight: 500;
+  transition: all 0.15s ease;
+}
+
+.cal-shield-email-link:hover {
+  color: #7dd3fc;
+  text-decoration: underline;
+}
+
+.cal-shield-sep {
+  color: var(--ink-faint);
+}
+
+.cal-shield-hint-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--ink-soft);
+  cursor: pointer;
+  font-size: 11px;
+  text-decoration: underline;
+  transition: color 0.15s ease;
+}
+
+.cal-shield-hint-btn:hover {
+  color: var(--ink);
+}
+
+/* Bonus codes hint popdown */
+.cal-shield-hints-box {
+  margin-top: 10px;
+  padding: 10px 12px;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px dashed rgba(56, 189, 248, 0.3);
+  border-radius: var(--r-sm);
+  font-size: 11px;
+}
+
+.cal-shield-hints-title {
+  display: block;
+  color: var(--ink-soft);
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.cal-shield-codes-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.cal-shield-code-chip {
+  background: rgba(56, 189, 248, 0.12);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  border-radius: 4px;
+  padding: 2px 7px;
+  color: #7dd3fc;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  cursor: pointer;
+  transition: all 0.14s ease;
+}
+
+.cal-shield-code-chip:hover {
+  background: rgba(56, 189, 248, 0.25);
+  border-color: #38bdf8;
+  transform: translateY(-1px);
+}
+
+.cal-shield-hints-sub {
+  margin: 4px 0 0;
+  color: var(--ink-faint);
+  font-size: 10px;
+}
+
+.cal-shield-hints-sub code {
+  color: #38bdf8;
+  font-family: var(--font-mono);
+}
+
+/* Activity detail freeze card */
+.cal-activity__freeze-card {
+  padding: 14px;
+  background: linear-gradient(135deg, rgba(14, 165, 233, 0.12) 0%, rgba(20, 24, 33, 0.8) 100%);
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  border-radius: var(--r-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cal-activity__freeze-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.cal-activity__freeze-icon {
+  font-size: 20px;
+  line-height: 1;
+}
+
+.cal-activity__freeze-badge {
+  display: inline-block;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: #38bdf8;
+  background: rgba(56, 189, 248, 0.16);
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  padding: 2px 8px;
+  border-radius: 4px;
+  margin-bottom: 4px;
+}
+
+.cal-activity__freeze-note {
+  margin: 0;
+  font-size: 12px;
+  color: var(--ink-soft);
+  line-height: 1.4;
 }

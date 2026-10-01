@@ -163,4 +163,5 @@ export class RemoteApiAdapter {
 
 // Active singleton instance
 export const storageService = new LocalStorageAdapter();
+export { exportAllData as exportBackup, importAllData as restoreBackup } from '../data/courseStore.js';
 export default storageService;
