@@ -36,6 +36,10 @@
   flex: 1 1 auto;
 }
 
+.mobile-hamburger-btn {
+  display: none;
+}
+
 .brand__mark {
   width: 38px;
   height: 38px;
@@ -293,6 +297,27 @@
 
 /* Narrow Tablet & Large Mobile (601px to 768px) */
 @media (max-width: 768px) {
+  .mobile-hamburger-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    background: transparent;
+    border: none;
+    border-radius: var(--r-sm);
+    color: var(--ink);
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: all 0.15s ease;
+    padding: 0;
+    margin-right: 2px;
+  }
+  .mobile-hamburger-btn:hover,
+  .mobile-hamburger-btn:active {
+    background: rgba(255, 255, 255, 0.08);
+    color: #ef4444;
+  }
   .mini-progress {
     padding: 5px 10px;
     gap: 8px;

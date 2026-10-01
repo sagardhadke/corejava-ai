@@ -148,8 +148,11 @@
   border-top: 1px solid var(--border-soft);
 }
 
-@media (max-width: 600px) {
+@media (max-width: 768px) {
+  .app-shell {
+    padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px));
+  }
   .app-footer {
-    padding: 18px 16px 44px;
+    padding: 18px 16px calc(24px + env(safe-area-inset-bottom, 0px));
   }
 }
