@@ -221,7 +221,7 @@ export default function CalendarPanel({
           <div className="cal-shield-hints-box">
             <span className="cal-shield-hints-title">Available bonus promo codes:</span>
             <div className="cal-shield-codes-list">
-              {['STREAKBOOST', 'SAVEMYSTREAK', 'JAVAHERO', 'INVESTOR10B'].map((code) => (
+              {['STREAKBOOST', 'SAVEMYSTREAK', 'JAVAHERO', 'STUDENT2026'].map((code) => (
                 <button
                   type="button"
                   key={code}
