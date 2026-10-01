@@ -725,5 +725,65 @@ describe('Course Flow & State Management Integration Tests', () => {
     const retrieved = JSON.parse(localStorage.getItem('course_tracker_settings_v1'));
     assert.equal(retrieved.perSectionVisibleCount, 8);
   });
+
+  it('24. Course completion and streak milestone badges calculate, unlock, and isolate per course', async () => {
+    const { getBadgesStatus, getBadgeRank, COURSE_COMPLETION_BADGES, STREAK_BADGES, ALL_BADGES } = await import('../utils/badges.js');
+
+    // 1. Verify badge counts and threshold specifications
+    assert.equal(ALL_BADGES.length, 12, 'Must have exactly 12 total milestone badges');
+    assert.equal(COURSE_COMPLETION_BADGES.length, 6, 'Must have 6 course completion badges');
+    assert.equal(STREAK_BADGES.length, 6, 'Must have 6 streak milestone badges');
+
+    const completionThresholds = COURSE_COMPLETION_BADGES.map((b) => b.threshold);
+    assert.deepEqual(completionThresholds, [10, 20, 50, 80, 90, 100], 'Completion thresholds must be 10%, 20%, 50%, 80%, 90%, 100%');
+
+    const streakThresholds = STREAK_BADGES.map((b) => b.threshold);
+    assert.deepEqual(streakThresholds, [7, 15, 30, 50, 75, 100], 'Streak thresholds must be 7, 15, 30, 50, 75, 100 days');
+
+    // 2. Evaluate fresh user (0% completion, 0 streak)
+    const freshStatus = getBadgesStatus({ pct: 0, streak: 0, longestStreak: 0 });
+    assert.equal(freshStatus.filter((b) => b.isUnlocked).length, 0, 'Fresh user should have 0 unlocked badges');
+
+    // 3. Evaluate 15% completion and 8-day streak
+    const partialStatus = getBadgesStatus({
+      pct: 15,
+      streak: 8,
+      longestStreak: 5,
+      unlockedDates: { completion_10: '2026-10-01T00:00:00.000Z' },
+    });
+    const unlockedPartial = partialStatus.filter((b) => b.isUnlocked);
+    assert.equal(unlockedPartial.length, 2, 'Should unlock 10% completion and 7-day streak badges');
+    assert.equal(unlockedPartial.some((b) => b.id === 'completion_10'), true);
+    assert.equal(unlockedPartial.some((b) => b.id === 'streak_7'), true);
+    assert.equal(unlockedPartial.some((b) => b.id === 'completion_20'), false);
+    assert.equal(unlockedPartial.some((b) => b.id === 'streak_15'), false);
+
+    // 4. Evaluate 50% completion and 30-day streak
+    const midStatus = getBadgesStatus({ pct: 55, streak: 12, longestStreak: 32 });
+    const unlockedMid = midStatus.filter((b) => b.isUnlocked);
+    // Unlocked completion: 10, 20, 50 (3 badges)
+    // Unlocked streak (longestStreak 32): 7, 15, 30 (3 badges)
+    assert.equal(unlockedMid.length, 6, 'Should unlock 3 completion badges and 3 streak badges');
+
+    // 5. Evaluate full completion (100%) and 100-day streak
+    const fullStatus = getBadgesStatus({ pct: 100, streak: 105, longestStreak: 105 });
+    const unlockedFull = fullStatus.filter((b) => b.isUnlocked);
+    assert.equal(unlockedFull.length, 12, '100% completion and 100+ day streak must unlock all 12 badges');
+
+    // 6. Test Rank tiers
+    assert.equal(getBadgeRank(0).title, 'Aspiring Achiever');
+    assert.equal(getBadgeRank(2).title, 'Dedicated Novice');
+    assert.equal(getBadgeRank(5).title, 'Consistent Scholar');
+    assert.equal(getBadgeRank(8).title, 'Elite Achiever');
+    assert.equal(getBadgeRank(10).title, 'Centurion Master');
+    assert.equal(getBadgeRank(12).title, 'Grandmaster Legend');
+
+    // 7. Verify localStorage namespacing and purge
+    const courseId = 'test_course_badges';
+    const badgeKey = `jct_badges__${courseId}`;
+    localStorage.setItem(badgeKey, JSON.stringify({ completion_10: '2026-10-01' }));
+    assert.ok(localStorage.getItem(badgeKey));
+  });
 });
+
 

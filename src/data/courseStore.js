@@ -70,6 +70,7 @@ function purgeCourseData(courseId) {
     `jct_settings__${courseId}`,
     `jct_history__${courseId}`,
     `jct_start_date__${courseId}`,
+    `jct_badges__${courseId}`,
   ];
   const keysToRemove = [];
   for (let i = 0; i < localStorage.length; i++) {
