@@ -1,0 +1,124 @@
+.eb-container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg, #0c0d10);
+  color: var(--ink, #eef0f3);
+  padding: 24px;
+  box-sizing: border-box;
+}
+
+.eb-card {
+  max-width: 580px;
+  width: 100%;
+  background: var(--surface, #131519);
+  border: 1px solid var(--border, #2a2e37);
+  border-radius: var(--r-lg, 10px);
+  padding: 32px;
+  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.6);
+  text-align: left;
+}
+
+.eb-badge {
+  display: inline-block;
+  font-family: var(--font-mono, monospace);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--danger, #f0654f);
+  background: rgba(240, 101, 79, 0.12);
+  border: 1px solid rgba(240, 101, 79, 0.25);
+  border-radius: 4px;
+  padding: 3px 8px;
+  margin-bottom: 14px;
+}
+
+.eb-title {
+  font-size: 24px;
+  font-weight: 700;
+  margin: 0 0 10px 0;
+  color: var(--ink, #eef0f3);
+}
+
+.eb-desc {
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--ink-soft, #a6acb8);
+  margin: 0 0 20px 0;
+}
+
+.eb-details {
+  background: var(--surface-2, #191c22);
+  border: 1px solid var(--border-soft, #1d2027);
+  border-radius: 6px;
+  padding: 10px 14px;
+  margin-bottom: 24px;
+  font-size: 12px;
+  color: var(--ink-faint, #626874);
+  cursor: pointer;
+}
+
+.eb-details summary {
+  font-weight: 600;
+  outline: none;
+}
+
+.eb-pre {
+  margin-top: 10px;
+  white-space: pre-wrap;
+  word-break: break-all;
+  font-family: var(--font-mono, monospace);
+  font-size: 11px;
+  color: var(--danger, #f0654f);
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.eb-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.eb-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 16px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  border: none;
+}
+
+.eb-btn--primary {
+  background: var(--amber, #ffb800);
+  color: var(--void, #08090b);
+}
+.eb-btn--primary:hover {
+  background: var(--amber-bright, #ffd54a);
+}
+
+.eb-btn--secondary {
+  background: var(--surface-3, #21252d);
+  color: var(--ink, #eef0f3);
+  border: 1px solid var(--border, #2a2e37);
+}
+.eb-btn--secondary:hover {
+  background: var(--surface-2, #191c22);
+  border-color: var(--ink-faint, #626874);
+}
+
+.eb-btn--danger {
+  background: transparent;
+  color: var(--danger, #f0654f);
+  border: 1px solid rgba(240, 101, 79, 0.3);
+}
+.eb-btn--danger:hover {
+  background: rgba(240, 101, 79, 0.1);
+  border-color: var(--danger, #f0654f);
+}
