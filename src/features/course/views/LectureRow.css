@@ -1,0 +1,177 @@
+.lecture-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: var(--r-sm);
+  border: 1px solid transparent;
+  transition: background 0.15s ease, border-color 0.15s ease;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.lecture-row__number {
+  flex-shrink: 0;
+  min-width: 22px;
+  text-align: right;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--ink-faint);
+  user-select: none;
+}
+
+.lecture-row:hover { background: var(--surface-2); }
+
+.lecture-row--today {
+  background: var(--amber-wash);
+  border-color: rgba(255, 184, 0, 0.3);
+}
+.lecture-row--today:hover { background: var(--amber-wash-strong); }
+
+/* Watched / completed state */
+.lecture-row--watched {
+  opacity: 0.8;
+}
+.lecture-row--watched:hover { opacity: 1; }
+
+.lecture-row--watched .lecture-row__title {
+  color: var(--ink-faint);
+  text-decoration: line-through;
+  text-decoration-color: var(--border);
+}
+
+.lecture-row--watched .lecture-row__number {
+  color: var(--good);
+  opacity: 0.5;
+}
+
+.lecture-row--watched .lecture-row__dur {
+  opacity: 0.5;
+}
+
+/* Plan checkbox */
+.plan-check {
+  display: flex;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.plan-check input { display: none; }
+.plan-check__box {
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  border: 1.5px solid var(--border);
+  background: var(--surface-2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--void);
+  transition: all 0.15s ease;
+}
+.plan-check input:checked + .plan-check__box {
+  background: var(--amber);
+  border-color: var(--amber);
+}
+.plan-check:hover .plan-check__box { border-color: var(--amber); }
+
+/* Watched toggle circle */
+.watched-toggle {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  flex-shrink: 0;
+  display: flex;
+}
+.watched-toggle__ring {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 1.5px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--void);
+  transition: all 0.15s ease;
+}
+.watched-toggle:hover .watched-toggle__ring { border-color: var(--good); }
+.watched-toggle__ring--on { background: var(--good); border-color: var(--good); }
+
+/* Title */
+.lecture-row__title {
+  flex: 1;
+  min-width: 0;
+  font-size: 13.5px;
+  color: var(--ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Today pill */
+.today-pill {
+  display: inline-block;
+  vertical-align: middle;
+  flex-shrink: 0;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: var(--amber);
+  background: var(--amber-wash-strong);
+  border: 1px solid rgba(255,184,0,0.4);
+  padding: 2px 6px;
+  border-radius: 3px;
+  margin-left: 6px;
+}
+
+/* Completed pill — shown when a lecture is marked watched */
+.completed-pill {
+  display: inline-block;
+  vertical-align: middle;
+  flex-shrink: 0;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: var(--good);
+  background: rgba(74, 222, 128, 0.10);
+  border: 1px solid rgba(74, 222, 128, 0.25);
+  padding: 2px 6px;
+  border-radius: 3px;
+  margin-left: 6px;
+}
+
+/* Duration */
+.lecture-row__dur {
+  flex-shrink: 0;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--ink-faint);
+  min-width: 60px;
+  text-align: right;
+  margin-left: auto;
+}
+
+@media (max-width: 600px) {
+  .lecture-row {
+    padding: 8px 6px;
+    gap: 7px;
+  }
+  .lecture-row__number {
+    min-width: 18px;
+    font-size: 10px;
+  }
+  .lecture-row__title {
+    white-space: normal;
+    word-break: break-word;
+    font-size: 12.5px;
+    line-height: 1.35;
+  }
+  .lecture-row__dur {
+    font-size: 10.5px;
+    min-width: 48px;
+  }
+}

@@ -1,29 +1,23 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { useLocalStorage } from './useLocalStorage';
 import { dateKey, formatDuration } from '../utils/time';
-
-const DEFAULT_SETTINGS = {
-  dailyTargetHours: 1.5,          // selected by default from first load — no manual setup needed
-  autoPlan: true,                 // Mode A: auto-pick next unwatched lectures until target reached
-  streakMode: 'any',              // 'any' = >=1 lecture watched, 'target' = full daily target hit
-  perSectionVisibleCount: 7,      // Number of sections visible at once in sidebar (5 to 10, default 7)
-};
-
-function computeAutoPlanIds(targetSec, watchedSet, allLectures) {
-  const ids = [];
-  let sum = 0;
-  for (const l of allLectures) {
-    if (watchedSet.has(l.id)) continue;
-    ids.push(l.id);
-    sum += l.durationSec;
-    if (sum >= targetSec) break;
-  }
-  return ids;
-}
+import { getBadgesStatus } from '../features/badges/models/badgeModel.js';
+import { DEFAULT_SETTINGS } from '../features/settings/models/settingsModel.js';
+import { computeAutoPlanIds } from '../features/today-plan/models/todayPlanModel.js';
+import {
+  computeCourseStats,
+  computeSectionProgress,
+  computeFirstWatchedDate,
+  computeEffectiveStartDate,
+} from '../features/course/models/courseProgressModel.js';
+import { computeCurrentStreak, computeLongestStreak } from '../features/streak/models/streakModel.js';
 
 /**
  * All progress state for ONE course, namespaced by courseId so switching the
  * active course never mixes up watched/plan/streak data between courses.
+ *
+ * Implements Headless MVVM pattern by delegating business calculations
+ * to pure Domain Models in features/.
  */
 export function useCourseProgress(course) {
   const courseId = course?.id || 'none';
@@ -35,6 +29,7 @@ export function useCourseProgress(course) {
   const HISTORY_KEY = `jct_history__${courseId}`;
   const START_DATE_KEY = `jct_start_date__${courseId}`;
   const START_DATE_MANUAL_KEY = `jct_start_date_manual__${courseId}`;
+  const BADGES_KEY = `jct_badges__${courseId}`;
 
   const [watched, setWatched] = useLocalStorage(WATCHED_KEY, {});
   const [planStore, setPlanStore] = useLocalStorage(PLAN_KEY, { date: null, ids: [], auto: true });
@@ -42,21 +37,15 @@ export function useCourseProgress(course) {
   const [history, setHistory] = useLocalStorage(HISTORY_KEY, {});
   const [storedStartDate, setStoredStartDate] = useLocalStorage(START_DATE_KEY, null);
   const [isStartDateManual, setIsStartDateManual] = useLocalStorage(START_DATE_MANUAL_KEY, false);
+  const [unlockedBadges, setUnlockedBadges] = useLocalStorage(BADGES_KEY, {});
+  const [newlyUnlockedBadge, setNewlyUnlockedBadge] = useState(null);
   const [today, setToday] = useState(() => dateKey());
 
   const watchedSet = useMemo(() => new Set(Object.keys(watched).filter((id) => watched[id])), [watched]);
 
   const targetSec = Math.round((settings.dailyTargetHours || 1.5) * 3600);
 
-  // Today's plan is generated ONCE per calendar day and then frozen in
-  // localStorage under PLAN_KEY (keyed by date). It must NOT silently
-  // regenerate on page reload, on marking lectures watched, or on any other
-  // re-render — only an actual date change (a new day has started) or an
-  // explicit user action (toggling auto-plan on, hitting "regenerate", or
-  // changing the daily target while auto-plan is on) is allowed to replace it.
-  // On the very first load for a course (planStore.date is null), the
-  // dailyTargetHours default of 1.5h already applies from DEFAULT_SETTINGS
-  // above, so no separate "first load" branch is needed — isNewDay covers it.
+  // Today's plan is generated ONCE per calendar day and frozen in localStorage
   const prevAutoOnRef = useRef(settings.autoPlan);
   const prevTargetSecRef = useRef(targetSec);
   const prevCourseIdRef = useRef(courseId);
@@ -77,10 +66,6 @@ export function useCourseProgress(course) {
     prevAutoOnRef.current = settings.autoPlan;
     prevTargetSecRef.current = targetSec;
     prevCourseIdRef.current = courseId;
-    // watchedSet and planStore are deliberately excluded: this effect should only
-    // react to the day changing, the course changing, or these two specific
-    // settings changing — never to lectures being marked watched or to its own
-    // writes to planStore.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [today, courseId, settings.autoPlan, targetSec]);
 
@@ -156,7 +141,7 @@ export function useCourseProgress(course) {
     setPlanStore((prev) => {
       const has = prev.ids.includes(lectureId);
       const ids = has ? prev.ids.filter((id) => id !== lectureId) : [...prev.ids, lectureId];
-      return { ...prev, ids, auto: false }; // manual toggle always switches this session to manual
+      return { ...prev, ids, auto: false };
     });
   }, [setPlanStore]);
 
@@ -169,23 +154,18 @@ export function useCourseProgress(course) {
     setPlanStore({ date: today, ids, auto: true });
   }, [targetSec, watchedSet, today, setPlanStore, allLectures]);
 
-  const firstWatchedDate = useMemo(() => {
-    const dates = Object.entries(history)
-      .filter(([, b]) => (b?.watchedCount > 0 || (Array.isArray(b?.lectureIds) && b.lectureIds.length > 0)))
-      .map(([d]) => d)
-      .sort();
-    return dates[0] || null;
-  }, [history]);
+  const firstWatchedDate = useMemo(() => computeFirstWatchedDate(history), [history]);
 
-  const startDate = useMemo(() => {
-    if (isStartDateManual && storedStartDate) return storedStartDate;
-    if (firstWatchedDate) return firstWatchedDate;
-    return storedStartDate || today;
-  }, [isStartDateManual, storedStartDate, firstWatchedDate, today]);
+  const startDate = useMemo(() => computeEffectiveStartDate({
+    isStartDateManual,
+    storedStartDate,
+    firstWatchedDate,
+    today,
+  }), [isStartDateManual, storedStartDate, firstWatchedDate, today]);
 
   const markPracticeDay = useCallback((note, targetDateKey) => {
     const key = targetDateKey || dateKey();
-    if (startDate && key < startDate) return; // Strict: disallow marking practice before start date!
+    if (startDate && key < startDate) return;
     setHistory((h) => {
       const bucket = h[key] || { watchedSec: 0, watchedCount: 0, lectureIds: [] };
       return {
@@ -201,7 +181,9 @@ export function useCourseProgress(course) {
     setHistory({});
     setIsStartDateManual(false);
     setStoredStartDate(null);
-  }, [setWatched, setPlanStore, setHistory, settings.autoPlan, targetSec, allLectures, setIsStartDateManual, setStoredStartDate]);
+    setUnlockedBadges({});
+    setNewlyUnlockedBadge(null);
+  }, [setWatched, setPlanStore, setHistory, settings.autoPlan, targetSec, allLectures, setIsStartDateManual, setStoredStartDate, setUnlockedBadges]);
 
   const updateSettings = useCallback((patch) => {
     setSettings((prev) => ({ ...prev, ...patch }));
@@ -224,96 +206,71 @@ export function useCourseProgress(course) {
 
   const planSet = useMemo(() => new Set(planStore.ids), [planStore.ids]);
 
-  const stats = useMemo(() => {
-    const watchedList = allLectures.filter((l) => watchedSet.has(l.id));
-    const watchedSec = watchedList.reduce((a, l) => a + l.durationSec, 0);
-    const totalSeconds = allLectures.reduce((a, l) => a + l.durationSec, 0);
-    const planned = allLectures.filter((l) => planSet.has(l.id));
-    const plannedSec = planned.reduce((a, l) => a + l.durationSec, 0);
-    const plannedWatchedSec = planned.filter((l) => watchedSet.has(l.id)).reduce((a, l) => a + l.durationSec, 0);
-    const plannedRemainingSec = plannedSec - plannedWatchedSec;
+  const stats = useMemo(
+    () => computeCourseStats(allLectures, watchedSet, planSet),
+    [allLectures, watchedSet, planSet]
+  );
 
-    return {
-      watchedCount: watchedList.length,
-      totalCount: allLectures.length,
-      watchedSec,
-      remainingSec: totalSeconds - watchedSec,
-      totalSec: totalSeconds,
-      pct: allLectures.length ? Math.round((watchedList.length / allLectures.length) * 100) : 0,
-      plannedCount: planned.length,
-      plannedSec,
-      plannedWatchedCount: planned.filter((l) => watchedSet.has(l.id)).length,
-      plannedRemainingSec,
-      todaySelectedSec: plannedSec,
-    };
-  }, [watchedSet, planSet, allLectures]);
+  const sectionProgress = useMemo(
+    () => computeSectionProgress(course, watchedSet),
+    [course, watchedSet]
+  );
 
-  // Per-section progress: for each section, how many lectures watched out of
-  // total, and how much time remains in that section.
-  const sectionProgress = useMemo(() => {
-    if (!course) return [];
-    return course.sections.map((section) => {
-      const total = section.lectures.length;
-      const watchedCount = section.lectures.filter((l) => watchedSet.has(l.id)).length;
-      const totalSec = section.lectures.reduce((a, l) => a + l.durationSec, 0);
-      const watchedSec = section.lectures.filter((l) => watchedSet.has(l.id)).reduce((a, l) => a + l.durationSec, 0);
-      return {
-        sectionId: section.id,
-        title: section.title,
-        number: section.number,
-        watchedCount,
-        total,
-        remainingSec: totalSec - watchedSec,
-        isComplete: total > 0 && watchedCount === total,
-      };
-    });
-  }, [course, watchedSet]);
+  const streak = useMemo(
+    () => computeCurrentStreak(history, settings.streakMode, targetSec),
+    [history, settings.streakMode, targetSec]
+  );
 
-  // Streak calc: walk backward day by day from today, counting consecutive qualifying days.
-  const streak = useMemo(() => {
-    const qualifies = (bucket) => {
-      if (!bucket) return false;
-      if (bucket.isPractice) return true;
-      if (settings.streakMode === 'target') return bucket.watchedSec >= targetSec;
-      return bucket.watchedCount > 0;
-    };
-    let count = 0;
-    let cursor = new Date();
-    if (!qualifies(history[dateKey(cursor)])) {
-      cursor.setDate(cursor.getDate() - 1);
-    }
-    while (qualifies(history[dateKey(cursor)])) {
-      count += 1;
-      cursor.setDate(cursor.getDate() - 1);
-    }
-    return count;
-  }, [history, settings.streakMode, targetSec]);
-
-  const longestStreak = useMemo(() => {
-    const qualifies = (bucket) => {
-      if (!bucket) return false;
-      if (bucket.isPractice) return true;
-      if (settings.streakMode === 'target') return bucket.watchedSec >= targetSec;
-      return bucket.watchedCount > 0;
-    };
-    const keys = Object.keys(history).sort();
-    let best = 0, cur = 0, prevDate = null;
-    for (const k of keys) {
-      if (!qualifies(history[k])) { cur = 0; prevDate = null; continue; }
-      if (prevDate) {
-        const diffDays = Math.round((new Date(k) - new Date(prevDate)) / 86400000);
-        cur = diffDays === 1 ? cur + 1 : 1;
-      } else {
-        cur = 1;
-      }
-      best = Math.max(best, cur);
-      prevDate = k;
-    }
-    return best;
-  }, [history, settings.streakMode, targetSec]);
+  const longestStreak = useMemo(
+    () => computeLongestStreak(history, settings.streakMode, targetSec),
+    [history, settings.streakMode, targetSec]
+  );
 
   const isTodayPracticeDay = !!history[dateKey()]?.isPractice && (!startDate || dateKey() >= startDate);
   const hasWatchedToday = (history[dateKey()]?.watchedCount || 0) > 0;
+
+  // Badges calculation based on current course completion and streak
+  const badges = useMemo(() => {
+    return getBadgesStatus({
+      pct: stats.pct,
+      streak,
+      longestStreak,
+      unlockedDates: unlockedBadges,
+    });
+  }, [stats.pct, streak, longestStreak, unlockedBadges]);
+
+  const unlockedBadgesCount = useMemo(() => badges.filter((b) => b.isUnlocked).length, [badges]);
+
+  // Synchronize unlocked badges with storage and detect new unlocks
+  const prevCourseIdForBadgesRef = useRef(courseId);
+  const initialBadgesMountRef = useRef(true);
+
+  useEffect(() => {
+    const courseChanged = prevCourseIdForBadgesRef.current !== courseId;
+    if (courseChanged) {
+      prevCourseIdForBadgesRef.current = courseId;
+      initialBadgesMountRef.current = true;
+    }
+
+    const currentUnlocked = badges.filter((b) => b.isUnlocked);
+    const storedIds = new Set(Object.keys(unlockedBadges));
+    const missingFromStorage = currentUnlocked.filter((b) => !storedIds.has(b.id));
+
+    if (missingFromStorage.length > 0) {
+      const updated = { ...unlockedBadges };
+      const nowIso = new Date().toISOString();
+      missingFromStorage.forEach((b) => {
+        updated[b.id] = nowIso;
+      });
+      setUnlockedBadges(updated);
+
+      if (!initialBadgesMountRef.current) {
+        setNewlyUnlockedBadge(missingFromStorage[0]);
+      }
+    }
+
+    initialBadgesMountRef.current = false;
+  }, [badges, courseId, unlockedBadges, setUnlockedBadges]);
 
   return {
     watchedSet,
@@ -331,6 +288,10 @@ export function useCourseProgress(course) {
     todayWatchedSec: history[today]?.watchedSec || 0,
     isTodayPracticeDay,
     hasWatchedToday,
+    badges,
+    unlockedBadgesCount,
+    newlyUnlockedBadge,
+    clearNewlyUnlockedBadge: () => setNewlyUnlockedBadge(null),
     toggleWatched,
     markPracticeDay,
     unmarkPracticeDay,
