@@ -11,6 +11,12 @@ import {
   computeEffectiveStartDate,
 } from '../features/course/models/courseProgressModel.js';
 import { computeCurrentStreak, computeLongestStreak } from '../features/streak/models/streakModel.js';
+import {
+  createInitialStreakFreezeState,
+  autoApplyStreakFreezes,
+  redeemStreakPromoCode,
+} from '../features/streak/models/streakFreezeModel.js';
+import { showToast } from '../utils/toast.js';
 
 /**
  * All progress state for ONE course, namespaced by courseId so switching the
@@ -30,6 +36,7 @@ export function useCourseProgress(course) {
   const START_DATE_KEY = `jct_start_date__${courseId}`;
   const START_DATE_MANUAL_KEY = `jct_start_date_manual__${courseId}`;
   const BADGES_KEY = `jct_badges__${courseId}`;
+  const FREEZES_KEY = `jct_streak_freezes__${courseId}`;
 
   const [watched, setWatched] = useLocalStorage(WATCHED_KEY, {});
   const [planStore, setPlanStore] = useLocalStorage(PLAN_KEY, { date: null, ids: [], auto: true });
@@ -38,6 +45,7 @@ export function useCourseProgress(course) {
   const [storedStartDate, setStoredStartDate] = useLocalStorage(START_DATE_KEY, null);
   const [isStartDateManual, setIsStartDateManual] = useLocalStorage(START_DATE_MANUAL_KEY, false);
   const [unlockedBadges, setUnlockedBadges] = useLocalStorage(BADGES_KEY, {});
+  const [freezeStore, setFreezeStore] = useLocalStorage(FREEZES_KEY, createInitialStreakFreezeState());
   const [newlyUnlockedBadge, setNewlyUnlockedBadge] = useState(null);
   const [today, setToday] = useState(() => dateKey());
 
@@ -175,6 +183,45 @@ export function useCourseProgress(course) {
     });
   }, [setHistory, startDate]);
 
+  // Auto-apply streak freezes to protect missed days
+  const lastAutoCheckRef = useRef('');
+  useEffect(() => {
+    const checkKey = `${courseId}_${today}_${freezeStore?.availableFreezes}_${Object.keys(history).length}`;
+    if (lastAutoCheckRef.current === checkKey) return;
+    lastAutoCheckRef.current = checkKey;
+
+    if (!freezeStore || (freezeStore.availableFreezes || 0) <= 0) return;
+    const result = autoApplyStreakFreezes({
+      history,
+      startDate,
+      freezeStore,
+      streakMode: settings.streakMode,
+      targetSec,
+    });
+    if (result.appliedCount > 0) {
+      setHistory(result.history);
+      setFreezeStore(result.freezeStore);
+      const datesFormatted = result.appliedDates.join(', ');
+      showToast(
+        `🛡️ Auto-applied ${result.appliedCount} Streak Shield (${datesFormatted}) to keep your streak alive!`,
+        'success',
+        6000
+      );
+    }
+  }, [courseId, today, history, startDate, freezeStore, settings.streakMode, targetSec, setHistory, setFreezeStore]);
+
+  const redeemStreakCode = useCallback((rawCode) => {
+    const res = redeemStreakPromoCode(rawCode, freezeStore);
+    if (res.success) {
+      setFreezeStore(res.updatedStore);
+      showToast(`🎉 Promo code redeemed! +${res.addedShields} Streak Shields added 🛡️`, 'success', 5000);
+      return res;
+    } else {
+      showToast(res.error, 'error', 4500);
+      return res;
+    }
+  }, [freezeStore, setFreezeStore]);
+
   const resetAll = useCallback(() => {
     setWatched({});
     setPlanStore({ date: dateKey(), ids: settings.autoPlan ? computeAutoPlanIds(targetSec, new Set(), allLectures) : [], auto: settings.autoPlan });
@@ -183,7 +230,8 @@ export function useCourseProgress(course) {
     setStoredStartDate(null);
     setUnlockedBadges({});
     setNewlyUnlockedBadge(null);
-  }, [setWatched, setPlanStore, setHistory, settings.autoPlan, targetSec, allLectures, setIsStartDateManual, setStoredStartDate, setUnlockedBadges]);
+    setFreezeStore(createInitialStreakFreezeState());
+  }, [setWatched, setPlanStore, setHistory, settings.autoPlan, targetSec, allLectures, setIsStartDateManual, setStoredStartDate, setUnlockedBadges, setFreezeStore]);
 
   const updateSettings = useCallback((patch) => {
     setSettings((prev) => ({ ...prev, ...patch }));
@@ -302,5 +350,9 @@ export function useCourseProgress(course) {
     updateSettings,
     updateStartDate,
     resetStartDateToAuto,
+    freezeStore,
+    availableFreezes: typeof freezeStore?.availableFreezes === 'number' ? freezeStore.availableFreezes : 2,
+    usedFreezes: freezeStore?.usedFreezes || [],
+    redeemStreakCode,
   };
 }

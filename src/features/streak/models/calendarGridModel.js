@@ -75,6 +75,7 @@ export function intensity(sec, targetSec = 5400) {
   if (!sec) return 0;
   if (typeof sec === 'object') {
     if (sec.isPractice) return 'practice';
+    if (sec.isStreakFreeze || sec.isTrialStreak) return 'shield';
     sec = sec.watchedSec || 0;
   }
   if (!sec) return 0;
