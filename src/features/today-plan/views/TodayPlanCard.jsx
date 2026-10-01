@@ -11,7 +11,7 @@ export default function TodayPlanCard({
   const isBeforeStart = !!(startDate && new Date().toISOString().slice(0, 10) < startDate);
 
   return (
-    <div className="today-card">
+    <div className="today-card" id="today-plan-card">
       <div className="today-card__head">
         <h3>Today's plan {autoPlan && <span className="auto-tag">AUTO</span>}</h3>
         <span className="today-card__total">{formatDuration(plannedSec)}</span>

@@ -10,6 +10,9 @@ import Header from './components/Header.jsx';
 import DeveloperBadge from './components/DeveloperBadge.jsx';
 import CommandPalette from './components/CommandPalette.jsx';
 import ToastContainer from './components/Toast.jsx';
+import MobileMenuDrawer from './components/MobileMenuDrawer.jsx';
+import MobileBottomNav from './components/MobileBottomNav.jsx';
+import { exportBackup } from './services/storageService.js';
 import { showToast } from './utils/toast.js';
 import { dateKey } from './utils/time.js';
 
@@ -58,6 +61,7 @@ export default function App() {
     badges, unlockedBadgesCount, newlyUnlockedBadge, clearNewlyUnlockedBadge,
     toggleWatched, togglePlan, clearPlan, resetAll, updateSettings, updateStartDate, resetStartDateToAuto,
     markPracticeDay, unmarkPracticeDay,
+    availableFreezes, usedFreezes, redeemStreakCode,
   } = useCourseProgress(course);
 
   // Headless Course ViewModel (accordion state, filtering, import actions)
@@ -78,6 +82,8 @@ export default function App() {
   const [practiceModalOpen, setPracticeModalOpen] = useState(false);
   const [practiceModalDate, setPracticeModalDate] = useState(null);
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [activeNavTab, setActiveNavTab] = useState('home');
 
   // Deep-link hash routing
   useEffect(() => {
@@ -175,12 +181,13 @@ export default function App() {
         unlockedBadgesCount={unlockedBadgesCount}
         onOpenBadges={() => setBadgesOpen(true)}
         onOpenCommandPalette={() => setCommandPaletteOpen(true)}
+        onOpenMobileMenu={() => setMobileMenuOpen(true)}
       />
 
       <main className="app-main">
         <StatsBar stats={stats} targetSec={targetSec} autoPlan={settings.autoPlan} />
 
-        <div className="app-layout">
+        <div className="app-layout" id="syllabus-section">
           <div className="app-layout__main">
             <Toolbar
               query={courseVM.query}
@@ -267,6 +274,9 @@ export default function App() {
         courses={courses}
         course={course}
         onOpenBadges={() => setBadgesOpen(true)}
+        availableFreezes={availableFreezes}
+        usedFreezes={usedFreezes}
+        onRedeemCode={redeemStreakCode}
       />
 
       <PracticeDayModal
@@ -332,6 +342,75 @@ export default function App() {
         onOpenPracticeModal={openPracticeModalForToday}
         onOpenImport={() => courseVM.setImportOpen(true)}
         onClearPlan={clearPlan}
+      />
+
+      <MobileMenuDrawer
+        open={mobileMenuOpen}
+        onClose={() => setMobileMenuOpen(false)}
+        course={course}
+        courses={courses}
+        activeCourseId={activeCourseId}
+        onSwitchCourse={handleSwitchCourse}
+        stats={stats}
+        pct={stats.pct}
+        streak={streak}
+        availableFreezes={availableFreezes}
+        unlockedBadgesCount={unlockedBadgesCount}
+        onOpenPlan={() => {
+          const el = document.getElementById('today-plan-card');
+          if (el) el.scrollIntoView({ behavior: 'smooth' });
+        }}
+        onOpenStreak={() => setCalendarOpen(true)}
+        onOpenBadges={() => setBadgesOpen(true)}
+        onOpenSettings={() => setSettingsOpen(true)}
+        onOpenCommandPalette={() => setCommandPaletteOpen(true)}
+        onOpenPracticeModal={openPracticeModalForToday}
+        onOpenImport={() => courseVM.setImportOpen(true)}
+        onExportBackup={() => {
+          const backup = exportBackup();
+          const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `corejava-backup-${dateKey()}.json`;
+          a.click();
+          URL.revokeObjectURL(url);
+          showToast('Backup exported successfully!', 'success', 3000);
+        }}
+      />
+
+      <MobileBottomNav
+        activeTab={calendarOpen ? 'streak' : badgesOpen ? 'badges' : settingsOpen ? 'settings' : activeNavTab}
+        streak={streak}
+        planCount={stats.planCount}
+        unlockedBadgesCount={unlockedBadgesCount}
+        onNavigateHome={() => {
+          setActiveNavTab('home');
+          setCalendarOpen(false);
+          setBadgesOpen(false);
+          setSettingsOpen(false);
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }}
+        onNavigateToday={() => {
+          setActiveNavTab('today');
+          setCalendarOpen(false);
+          setBadgesOpen(false);
+          setSettingsOpen(false);
+          const el = document.getElementById('today-plan-card');
+          if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }}
+        onOpenStreak={() => {
+          setActiveNavTab('streak');
+          setCalendarOpen(true);
+        }}
+        onOpenBadges={() => {
+          setActiveNavTab('badges');
+          setBadgesOpen(true);
+        }}
+        onOpenSettings={() => {
+          setActiveNavTab('settings');
+          setSettingsOpen(true);
+        }}
       />
 
       <ToastContainer />
