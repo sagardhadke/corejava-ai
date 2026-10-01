@@ -15,7 +15,7 @@
 
 .app-header__inner {
   height: 100%;
-  max-width: 1320px;
+  max-width: 1360px;
   margin: 0 auto;
   padding: 0 24px;
   display: flex;
@@ -280,17 +280,32 @@
 
 /* ---- Responsive Breakpoints ---- */
 
-/* Tablet (641px to 940px) */
+/* Laptop / Tablet Landscape (941px to 1180px) */
+@media (max-width: 1180px) {
+  .clock {
+    display: none;
+  }
+  .mini-progress__bar {
+    width: 140px;
+    height: 9px;
+  }
+  .brand__text h1 {
+    max-width: min(380px, 34vw);
+    font-size: 15px;
+  }
+}
+
+/* Tablet (769px to 940px) */
 @media (max-width: 940px) {
   .clock {
     display: none;
   }
   .mini-progress__bar {
-    width: 130px;
+    width: 120px;
     height: 9px;
   }
   .brand__text h1 {
-    max-width: min(340px, 35vw);
+    max-width: min(320px, 32vw);
     font-size: 14.5px;
   }
 }
@@ -434,7 +449,7 @@
   padding: 1px 5px;
 }
 
-@media (max-width: 900px) {
+@media (max-width: 1050px) {
   .header-cmd-trigger__text,
   .header-cmd-trigger__kbd {
     display: none;

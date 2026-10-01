@@ -14,7 +14,7 @@
 
 .app-main {
   flex: 1;
-  max-width: 1320px;
+  max-width: 1360px;
   width: 100%;
   margin: 0 auto;
   padding: 24px 24px 40px;
@@ -25,7 +25,7 @@
 .app-layout {
   display: flex;
   gap: 20px;
-  align-items: flex-start;
+  align-items: stretch;
   min-width: 0;
   width: 100%;
 }
@@ -40,12 +40,14 @@
   width: 320px;
   flex-shrink: 0;
   min-width: 0;
+  align-self: stretch;
 }
 
 /* Sticky sidebar: Today's Plan + Per-section progress travel together
-   as the user scrolls down the syllabus. Removed restrictive viewport max-height
-   and hidden overflow so that Per-section progress can expand to show up to 10 items
-   without getting chopped off in the middle of cards. */
+   as the user scrolls down the syllabus.
+   - max-height: calc(100vh - var(--header-h) - 24px) allows scrolling if screen height is compact
+   - align-self: stretch on parent ensures sidebar travels full syllabus height
+   - sleek modern scrollbar */
 .sticky-side-panel {
   position: -webkit-sticky;
   position: sticky;
@@ -53,6 +55,25 @@
   display: flex;
   flex-direction: column;
   gap: 0;
+  max-height: calc(100vh - var(--header-h) - 24px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--surface-3) transparent;
+}
+
+.sticky-side-panel::-webkit-scrollbar {
+  width: 4px;
+}
+.sticky-side-panel::-webkit-scrollbar-track {
+  background: transparent;
+}
+.sticky-side-panel::-webkit-scrollbar-thumb {
+  background: var(--surface-3);
+  border-radius: 4px;
+}
+.sticky-side-panel::-webkit-scrollbar-thumb:hover {
+  background: var(--amber-dim);
 }
 
 /* Tablet layout: side-by-side Today's Plan and Per-Section Progress above syllabus */
@@ -60,11 +81,13 @@
   .app-layout {
     flex-direction: column;
     gap: 18px;
+    align-items: stretch;
   }
   .app-layout__side {
     width: 100%;
     order: -1;
     min-width: 0;
+    align-self: auto;
   }
   .sticky-side-panel {
     position: static;
