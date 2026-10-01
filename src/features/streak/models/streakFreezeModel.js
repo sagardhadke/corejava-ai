@@ -21,7 +21,7 @@ export const PROMO_CODES = {
   DAILYGRIND: { code: 'DAILYGRIND', shields: 1, label: 'Daily Grind Protector (+1 Shield)' },
 };
 
-export const SUPPORT_EMAIL = 'streak-support@corejavatracker.com';
+export const SUPPORT_EMAIL = 'sagardhadke12@gmail.com';
 
 /**
  * Creates the initial streak freeze store state for a course.
