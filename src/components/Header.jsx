@@ -3,7 +3,18 @@ import { formatClock } from '../utils/time';
 import CourseSelector from './CourseSelector';
 import './Header.css';
 
-export default function Header({ streak, onOpenCalendar, onOpenSettings, pct, courses, activeCourseId, onSwitchCourse }) {
+export default function Header({
+  streak,
+  onOpenCalendar,
+  onOpenSettings,
+  pct,
+  courses,
+  activeCourseId,
+  onSwitchCourse,
+  unlockedBadgesCount = 0,
+  onOpenBadges,
+  onOpenCommandPalette,
+}) {
   const [now, setNow] = useState(new Date());
 
   useEffect(() => {
@@ -44,9 +55,27 @@ export default function Header({ streak, onOpenCalendar, onOpenSettings, pct, co
         </div>
 
         <div className="header-actions">
+          <button
+            className="header-cmd-trigger"
+            onClick={onOpenCommandPalette}
+            title="Quick search & actions (Ctrl+K or ⌘K)"
+            aria-label="Open command palette"
+          >
+            <SearchIcon />
+            <span className="header-cmd-trigger__text">Search & Actions</span>
+            <kbd className="header-cmd-trigger__kbd">⌘K</kbd>
+          </button>
           <span className="mobile-pct-badge" title={`Course progress: ${pct}%`}>
             {pct}%
           </span>
+          <button
+            className="icon-btn badges-btn"
+            onClick={onOpenBadges}
+            title={`Achievements & Badges (${unlockedBadgesCount}/12 unlocked)`}
+          >
+            <TrophyIcon />
+            <span className="badges-count">{unlockedBadgesCount}</span>
+          </button>
           <button className="icon-btn streak-btn" onClick={onOpenCalendar} title="Streak calendar">
             <FireIcon />
             <span className="streak-count">{streak}</span>
@@ -62,6 +91,50 @@ export default function Header({ streak, onOpenCalendar, onOpenSettings, pct, co
         <div className="header-progress-fill" style={{ width: `${pct}%` }} />
       </div>
     </header>
+  );
+}
+
+function TrophyIcon() {
+  return (
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path
+        d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M4 22h16"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
+      <path
+        d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"
+        stroke="currentColor"
+        strokeWidth="1.8"
+      />
+      <path
+        d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"
+        stroke="currentColor"
+        strokeWidth="1.8"
+      />
+      <path
+        d="M18 2H6v7a6 6 0 0 0 12 0V2Z"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinejoin="round"
+        fill="rgba(255, 213, 74, 0.25)"
+      />
+    </svg>
   );
 }
 
@@ -90,6 +163,15 @@ function GearIcon() {
         strokeWidth="1.4"
         strokeLinejoin="round"
       />
+    </svg>
+  );
+}
+
+function SearchIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="2" />
+      <path d="M21 21l-4.3-4.3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
     </svg>
   );
 }

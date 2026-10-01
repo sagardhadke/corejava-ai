@@ -1,29 +1,39 @@
-import { useEffect, useMemo, useState, useCallback, useRef } from 'react';
+import { useEffect, useMemo, useState, useCallback } from 'react';
 import {
-  listCourses, getActiveCourseId, setActiveCourseId, getCourseById,
-  addCourse, replaceCourse, resetEverything,
-} from './data/courseStore';
-import { useCourseProgress } from './hooks/useCourseProgress';
-import Header from './components/Header';
-import StatsBar from './components/StatsBar';
-import Toolbar from './components/Toolbar';
-import SectionCard from './components/SectionCard';
-import TodayPlanCard from './components/TodayPlanCard';
-import PerSectionProgress from './components/PerSectionProgress';
-import CalendarPanel from './components/CalendarPanel';
-import SettingsPanel from './components/SettingsPanel';
-import PracticeDayModal from './components/PracticeDayModal';
-import MotivationPopup from './components/MotivationPopup';
-import CourseImportModal from './components/CourseImportModal';
-import DeveloperBadge from './components/DeveloperBadge';
-import { dateKey } from './utils/time';
-import { getActiveSectionIds } from './utils/activeSection';
+  listCourses,
+  getActiveCourseId,
+  setActiveCourseId,
+  getCourseById,
+} from './data/courseStore.js';
+import { useCourseProgress } from './hooks/useCourseProgress.js';
+import Header from './components/Header.jsx';
+import DeveloperBadge from './components/DeveloperBadge.jsx';
+import CommandPalette from './components/CommandPalette.jsx';
+import ToastContainer from './components/Toast.jsx';
+import { showToast } from './utils/toast.js';
+import { dateKey } from './utils/time.js';
+
+// Feature-Driven Architecture (Models, ViewModels, Views)
+import {
+  useCourseViewModel,
+  StatsBar,
+  Toolbar,
+  SectionCard,
+  PerSectionProgress,
+  CourseImportModal,
+} from './features/course/index.js';
+import { TodayPlanCard } from './features/today-plan/index.js';
+import { CalendarPanel, PracticeDayModal } from './features/streak/index.js';
+import { BadgesPanel, BadgeToast } from './features/badges/index.js';
+import { SettingsPanel } from './features/settings/index.js';
+import { MotivationPopup } from './features/motivation/index.js';
 import './App.css';
 
 export default function App() {
   const [courseListVersion, setCourseListVersion] = useState(0);
   const [activeCourseId, setActiveCourseIdState] = useState(() => getActiveCourseId());
   const [course, setCourse] = useState(() => getCourseById(getActiveCourseId()));
+
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const courses = useMemo(() => listCourses(), [courseListVersion]);
 
@@ -41,124 +51,70 @@ export default function App() {
     refreshCourseList();
   }, [refreshCourseList]);
 
+  // Headless Course Progress ViewModel Hook
   const {
     watchedSet, planSet, settings, history, stats, sectionProgress, streak, longestStreak, targetSec, today,
     startDate, isStartDateManual, todayWatchedSec, isTodayPracticeDay, hasWatchedToday,
+    badges, unlockedBadgesCount, newlyUnlockedBadge, clearNewlyUnlockedBadge,
     toggleWatched, togglePlan, clearPlan, resetAll, updateSettings, updateStartDate, resetStartDateToAuto,
     markPracticeDay, unmarkPracticeDay,
   } = useCourseProgress(course);
 
-  const [query, setQuery] = useState('');
-  const activeSectionIds = useMemo(
-    () => getActiveSectionIds(course, watchedSet, planSet),
-    [course, watchedSet, planSet]
-  );
-  const activeSectionIdsKey = useMemo(() => [...activeSectionIds].sort().join(','), [activeSectionIds]);
-
-  const [openSections, setOpenSections] = useState(() => {
-    const init = {};
-    const activeSet = new Set(activeSectionIds);
-    course?.sections.forEach((s) => { init[s.id] = activeSet.has(s.id); });
-    return init;
+  // Headless Course ViewModel (accordion state, filtering, import actions)
+  const courseVM = useCourseViewModel({
+    course,
+    courses,
+    activeCourseId,
+    watchedSet,
+    planSet,
+    onSwitchCourse: handleSwitchCourse,
+    onRefreshCourses: refreshCourseList,
   });
+
+  // Drawer and Modal visibility
   const [calendarOpen, setCalendarOpen] = useState(() => typeof window !== 'undefined' && window.location.hash === '#calendar');
   const [settingsOpen, setSettingsOpen] = useState(() => typeof window !== 'undefined' && window.location.hash === '#settings');
+  const [badgesOpen, setBadgesOpen] = useState(() => typeof window !== 'undefined' && window.location.hash === '#badges');
+  const [practiceModalOpen, setPracticeModalOpen] = useState(false);
+  const [practiceModalDate, setPracticeModalDate] = useState(null);
+  const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
 
+  // Deep-link hash routing
   useEffect(() => {
     const handleHash = () => {
       if (window.location.hash === '#calendar') setCalendarOpen(true);
       if (window.location.hash === '#settings') setSettingsOpen(true);
+      if (window.location.hash === '#badges') setBadgesOpen(true);
     };
     window.addEventListener('hashchange', handleHash);
     return () => window.removeEventListener('hashchange', handleHash);
   }, []);
-  const [practiceModalOpen, setPracticeModalOpen] = useState(false);
-  const [practiceModalDate, setPracticeModalDate] = useState(null);
-  const [importOpen, setImportOpen] = useState(false);
 
-  // Automatically keep all active sections (sections with today's plan / yellow dot,
-  // plus the primary unwatched progress section) expanded. When switching courses
-  // or when active sections change (e.g. lectures added/removed from today's plan,
-  // section completed, lectures marked/unmarked), automatically expand the active
-  // sections and collapse completed/inactive sections, while preserving manual user toggles.
-  const prevCourseIdForSectionsRef = useRef(null);
-  const prevActiveSectionsKeyRef = useRef(null);
-
+  // Global keyboard shortcuts (Ctrl+K or Cmd+K for Command Palette)
   useEffect(() => {
-    if (!course) return;
-    const courseChanged = prevCourseIdForSectionsRef.current !== course.id;
-    const activeSectionsChanged = prevActiveSectionsKeyRef.current !== activeSectionIdsKey;
+    const handleKeyDown = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setCommandPaletteOpen((prev) => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
-    if (courseChanged) {
-      prevCourseIdForSectionsRef.current = course.id;
-      prevActiveSectionsKeyRef.current = activeSectionIdsKey;
-      const init = {};
-      const activeSet = new Set(activeSectionIds);
-      course.sections.forEach((s) => { init[s.id] = activeSet.has(s.id); });
-      setOpenSections(init);
-    } else if (activeSectionsChanged) {
-      const prevActiveSet = new Set((prevActiveSectionsKeyRef.current || '').split(',').filter(Boolean));
-      prevActiveSectionsKeyRef.current = activeSectionIdsKey;
-      const currentActiveSet = new Set(activeSectionIds);
-
-      setOpenSections((prev) => {
-        const next = { ...prev };
-        // Collapse sections that were previously active but are no longer active
-        prevActiveSet.forEach((id) => {
-          if (!currentActiveSet.has(id)) {
-            next[id] = false;
-          }
-        });
-        // Collapse any completed sections that are no longer active (no yellow dot)
-        course.sections.forEach((s) => {
-          if (!currentActiveSet.has(s.id)) {
-            const isSecComplete = s.lectures && s.lectures.length > 0 && s.lectures.every((l) => watchedSet.has(l.id));
-            if (isSecComplete) {
-              next[s.id] = false;
-            }
-          }
-        });
-        // Automatically expand all active sections (including any section with today's plan / yellow dot!)
-        currentActiveSet.forEach((id) => {
-          next[id] = true;
-        });
-        return next;
-      });
-    }
-  }, [course, activeSectionIds, activeSectionIdsKey, watchedSet]);
-
-  const lectureNumbers = useMemo(() => {
-    if (!course) return new Map();
-    return new Map(course.allLectures.map((l, i) => [l.id, i + 1]));
-  }, [course]);
-
-  const filteredSections = useMemo(() => {
-    if (!course) return [];
-    const q = query.trim().toLowerCase();
-    if (!q) return course.sections;
-    return course.sections
-      .map((s) => ({ ...s, lectures: s.lectures.filter((l) => l.title.toLowerCase().includes(q)) }))
-      .filter((s) => s.lectures.length > 0);
-  }, [course, query]);
+  // Storage quota alert listener
+  useEffect(() => {
+    const handleQuota = () => {
+      showToast('Browser storage limit reached! Export a backup from Settings to prevent data loss.', 'warning', 6000);
+    };
+    window.addEventListener('jct:storage_quota_exceeded', handleQuota);
+    return () => window.removeEventListener('jct:storage_quota_exceeded', handleQuota);
+  }, []);
 
   const plannedLectures = useMemo(() => {
-    if (!course) return [];
+    if (!course?.allLectures) return [];
     return course.allLectures.filter((l) => planSet.has(l.id));
   }, [course, planSet]);
-
-  const toggleOpen = (id) => setOpenSections((prev) => ({ ...prev, [id]: !prev[id] }));
-  const expandAll = () => {
-    if (!course) return;
-    const next = {};
-    course.sections.forEach((s) => { next[s.id] = true; });
-    setOpenSections(next);
-  };
-  const collapseAll = () => {
-    if (!course) return;
-    const next = {};
-    course.sections.forEach((s) => { next[s.id] = false; });
-    setOpenSections(next);
-  };
 
   const openPracticeModalForToday = () => {
     setPracticeModalDate(null);
@@ -169,40 +125,33 @@ export default function App() {
     setPracticeModalOpen(true);
   };
 
-  const handleJumpToSection = (sectionId) => {
-    setOpenSections((prev) => ({ ...prev, [sectionId]: true }));
-    requestAnimationFrame(() => {
-      const el = document.getElementById(`section-${sectionId}`);
-      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    });
-  };
+  const handleMarkPracticeDay = useCallback((note, targetDate) => {
+    markPracticeDay(note, targetDate);
+    showToast('Practice day recorded! Keep up the momentum! 🔥', 'success');
+  }, [markPracticeDay]);
 
-  const handleImportAdd = (parsedCourse) => {
-    const newId = addCourse(parsedCourse);
-    refreshCourseList();
-    handleSwitchCourse(newId);
-  };
-
-  const handleImportReplace = (parsedCourse) => {
-    const newId = replaceCourse(activeCourseId, parsedCourse);
-    refreshCourseList();
-    handleSwitchCourse(newId);
-  };
+  const handleUnmarkPracticeDay = useCallback((targetDate) => {
+    unmarkPracticeDay(targetDate);
+    showToast('Practice day removed.', 'info');
+  }, [unmarkPracticeDay]);
 
   const handleDeleteEverything = () => {
-    resetEverything();
+    courseVM.deleteEverything();
     const freshId = getActiveCourseId();
     setActiveCourseIdState(freshId);
     setCourse(getCourseById(freshId));
     refreshCourseList();
     setSettingsOpen(false);
+    showToast('All progress reset to clean install.', 'info');
   };
 
   const handleRestoredBackup = () => {
+    courseVM.restoredBackup();
     const freshId = getActiveCourseId();
     setActiveCourseIdState(freshId);
     setCourse(getCourseById(freshId));
     refreshCourseList();
+    showToast('Backup restored successfully!', 'success');
   };
 
   if (!course) {
@@ -223,6 +172,9 @@ export default function App() {
         courses={courses}
         activeCourseId={activeCourseId}
         onSwitchCourse={handleSwitchCourse}
+        unlockedBadgesCount={unlockedBadgesCount}
+        onOpenBadges={() => setBadgesOpen(true)}
+        onOpenCommandPalette={() => setCommandPaletteOpen(true)}
       />
 
       <main className="app-main">
@@ -231,37 +183,41 @@ export default function App() {
         <div className="app-layout">
           <div className="app-layout__main">
             <Toolbar
-              query={query}
-              onQueryChange={setQuery}
-              onExpandAll={expandAll}
-              onCollapseAll={collapseAll}
+              query={courseVM.query}
+              onQueryChange={courseVM.setQuery}
+              onExpandAll={courseVM.expandAll}
+              onCollapseAll={courseVM.collapseAll}
               onClearPlan={clearPlan}
               plannedCount={planSet.size}
             />
 
-            {filteredSections.length === 0 ? (
-              <div className="empty-state">No lectures match "{query}".</div>
+            {courseVM.filteredSections.length === 0 ? (
+              <div className="empty-state">
+                <span className="empty-state__icon">🔍</span>
+                <p>No lectures match "<strong>{courseVM.query}</strong>".</p>
+                <button className="empty-state__btn" onClick={() => courseVM.setQuery('')}>
+                  Clear search
+                </button>
+              </div>
             ) : (
-              filteredSections.map((section) => (
+              courseVM.filteredSections.map((section) => (
                 <div key={section.id} id={`section-${section.id}`}>
                   <SectionCard
                     section={section}
-                    isOpen={query ? true : !!openSections[section.id]}
-                    onToggleOpen={() => toggleOpen(section.id)}
+                    isOpen={courseVM.query ? true : !!courseVM.openSections[section.id]}
+                    onToggleOpen={() => courseVM.toggleSection(section.id)}
                     watchedSet={watchedSet}
                     planSet={planSet}
                     onToggleWatched={toggleWatched}
                     onTogglePlan={togglePlan}
-                    lectureNumbers={lectureNumbers}
+                    lectureNumbers={courseVM.lectureNumbers}
                   />
                 </div>
               ))
             )}
           </div>
 
-          {/* Sticky sidebar: Today's Plan + Per-section progress travel together
-              as the user scrolls, so they stay reachable without scrolling back
-              to the top of a long syllabus. */}
+          {/* Sticky sidebar: Today's Plan + Per-section progress travel together */}
           <div className="app-layout__side">
             <div className="sticky-side-panel">
               <TodayPlanCard
@@ -270,17 +226,17 @@ export default function App() {
                 targetSec={targetSec}
                 autoPlan={settings.autoPlan}
                 onToggleWatched={toggleWatched}
-                lectureNumbers={lectureNumbers}
+                lectureNumbers={courseVM.lectureNumbers}
                 isTodayPracticeDay={isTodayPracticeDay}
                 hasWatchedToday={hasWatchedToday}
                 onOpenPracticeModal={openPracticeModalForToday}
-                onUnmarkPracticeDay={() => unmarkPracticeDay()}
+                onUnmarkPracticeDay={() => handleUnmarkPracticeDay()}
                 todayWatchedSec={todayWatchedSec}
                 startDate={startDate}
               />
               <PerSectionProgress
                 sectionProgress={sectionProgress}
-                onJumpToSection={handleJumpToSection}
+                onJumpToSection={courseVM.jumpToSection}
                 visibleCount={settings.perSectionVisibleCount || 7}
               />
             </div>
@@ -289,7 +245,7 @@ export default function App() {
       </main>
 
       <footer className="app-footer">
-        {course.title} · {stats.totalCount} lectures across {course.sections.length} sections · progress saved locally on this device
+        {course.title} · {stats.totalCount} lectures across {course.sections.length} sections · enterprise progress tracking
       </footer>
 
       <MotivationPopup today={today} stats={stats} streak={streak} courseTitle={course.title} />
@@ -305,26 +261,27 @@ export default function App() {
         isTodayPracticeDay={isTodayPracticeDay}
         hasWatchedToday={hasWatchedToday}
         onOpenPracticeModal={openPracticeModalForToday}
-        onUnmarkPracticeDay={() => unmarkPracticeDay()}
+        onUnmarkPracticeDay={() => handleUnmarkPracticeDay()}
         onOpenPracticeModalForDate={openPracticeModalForDate}
         startDate={startDate}
         courses={courses}
         course={course}
+        onOpenBadges={() => setBadgesOpen(true)}
       />
 
       <PracticeDayModal
         open={practiceModalOpen}
         onClose={() => setPracticeModalOpen(false)}
-        onConfirm={(note) => markPracticeDay(note, practiceModalDate ? dateKey(practiceModalDate) : undefined)}
+        onConfirm={(note) => handleMarkPracticeDay(note, practiceModalDate ? dateKey(practiceModalDate) : undefined)}
         targetDate={practiceModalDate}
         startDate={startDate}
       />
 
       <CourseImportModal
-        open={importOpen}
-        onClose={() => setImportOpen(false)}
-        onAdd={handleImportAdd}
-        onReplace={handleImportReplace}
+        open={courseVM.importOpen}
+        onClose={() => courseVM.setImportOpen(false)}
+        onAdd={courseVM.importAdd}
+        onReplace={courseVM.importReplace}
         activeCourseTitle={course.title}
       />
 
@@ -337,7 +294,7 @@ export default function App() {
         courses={courses}
         activeCourseId={activeCourseId}
         onSwitchCourse={handleSwitchCourse}
-        onOpenImport={() => { setSettingsOpen(false); setImportOpen(true); }}
+        onOpenImport={() => { setSettingsOpen(false); courseVM.setImportOpen(true); }}
         onCoursesChanged={refreshCourseList}
         onRestoredBackup={handleRestoredBackup}
         onDeleteEverything={handleDeleteEverything}
@@ -349,6 +306,35 @@ export default function App() {
         onResetStartDateToAuto={resetStartDateToAuto}
       />
 
+      <BadgesPanel
+        open={badgesOpen}
+        onClose={() => setBadgesOpen(false)}
+        badges={badges}
+        courseTitle={course.title}
+      />
+
+      <BadgeToast
+        badge={newlyUnlockedBadge}
+        onOpenBadges={() => setBadgesOpen(true)}
+        onClose={clearNewlyUnlockedBadge}
+      />
+
+      <CommandPalette
+        open={commandPaletteOpen}
+        onClose={() => setCommandPaletteOpen(false)}
+        course={course}
+        courses={courses}
+        onSwitchCourse={handleSwitchCourse}
+        onJumpToSection={courseVM.jumpToSection}
+        onOpenCalendar={() => setCalendarOpen(true)}
+        onOpenBadges={() => setBadgesOpen(true)}
+        onOpenSettings={() => setSettingsOpen(true)}
+        onOpenPracticeModal={openPracticeModalForToday}
+        onOpenImport={() => courseVM.setImportOpen(true)}
+        onClearPlan={clearPlan}
+      />
+
+      <ToastContainer />
       <DeveloperBadge />
     </div>
   );

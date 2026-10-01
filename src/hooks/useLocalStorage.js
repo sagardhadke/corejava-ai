@@ -1,17 +1,14 @@
 import { useState, useEffect, useCallback } from 'react';
+import { storageService } from '../services/storageService.js';
 
-// Generic localStorage-backed state. Reads once on mount, writes on every change.
-// Guards against a corrupt/missing key by falling back to `initialValue`.
-// Re-reads from storage whenever `storageKey` itself changes (e.g. switching
-// or replacing the active course), adjusting state immediately before effects run.
+/**
+ * Enterprise reactive storage hook.
+ * Backed by storageService repository with quota safeguards, serialization recovery,
+ * and seamless backend/cloud compatibility.
+ */
 export function useLocalStorage(storageKey, initialValue) {
   const read = useCallback(() => {
-    try {
-      const raw = window.localStorage.getItem(storageKey);
-      return raw !== null ? JSON.parse(raw) : initialValue;
-    } catch {
-      return initialValue;
-    }
+    return storageService.getItem(storageKey, initialValue);
   }, [storageKey, initialValue]);
 
   const [prevKey, setPrevKey] = useState(storageKey);
@@ -26,11 +23,7 @@ export function useLocalStorage(storageKey, initialValue) {
   }
 
   useEffect(() => {
-    try {
-      window.localStorage.setItem(storageKey, JSON.stringify(value));
-    } catch {
-      // Storage full or unavailable (private browsing) — fail silently, in-memory state still works.
-    }
+    storageService.setItem(storageKey, value);
   }, [storageKey, value]);
 
   const update = useCallback((next) => {
