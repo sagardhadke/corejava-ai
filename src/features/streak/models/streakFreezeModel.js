@@ -15,9 +15,7 @@ export const PROMO_CODES = {
   STREAKBOOST: { code: 'STREAKBOOST', shields: 2, label: 'Community Streak Boost (+2 Shields)' },
   SAVEMYSTREAK: { code: 'SAVEMYSTREAK', shields: 1, label: 'Emergency Rescue Shield (+1 Shield)' },
   JAVAHERO: { code: 'JAVAHERO', shields: 2, label: 'Java Hero Bonus Pack (+2 Shields)' },
-  INVESTOR10B: { code: 'INVESTOR10B', shields: 3, label: 'Investor 10B VIP Shield Pack (+3 Shields)' },
   STUDENT2026: { code: 'STUDENT2026', shields: 2, label: 'Student Learner Shield (+2 Shields)' },
-  ANTIGRAVITY: { code: 'ANTIGRAVITY', shields: 3, label: 'Antigravity Super Boost (+3 Shields)' },
   DAILYGRIND: { code: 'DAILYGRIND', shields: 1, label: 'Daily Grind Protector (+1 Shield)' },
 };
 
