@@ -680,6 +680,21 @@
   user-select: none;
 }
 
+.api-btn--preview {
+  flex: 1.1;
+  background: rgba(255, 184, 0, 0.12);
+  border: 1px solid rgba(255, 184, 0, 0.35);
+  color: var(--amber-bright);
+}
+
+.api-btn--preview:hover {
+  background: rgba(255, 184, 0, 0.22);
+  border-color: var(--amber);
+  color: #ffffff;
+  box-shadow: 0 0 12px rgba(255, 184, 0, 0.3);
+  transform: translateY(-1px);
+}
+
 .api-btn--test {
   flex: 1.2;
   background: linear-gradient(180deg, var(--surface-3) 0%, var(--surface-2) 100%);

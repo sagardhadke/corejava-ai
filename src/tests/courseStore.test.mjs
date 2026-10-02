@@ -993,6 +993,48 @@ describe('Course Flow & State Management Integration Tests', () => {
     assert.equal(state.settingsOpen, false);
     assert.equal(getActiveTab(), 'home');
   });
+
+  it('27. Daily motivation popup triggers, display state, and local storage tracking', async () => {
+    const { getShownDate, setShownDate, triggerMotivationPopup } = await import('../features/motivation/viewmodels/useMotivationViewModel.js');
+    const { pickDefaultMotivation, DEFAULT_MOTIVATION_MESSAGES } = await import('../features/motivation/models/motivationModel.js');
+
+    // 1. Verify storage tracking
+    setShownDate('2026-10-02');
+    assert.equal(getShownDate(), '2026-10-02', 'Shown date must be recorded in localStorage');
+
+    // 2. Verify deterministic rotating message
+    const msg1 = pickDefaultMotivation(5, '2026-10-02');
+    assert.ok(msg1 && msg1.length > 10, 'Must produce a valid motivational quote');
+    assert.ok(DEFAULT_MOTIVATION_MESSAGES.includes(msg1));
+
+    // 3. Verify custom trigger event with mock window
+    const listeners = new Map();
+    const mockWindow = {
+      addEventListener: (evt, cb) => {
+        const arr = listeners.get(evt) || [];
+        arr.push(cb);
+        listeners.set(evt, arr);
+      },
+      removeEventListener: (evt, cb) => {
+        const arr = listeners.get(evt) || [];
+        listeners.set(evt, arr.filter((f) => f !== cb));
+      },
+      dispatchEvent: (evt) => {
+        const arr = listeners.get(evt?.type || evt) || [];
+        arr.forEach((cb) => cb(evt));
+        return true;
+      },
+    };
+    globalThis.window = mockWindow;
+
+    let eventReceived = false;
+    const onTrigger = () => { eventReceived = true; };
+    globalThis.window.addEventListener('jct:show_motivation', onTrigger);
+
+    triggerMotivationPopup();
+    assert.equal(eventReceived, true, 'triggerMotivationPopup must dispatch jct:show_motivation');
+    globalThis.window.removeEventListener('jct:show_motivation', onTrigger);
+  });
 });
 
 

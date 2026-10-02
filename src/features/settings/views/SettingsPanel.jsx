@@ -329,6 +329,19 @@ export default function SettingsPanel({
           <div className="api-key-actions">
             <button
               type="button"
+              className="api-btn api-btn--preview"
+              onClick={() => {
+                onClose();
+                setTimeout(() => {
+                  window.dispatchEvent(new CustomEvent('jct:show_motivation'));
+                }, 120);
+              }}
+              title="Preview daily motivation popup"
+            >
+              ✨ Preview popup
+            </button>
+            <button
+              type="button"
               className="api-btn api-btn--test"
               onClick={handleTestKey}
               disabled={!apiKey.trim() || testStatus?.loading}

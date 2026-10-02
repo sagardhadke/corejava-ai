@@ -197,6 +197,19 @@ export default function MobileMenuDrawer({
               <button
                 type="button"
                 className="mobile-menu-item"
+                onClick={() => handleNav(() => window.dispatchEvent(new CustomEvent('jct:show_motivation')))}
+              >
+                <span className="mobile-menu-icon">
+                  ✨
+                </span>
+                <span className="mobile-menu-label">Daily Motivation</span>
+              </button>
+            </li>
+
+            <li>
+              <button
+                type="button"
+                className="mobile-menu-item"
                 onClick={() => handleNav(onOpenSettings)}
               >
                 <span className="mobile-menu-icon">

@@ -51,6 +51,17 @@ export default function CommandPalette({
     // 1. App actions
     const actions = [
       {
+        id: 'action-motivation',
+        category: 'Quick Actions',
+        title: 'View Daily Motivation & Study Coach',
+        shortcut: 'M',
+        icon: '✨',
+        run: () => {
+          onClose();
+          window.dispatchEvent(new CustomEvent('jct:show_motivation'));
+        },
+      },
+      {
         id: 'action-badges',
         category: 'Quick Actions',
         title: 'View Achievements & Badges',
