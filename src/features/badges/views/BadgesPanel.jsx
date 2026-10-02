@@ -1,3 +1,4 @@
+import { useState, useMemo } from 'react';
 import Drawer from '../../../components/Drawer';
 import BadgeIcon from './BadgeIcon';
 import './BadgesPanel.css';
@@ -12,6 +13,19 @@ export default function BadgesPanel({
 }) {
   const vm = viewModel;
 
+  const [localTab, setLocalTab] = useState('all');
+  const [localInspectBadge, setLocalInspectBadge] = useState(null);
+  const [localCopied, setLocalCopied] = useState(false);
+
+  const [prevOpen, setPrevOpen] = useState(open);
+  if (open !== prevOpen) {
+    setPrevOpen(open);
+    if (!open) {
+      setLocalInspectBadge(null);
+      setLocalCopied(false);
+    }
+  }
+
   const unlockedCount = vm?.unlockedCount ?? badges.filter((b) => b.isUnlocked).length;
   const totalCount = vm?.totalCount ?? (badges.length || 12);
   const rank = vm?.rank ?? { level: 1, title: 'Aspiring Achiever', desc: 'Begin your streak or complete 10% to unlock your first badge.' };
@@ -23,15 +37,47 @@ export default function BadgesPanel({
   const streakUnlocked = vm?.streakUnlocked ?? streakBadges.filter((b) => b.isUnlocked).length;
 
   const nextMilestone = vm?.nextMilestone ?? (completionBadges.find((b) => !b.isUnlocked) || streakBadges.find((b) => !b.isUnlocked));
-  const filteredBadges = vm?.filteredBadges ?? badges;
-  const selectedTab = vm?.selectedTab ?? 'all';
-  const inspectBadge = vm?.inspectBadge ?? null;
-  const copied = vm?.copied ?? false;
+  const selectedTab = vm?.selectedTab ?? localTab;
+  const inspectBadge = vm?.inspectBadge ?? localInspectBadge;
+  const copied = vm?.copied ?? localCopied;
 
-  const handleSelectTab = (tab) => vm?.setTab?.(tab);
-  const handleOpenInspect = (b) => vm?.openInspect?.(b);
-  const handleCloseInspect = () => vm?.closeInspect?.();
-  const handleCopyShare = (b) => vm?.copyShare?.(b);
+  const filteredBadges = useMemo(() => {
+    if (vm?.filteredBadges) return vm.filteredBadges;
+    switch (selectedTab) {
+      case 'completion': return completionBadges;
+      case 'streak': return streakBadges;
+      case 'unlocked': return badges.filter((b) => b.isUnlocked);
+      case 'locked': return badges.filter((b) => !b.isUnlocked);
+      case 'all':
+      default:
+        return badges;
+    }
+  }, [vm?.filteredBadges, selectedTab, completionBadges, streakBadges, badges]);
+
+  const handleSelectTab = (tab) => {
+    if (vm?.setTab) vm.setTab(tab);
+    else setLocalTab(tab);
+  };
+  const handleOpenInspect = (b) => {
+    if (vm?.openInspect) vm.openInspect(b);
+    else setLocalInspectBadge(b);
+  };
+  const handleCloseInspect = () => {
+    if (vm?.closeInspect) vm.closeInspect();
+    else setLocalInspectBadge(null);
+  };
+  const handleCopyShare = (b) => {
+    if (vm?.copyShare) {
+      vm.copyShare(b);
+    } else {
+      const text = `🏆 I unlocked the "${b.title}" badge on Core Java + AI Course Tracker!`;
+      if (navigator.clipboard?.writeText) {
+        navigator.clipboard.writeText(text);
+      }
+      setLocalCopied(true);
+      setTimeout(() => setLocalCopied(false), 2000);
+    }
+  };
 
   return (
     <>

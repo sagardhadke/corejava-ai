@@ -10,6 +10,16 @@
   box-sizing: border-box;
 }
 
+.psp-card__head-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.psp-mobile-toggle {
+  display: none;
+}
+
 @media (min-width: 641px) and (max-width: 900px) {
   .psp-card {
     margin-top: 0;
@@ -19,10 +29,35 @@
 @media (max-width: 640px) {
   .psp-card {
     margin-top: 0;
-    padding: 14px 12px;
+    padding: 10px 12px;
+    border-radius: var(--r-md);
+  }
+  .psp-card__head {
+    margin-bottom: 0;
+    cursor: pointer;
+  }
+  .psp-card__head h3 {
+    font-size: 12.5px;
+  }
+  .psp-mobile-toggle {
+    display: inline-flex;
+    align-items: center;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--amber);
+    background: var(--amber-wash);
+    border: 1px solid rgba(255, 184, 0, 0.35);
+    padding: 2px 7px;
+    border-radius: 4px;
+    user-select: none;
   }
   .psp-list {
-    max-height: min(calc(var(--psp-visible-items, 7) * 78px), 60vh);
+    margin-top: 10px;
+    max-height: 280px;
+  }
+  .psp-list--mobile-collapsed {
+    display: none !important;
   }
 }
 

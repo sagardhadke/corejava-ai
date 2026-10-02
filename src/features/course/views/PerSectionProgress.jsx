@@ -1,7 +1,9 @@
+import { useState } from 'react';
 import { formatDuration } from '../../../utils/time.js';
 import './PerSectionProgress.css';
 
 export default function PerSectionProgress({ sectionProgress = [], onJumpToSection, visibleCount = 7 }) {
+  const [mobileExpanded, setMobileExpanded] = useState(false);
   const configuredCount = Math.max(5, Math.min(10, Number(visibleCount) || 7));
   const totalSections = sectionProgress.length;
   // Automatically adjust visible count if course has fewer sections than the configured limit
@@ -9,16 +11,21 @@ export default function PerSectionProgress({ sectionProgress = [], onJumpToSecti
 
   return (
     <div className="psp-card" style={{ '--psp-visible-items': count }}>
-      <div className="psp-card__head">
+      <div className="psp-card__head" onClick={() => setMobileExpanded((v) => !v)}>
         <h3>Per-section progress</h3>
-        <span className="psp-card__summary">
-          {sectionProgress.filter((s) => s.isComplete).length}/{totalSections} done
-        </span>
+        <div className="psp-card__head-actions">
+          <span className="psp-card__summary">
+            {sectionProgress.filter((s) => s.isComplete).length}/{totalSections} done
+          </span>
+          <span className="psp-mobile-toggle" aria-hidden="true">
+            {mobileExpanded ? 'Hide ▲' : 'View ▼'}
+          </span>
+        </div>
       </div>
       {totalSections === 0 ? (
         <div className="psp-empty">No sections available for this course.</div>
       ) : (
-        <ul className="psp-list">
+        <ul className={`psp-list ${!mobileExpanded ? 'psp-list--mobile-collapsed' : ''}`}>
           {sectionProgress.map((s) => {
             const pct = s.total ? Math.round((s.watchedCount / s.total) * 100) : 0;
             return (

@@ -85,16 +85,99 @@ export default function App() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeNavTab, setActiveNavTab] = useState('home');
 
+  // Centralized Drawer & Navigation Managers
+  const closeAllDrawers = useCallback(() => {
+    setCalendarOpen(false);
+    setSettingsOpen(false);
+    setBadgesOpen(false);
+    setMobileMenuOpen(false);
+    setCommandPaletteOpen(false);
+    setActiveNavTab('home');
+  }, []);
+
+  const openStreakDrawer = useCallback(() => {
+    setSettingsOpen(false);
+    setBadgesOpen(false);
+    setMobileMenuOpen(false);
+    setCommandPaletteOpen(false);
+    setCalendarOpen(true);
+    setActiveNavTab('streak');
+  }, []);
+
+  const openBadgesDrawer = useCallback(() => {
+    setCalendarOpen(false);
+    setSettingsOpen(false);
+    setMobileMenuOpen(false);
+    setCommandPaletteOpen(false);
+    setBadgesOpen(true);
+    setActiveNavTab('badges');
+  }, []);
+
+  const openSettingsDrawer = useCallback(() => {
+    setCalendarOpen(false);
+    setBadgesOpen(false);
+    setMobileMenuOpen(false);
+    setCommandPaletteOpen(false);
+    setSettingsOpen(true);
+    setActiveNavTab('settings');
+  }, []);
+
+  const toggleStreakDrawer = useCallback(() => {
+    if (calendarOpen) {
+      setCalendarOpen(false);
+      setActiveNavTab('home');
+    } else {
+      openStreakDrawer();
+    }
+  }, [calendarOpen, openStreakDrawer]);
+
+  const toggleBadgesDrawer = useCallback(() => {
+    if (badgesOpen) {
+      setBadgesOpen(false);
+      setActiveNavTab('home');
+    } else {
+      openBadgesDrawer();
+    }
+  }, [badgesOpen, openBadgesDrawer]);
+
+  const toggleSettingsDrawer = useCallback(() => {
+    if (settingsOpen) {
+      setSettingsOpen(false);
+      setActiveNavTab('home');
+    } else {
+      openSettingsDrawer();
+    }
+  }, [settingsOpen, openSettingsDrawer]);
+
+  const navigateHome = useCallback(() => {
+    closeAllDrawers();
+    setActiveNavTab('home');
+    requestAnimationFrame(() => {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+  }, [closeAllDrawers]);
+
+  const navigateToday = useCallback(() => {
+    closeAllDrawers();
+    setActiveNavTab('today');
+    requestAnimationFrame(() => {
+      const el = document.getElementById('today-plan-card');
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    });
+  }, [closeAllDrawers]);
+
   // Deep-link hash routing
   useEffect(() => {
     const handleHash = () => {
-      if (window.location.hash === '#calendar') setCalendarOpen(true);
-      if (window.location.hash === '#settings') setSettingsOpen(true);
-      if (window.location.hash === '#badges') setBadgesOpen(true);
+      if (window.location.hash === '#calendar') openStreakDrawer();
+      if (window.location.hash === '#settings') openSettingsDrawer();
+      if (window.location.hash === '#badges') openBadgesDrawer();
     };
     window.addEventListener('hashchange', handleHash);
     return () => window.removeEventListener('hashchange', handleHash);
-  }, []);
+  }, [openStreakDrawer, openSettingsDrawer, openBadgesDrawer]);
 
   // Global keyboard shortcuts (Ctrl+K or Cmd+K for Command Palette)
   useEffect(() => {
@@ -172,16 +255,22 @@ export default function App() {
     <div className="app-shell">
       <Header
         streak={streak}
-        onOpenCalendar={() => setCalendarOpen(true)}
-        onOpenSettings={() => setSettingsOpen(true)}
+        onOpenCalendar={openStreakDrawer}
+        onOpenSettings={openSettingsDrawer}
         pct={stats.pct}
         courses={courses}
         activeCourseId={activeCourseId}
         onSwitchCourse={handleSwitchCourse}
         unlockedBadgesCount={unlockedBadgesCount}
-        onOpenBadges={() => setBadgesOpen(true)}
-        onOpenCommandPalette={() => setCommandPaletteOpen(true)}
-        onOpenMobileMenu={() => setMobileMenuOpen(true)}
+        onOpenBadges={openBadgesDrawer}
+        onOpenCommandPalette={() => {
+          closeAllDrawers();
+          setCommandPaletteOpen(true);
+        }}
+        onOpenMobileMenu={() => {
+          closeAllDrawers();
+          setMobileMenuOpen(true);
+        }}
       />
 
       <main className="app-main">
@@ -259,7 +348,7 @@ export default function App() {
 
       <CalendarPanel
         open={calendarOpen}
-        onClose={() => setCalendarOpen(false)}
+        onClose={() => { setCalendarOpen(false); setActiveNavTab('home'); }}
         history={history}
         streak={streak}
         longestStreak={longestStreak}
@@ -273,7 +362,7 @@ export default function App() {
         startDate={startDate}
         courses={courses}
         course={course}
-        onOpenBadges={() => setBadgesOpen(true)}
+        onOpenBadges={openBadgesDrawer}
         availableFreezes={availableFreezes}
         usedFreezes={usedFreezes}
         onRedeemCode={redeemStreakCode}
@@ -297,7 +386,7 @@ export default function App() {
 
       <SettingsPanel
         open={settingsOpen}
-        onClose={() => setSettingsOpen(false)}
+        onClose={() => { setSettingsOpen(false); setActiveNavTab('home'); }}
         settings={settings}
         onUpdate={updateSettings}
         onResetAll={resetAll}
@@ -318,14 +407,14 @@ export default function App() {
 
       <BadgesPanel
         open={badgesOpen}
-        onClose={() => setBadgesOpen(false)}
+        onClose={() => { setBadgesOpen(false); setActiveNavTab('home'); }}
         badges={badges}
         courseTitle={course.title}
       />
 
       <BadgeToast
         badge={newlyUnlockedBadge}
-        onOpenBadges={() => setBadgesOpen(true)}
+        onOpenBadges={openBadgesDrawer}
         onClose={clearNewlyUnlockedBadge}
       />
 
@@ -336,11 +425,14 @@ export default function App() {
         courses={courses}
         onSwitchCourse={handleSwitchCourse}
         onJumpToSection={courseVM.jumpToSection}
-        onOpenCalendar={() => setCalendarOpen(true)}
-        onOpenBadges={() => setBadgesOpen(true)}
-        onOpenSettings={() => setSettingsOpen(true)}
+        onOpenCalendar={openStreakDrawer}
+        onOpenBadges={openBadgesDrawer}
+        onOpenSettings={openSettingsDrawer}
         onOpenPracticeModal={openPracticeModalForToday}
-        onOpenImport={() => courseVM.setImportOpen(true)}
+        onOpenImport={() => {
+          closeAllDrawers();
+          courseVM.setImportOpen(true);
+        }}
         onClearPlan={clearPlan}
       />
 
@@ -356,16 +448,19 @@ export default function App() {
         streak={streak}
         availableFreezes={availableFreezes}
         unlockedBadgesCount={unlockedBadgesCount}
-        onOpenPlan={() => {
-          const el = document.getElementById('today-plan-card');
-          if (el) el.scrollIntoView({ behavior: 'smooth' });
+        onOpenPlan={navigateToday}
+        onOpenStreak={openStreakDrawer}
+        onOpenBadges={openBadgesDrawer}
+        onOpenSettings={openSettingsDrawer}
+        onOpenCommandPalette={() => {
+          closeAllDrawers();
+          setCommandPaletteOpen(true);
         }}
-        onOpenStreak={() => setCalendarOpen(true)}
-        onOpenBadges={() => setBadgesOpen(true)}
-        onOpenSettings={() => setSettingsOpen(true)}
-        onOpenCommandPalette={() => setCommandPaletteOpen(true)}
         onOpenPracticeModal={openPracticeModalForToday}
-        onOpenImport={() => courseVM.setImportOpen(true)}
+        onOpenImport={() => {
+          closeAllDrawers();
+          courseVM.setImportOpen(true);
+        }}
         onExportBackup={() => {
           const backup = exportBackup();
           const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
@@ -384,33 +479,11 @@ export default function App() {
         streak={streak}
         planCount={stats.planCount}
         unlockedBadgesCount={unlockedBadgesCount}
-        onNavigateHome={() => {
-          setActiveNavTab('home');
-          setCalendarOpen(false);
-          setBadgesOpen(false);
-          setSettingsOpen(false);
-          window.scrollTo({ top: 0, behavior: 'smooth' });
-        }}
-        onNavigateToday={() => {
-          setActiveNavTab('today');
-          setCalendarOpen(false);
-          setBadgesOpen(false);
-          setSettingsOpen(false);
-          const el = document.getElementById('today-plan-card');
-          if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }}
-        onOpenStreak={() => {
-          setActiveNavTab('streak');
-          setCalendarOpen(true);
-        }}
-        onOpenBadges={() => {
-          setActiveNavTab('badges');
-          setBadgesOpen(true);
-        }}
-        onOpenSettings={() => {
-          setActiveNavTab('settings');
-          setSettingsOpen(true);
-        }}
+        onNavigateHome={navigateHome}
+        onNavigateToday={navigateToday}
+        onOpenStreak={toggleStreakDrawer}
+        onOpenBadges={toggleBadgesDrawer}
+        onOpenSettings={toggleSettingsDrawer}
       />
 
       <ToastContainer />

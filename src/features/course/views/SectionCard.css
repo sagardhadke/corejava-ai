@@ -119,28 +119,43 @@
 }
 
 @media (max-width: 600px) {
+  .section-card {
+    border-radius: var(--r-md);
+    margin-bottom: 8px;
+  }
   .section-card__head {
-    flex-wrap: wrap;
-    gap: 8px 10px;
-    padding: 12px 10px;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 10px;
+  }
+  .section-card__number {
+    font-size: 10px;
+    padding: 2px 5px;
+    border-radius: 3px;
   }
   .section-card__title {
-    flex: 1 1 calc(100% - 68px);
-    white-space: normal;
-    line-height: 1.35;
-    font-size: 13.5px;
+    flex: 1;
+    font-size: 13px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.25;
   }
   .section-card__mini-bar {
     display: none !important;
   }
   .section-card__meta {
-    width: calc(100% - 28px);
-    margin-left: 28px;
+    width: auto;
+    margin-left: 0;
     font-size: 10.5px;
-    display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
-    white-space: normal;
-    box-sizing: border-box;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .meta-left {
+    display: none;
+  }
+  .section-card__body {
+    padding: 4px 6px 8px;
   }
 }

@@ -51,8 +51,42 @@
 }
 
 @media (max-width: 600px) {
+  .stats-bar {
+    gap: 6px;
+    margin-bottom: 12px;
+  }
   .stat-card {
-    padding: 12px 10px;
+    padding: 8px 10px;
+    border-radius: var(--r-md);
+  }
+  .stat-card--hero {
+    padding: 10px 12px;
+  }
+  .stat-card__label {
+    font-size: 9.5px;
+    margin-bottom: 3px;
+    gap: 4px;
+  }
+  .stat-card__hero-row {
+    margin-bottom: 6px;
+    gap: 8px;
+  }
+  .stat-card__value {
+    font-size: 24px;
+  }
+  .stat-card__value--sm {
+    font-size: 16px;
+    margin-bottom: 2px;
+  }
+  .stat-card__sub {
+    font-size: 10px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .progress-track {
+    height: 8px;
+    border-radius: 4px;
   }
 }
 
