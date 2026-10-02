@@ -857,17 +857,141 @@ describe('Course Flow & State Management Integration Tests', () => {
     const redeemBad = redeemStreakPromoCode('FAKECODE999', redeem1.updatedStore);
     assert.equal(redeemBad.success, false, 'Invalid code must be rejected');
 
-    // Investor promo code (+3 shields)
-    const redeemVIP = redeemStreakPromoCode('INVESTOR10B', redeem1.updatedStore);
-    assert.equal(redeemVIP.success, true);
-    assert.equal(redeemVIP.addedShields, 3);
-    assert.equal(redeemVIP.updatedStore.availableFreezes, 5);
+    // Student bonus promo code (+2 shields)
+    const redeemStudent = redeemStreakPromoCode('STUDENT2026', redeem1.updatedStore);
+    assert.equal(redeemStudent.success, true);
+    assert.equal(redeemStudent.addedShields, 2);
+    assert.equal(redeemStudent.updatedStore.availableFreezes, 4);
 
     // 5. Support email url generation
     const emailUrl = getStreakPromoEmailUrl('Core Java + AI');
     assert.ok(emailUrl.startsWith('mailto:'), 'Must generate a valid mailto link');
     assert.ok(emailUrl.includes(SUPPORT_EMAIL));
     assert.ok(emailUrl.includes('Core%20Java%20%2B%20AI'));
+  });
+
+  it('26. Mobile Bottom Navigation and Drawer mutual exclusion state logic', () => {
+    // Simulator for App.jsx navigation and drawer state
+    let state = {
+      calendarOpen: false,
+      settingsOpen: false,
+      badgesOpen: false,
+      activeNavTab: 'home',
+    };
+
+    const getActiveTab = () => {
+      if (state.calendarOpen) return 'streak';
+      if (state.badgesOpen) return 'badges';
+      if (state.settingsOpen) return 'settings';
+      return state.activeNavTab;
+    };
+
+    const openStreak = () => {
+      state.settingsOpen = false;
+      state.badgesOpen = false;
+      state.calendarOpen = true;
+      state.activeNavTab = 'streak';
+    };
+
+    const openBadges = () => {
+      state.calendarOpen = false;
+      state.settingsOpen = false;
+      state.badgesOpen = true;
+      state.activeNavTab = 'badges';
+    };
+
+    const openSettings = () => {
+      state.calendarOpen = false;
+      state.badgesOpen = false;
+      state.settingsOpen = true;
+      state.activeNavTab = 'settings';
+    };
+
+    const toggleBadges = () => {
+      if (state.badgesOpen) {
+        state.badgesOpen = false;
+        state.activeNavTab = 'home';
+      } else {
+        openBadges();
+      }
+    };
+
+    const toggleSettings = () => {
+      if (state.settingsOpen) {
+        state.settingsOpen = false;
+        state.activeNavTab = 'home';
+      } else {
+        openSettings();
+      }
+    };
+
+    const toggleStreak = () => {
+      if (state.calendarOpen) {
+        state.calendarOpen = false;
+        state.activeNavTab = 'home';
+      } else {
+        openStreak();
+      }
+    };
+
+    const navigateHome = () => {
+      state.calendarOpen = false;
+      state.settingsOpen = false;
+      state.badgesOpen = false;
+      state.activeNavTab = 'home';
+    };
+
+    // Initial state: home
+    assert.equal(getActiveTab(), 'home');
+
+    // 1. Open Badges
+    openBadges();
+    assert.equal(state.badgesOpen, true);
+    assert.equal(state.settingsOpen, false);
+    assert.equal(state.calendarOpen, false);
+    assert.equal(getActiveTab(), 'badges');
+
+    // 2. Switch from Badges directly to Settings: Badges must close automatically
+    openSettings();
+    assert.equal(state.settingsOpen, true);
+    assert.equal(state.badgesOpen, false, 'Badges must close when Settings opens');
+    assert.equal(state.calendarOpen, false);
+    assert.equal(getActiveTab(), 'settings');
+
+    // 3. Switch from Settings directly to Streak: Settings must close automatically
+    openStreak();
+    assert.equal(state.calendarOpen, true);
+    assert.equal(state.settingsOpen, false, 'Settings must close when Streak opens');
+    assert.equal(state.badgesOpen, false);
+    assert.equal(getActiveTab(), 'streak');
+
+    // 4. Toggle Streak closed by tapping active Streak button again
+    toggleStreak();
+    assert.equal(state.calendarOpen, false);
+    assert.equal(getActiveTab(), 'home', 'Closing drawer must return active tab to home');
+
+    // 5. Open Badges, then toggle closed by tapping Badges again
+    toggleBadges();
+    assert.equal(state.badgesOpen, true);
+    assert.equal(getActiveTab(), 'badges');
+    toggleBadges();
+    assert.equal(state.badgesOpen, false);
+    assert.equal(getActiveTab(), 'home');
+
+    // 6. Open Settings, then toggle closed by tapping Settings again
+    toggleSettings();
+    assert.equal(state.settingsOpen, true);
+    assert.equal(getActiveTab(), 'settings');
+    toggleSettings();
+    assert.equal(state.settingsOpen, false);
+    assert.equal(getActiveTab(), 'home');
+
+    // 7. Navigate Home from inside Settings closes Settings and preserves home
+    openSettings();
+    assert.equal(state.settingsOpen, true);
+    navigateHome();
+    assert.equal(state.settingsOpen, false);
+    assert.equal(getActiveTab(), 'home');
   });
 });
 

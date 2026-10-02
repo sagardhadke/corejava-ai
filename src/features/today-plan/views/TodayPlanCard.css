@@ -11,10 +11,51 @@
 
 @media (max-width: 640px) {
   .today-card {
-    padding: 14px 12px;
+    padding: 10px 12px;
+    border-radius: var(--r-md);
+  }
+  .today-card__head {
+    margin-bottom: 8px;
+  }
+  .today-card__head h3 {
+    font-size: 13px;
+  }
+  .today-card__watched-today {
+    padding: 5px 8px;
+    margin-bottom: 8px;
+  }
+  .today-card__watched-today-label {
+    font-size: 10px;
+  }
+  .today-card__watched-today-val {
+    font-size: 12px;
+  }
+  .today-card__progress {
+    margin-bottom: 8px;
+  }
+  .today-card__progress .progress-track {
+    height: 7px;
+    border-radius: 4px;
+  }
+  .today-card__progress-label {
+    font-size: 10px;
+    margin-top: 4px;
   }
   .today-card__list {
-    max-height: 240px;
+    max-height: 200px;
+    padding-top: 6px;
+  }
+  .today-card__list li {
+    padding: 5px 2px;
+    font-size: 12px;
+  }
+  .today-card__practice {
+    margin-top: 8px;
+    padding-top: 8px;
+  }
+  .today-card__practice-btn {
+    padding: 7px 10px;
+    font-size: 11px;
   }
 }
 

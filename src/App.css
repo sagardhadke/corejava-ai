@@ -107,7 +107,7 @@
 @media (max-width: 640px) {
   .app-layout {
     flex-direction: column;
-    gap: 16px;
+    gap: 10px;
   }
   .app-layout__side {
     width: 100%;
@@ -119,9 +119,9 @@
     overflow-y: visible;
     display: flex;
     flex-direction: column;
-    gap: 14px;
+    gap: 8px;
   }
-  .app-main { padding: 12px 10px 28px; }
+  .app-main { padding: 8px 8px 24px; }
 }
 
 .empty-state {
@@ -173,9 +173,10 @@
 
 @media (max-width: 768px) {
   .app-shell {
-    padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px));
+    padding-bottom: calc(56px + env(safe-area-inset-bottom, 0px));
   }
   .app-footer {
-    padding: 18px 16px calc(24px + env(safe-area-inset-bottom, 0px));
+    padding: 16px 14px calc(20px + env(safe-area-inset-bottom, 0px));
+    font-size: 11px;
   }
 }
