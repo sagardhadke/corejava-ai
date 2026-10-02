@@ -5,7 +5,7 @@ import { pickDefaultMotivation } from '../models/motivationModel.js';
 
 const SHOWN_KEY = 'jct_motivation_shown_v1';
 
-function getShownDate() {
+export function getShownDate() {
   try {
     return JSON.parse(localStorage.getItem(SHOWN_KEY) || 'null')?.date || null;
   } catch {
@@ -13,11 +13,17 @@ function getShownDate() {
   }
 }
 
-function setShownDate(dateKey) {
+export function setShownDate(dateKey) {
   try {
     localStorage.setItem(SHOWN_KEY, JSON.stringify({ date: dateKey }));
   } catch {
     // ignore
+  }
+}
+
+export function triggerMotivationPopup() {
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('jct:show_motivation'));
   }
 }
 
@@ -56,56 +62,63 @@ export function useMotivationViewModel({ today, stats, streak, courseTitle }) {
   const [loading, setLoading] = useState(false);
   const [isAiGenerated, setIsAiGenerated] = useState(false);
 
-  useEffect(() => {
-    const alreadyShown = getShownDate() === today || (typeof window !== 'undefined' && window.location.search.includes('nomodal'));
-    if (alreadyShown) return;
-
-    let cancelled = false;
+  const generateOrPick = useCallback((force = false) => {
     const apiKey = getStoredApiKey();
-
     if (apiKey) {
-      queueMicrotask(() => {
-        if (!cancelled) setLoading(true);
-      });
+      setLoading(true);
+      setVisible(true);
       fetchMotivationFromOpenAI(apiKey, {
         pct: stats?.pct || 0,
         watchedCount: stats?.watchedCount || 0,
         totalCount: stats?.totalCount || 0,
         remainingSec: stats?.remainingSec || 0,
         streak: streak || 0,
-        courseTitle: courseTitle || 'Course',
+        courseTitle: courseTitle || 'Core Java + AI',
       })
         .then((aiMsg) => {
-          if (cancelled) return;
           setMessage(aiMsg);
           setIsAiGenerated(true);
-          setVisible(true);
-          setShownDate(today);
+          if (!force) setShownDate(today);
         })
         .catch(() => {
-          if (cancelled) return;
           setMessage(pickDefaultMotivation(streak, today));
           setIsAiGenerated(false);
-          setVisible(true);
-          setShownDate(today);
+          if (!force) setShownDate(today);
         })
         .finally(() => {
-          if (!cancelled) setLoading(false);
+          setLoading(false);
         });
     } else {
-      queueMicrotask(() => {
-        if (cancelled) return;
-        setMessage(pickDefaultMotivation(streak, today));
-        setIsAiGenerated(false);
-        setVisible(true);
-        setShownDate(today);
-      });
+      setMessage(pickDefaultMotivation(streak, today));
+      setIsAiGenerated(false);
+      setVisible(true);
+      if (!force) setShownDate(today);
     }
-
-    return () => {
-      cancelled = true;
-    };
   }, [today, stats?.pct, stats?.watchedCount, stats?.totalCount, stats?.remainingSec, streak, courseTitle]);
+
+  // Handle global trigger events (e.g. from Settings preview or Command Palette)
+  useEffect(() => {
+    const handleTrigger = () => {
+      generateOrPick(true);
+    };
+    window.addEventListener('jct:show_motivation', handleTrigger);
+    return () => window.removeEventListener('jct:show_motivation', handleTrigger);
+  }, [generateOrPick]);
+
+  // Initial mount check (daily auto-show or #motivation hash deep-link)
+  useEffect(() => {
+    const isHashTriggered = typeof window !== 'undefined' && window.location.hash === '#motivation';
+    const isNoModal = typeof window !== 'undefined' && window.location.search.includes('nomodal');
+    if (isNoModal) return;
+
+    const alreadyShown = getShownDate() === today;
+    if (isHashTriggered || !alreadyShown) {
+      const timer = setTimeout(() => {
+        generateOrPick(isHashTriggered);
+      }, 0);
+      return () => clearTimeout(timer);
+    }
+  }, [today, generateOrPick]);
 
   const dismiss = useCallback(() => {
     setVisible(false);
@@ -117,5 +130,6 @@ export function useMotivationViewModel({ today, stats, streak, courseTitle }) {
     loading,
     isAiGenerated,
     dismiss,
+    show: () => generateOrPick(true),
   };
 }
