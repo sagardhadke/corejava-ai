@@ -1,5 +1,4 @@
 import { showToast } from '../../../utils/toast.js';
-import { addNotification, NOTIFICATION_TYPES } from '../../notifications/models/notificationModel.js';
 
 /**
  * Curated list of 15 high-impact motivational messages for the daily popup dialog.
@@ -277,11 +276,75 @@ export function explainPrefetchError(err, status = null) {
   return `AI Quote Notice: ${msg || 'Could not fetch remote quote'}. Using curated study message.`;
 }
 
+const PREFETCH_COOLDOWN_KEY = 'jct_prefetch_cooldown_v1';
+const PREFETCH_COOLDOWN_MS = 60 * 60 * 1000; // 1 hour cooldown after API errors
+
+/**
+ * Checks whether the prefetch API call is currently in cooldown after a prior error.
+ * Returns true if we should NOT call the API.
+ */
+function isPrefetchInCooldown() {
+  try {
+    const raw = localStorage.getItem(PREFETCH_COOLDOWN_KEY);
+    if (!raw) return false;
+    const { failedAt, retryAfter } = JSON.parse(raw);
+    if (!failedAt) return false;
+    return Date.now() < (failedAt + (retryAfter || PREFETCH_COOLDOWN_MS));
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Records a prefetch API failure with cooldown timer.
+ * Uses the Retry-After header if available, otherwise defaults to 1 hour.
+ */
+function setPrefetchCooldown(retryAfterMs = PREFETCH_COOLDOWN_MS) {
+  try {
+    localStorage.setItem(PREFETCH_COOLDOWN_KEY, JSON.stringify({
+      failedAt: Date.now(),
+      retryAfter: Math.max(retryAfterMs, 60_000), // minimum 1 minute cooldown
+    }));
+  } catch {
+    // ignore storage errors
+  }
+}
+
+/**
+ * Clears the prefetch cooldown (call after a successful API response).
+ */
+function clearPrefetchCooldown() {
+  try {
+    localStorage.removeItem(PREFETCH_COOLDOWN_KEY);
+  } catch {
+    // ignore
+  }
+}
+
+/**
+ * Parses the standard HTTP Retry-After header into milliseconds.
+ * Supports both delta-seconds ("60") and HTTP-date formats.
+ */
+function parseRetryAfterMs(retryAfterHeader) {
+  if (!retryAfterHeader) return PREFETCH_COOLDOWN_MS;
+  const seconds = Number(retryAfterHeader);
+  if (!isNaN(seconds) && seconds > 0) return seconds * 1000;
+  // Try parsing as HTTP-date
+  const date = Date.parse(retryAfterHeader);
+  if (!isNaN(date)) return Math.max(date - Date.now(), 60_000);
+  return PREFETCH_COOLDOWN_MS;
+}
+
 /**
  * Background silent prefetch of 2-3 quotes from OpenAI.
  * Runs asynchronously without blocking the UI or showing any spinner.
- * On error, immediately shows a detailed bottom-right toast notification explaining the exact issue
- * and seamlessly falls back to the 10 curated Core Java quotes.
+ *
+ * Professional behavior:
+ * - On success: enqueues AI quotes and clears any prior cooldown.
+ * - On API error (429, 401, 5xx, network): silently falls back to curated quotes,
+ *   records a cooldown timer (1 hour or Retry-After), and logs to console.warn.
+ *   NO toast, NO notification — this is a background operation.
+ * - Deduplication: skips if already prefetched today, already in cooldown, or queue is full.
  */
 export async function prefetchUpcomingQuotes({ apiKey, context, today = '', count = 3, force = false }) {
   const store = getMotivationStore();
@@ -296,6 +359,13 @@ export async function prefetchUpcomingQuotes({ apiKey, context, today = '', coun
   // Skip redundant API calls if we already prefetched today and have enough AI quotes
   const aiQuotesInQueue = store.queue.filter(q => q.isAiGenerated).length;
   if (!force && store.lastPrefetchDate === currentDateKey && aiQuotesInQueue >= 2) {
+    return store.queue;
+  }
+
+  // Respect cooldown from prior API failures (prevents hammering a 429'd endpoint)
+  if (!force && isPrefetchInCooldown()) {
+    fillQueueWithDefaults(store, context?.streak || 0, currentDateKey, 3);
+    saveMotivationStore(store);
     return store.queue;
   }
 
@@ -326,7 +396,15 @@ Return ONLY a valid JSON array of ${count} strings, example: ["Message 1", "Mess
 
     if (timeoutId) clearTimeout(timeoutId);
     status = res.status;
-    if (!res.ok) throw new Error(`OpenAI API error (${res.status})`);
+
+    if (!res.ok) {
+      // Parse Retry-After for intelligent backoff
+      const retryAfterHeader = res.headers?.get?.('Retry-After') || null;
+      const cooldownMs = (status === 429)
+        ? parseRetryAfterMs(retryAfterHeader)
+        : PREFETCH_COOLDOWN_MS;
+      throw Object.assign(new Error(`OpenAI API error (${res.status})`), { cooldownMs });
+    }
 
     const data = await res.json();
     const rawContent = data?.choices?.[0]?.message?.content?.trim() || '';
@@ -344,23 +422,24 @@ Return ONLY a valid JSON array of ${count} strings, example: ["Message 1", "Mess
     }
 
     if (Array.isArray(parsedQuotes) && parsedQuotes.length > 0) {
+      clearPrefetchCooldown();
       const updatedStore = enqueueUpcomingQuotes(parsedQuotes.slice(0, count), currentDateKey);
       return updatedStore.queue;
     }
   } catch (err) {
     if (timeoutId) clearTimeout(timeoutId);
-    // Notify user in bottom-right toast with exact diagnostic information
-    const explanation = explainPrefetchError(err, status);
-    showToast(explanation, 'warning', 5000);
-    addNotification({
-      type: NOTIFICATION_TYPES.SYSTEM,
-      title: 'OpenAI / ChatGPT Service Alert',
-      message: explanation,
-      actionType: 'open_settings',
-      meta: { error: err?.message, status },
-    });
 
-    // On failure or offline, ensure deterministic defaults fill the queue
+    // Set cooldown so we don't hammer the API on subsequent page loads
+    setPrefetchCooldown(err?.cooldownMs || PREFETCH_COOLDOWN_MS);
+
+    // Silent background fallback — NO toast, NO notification for automatic prefetch.
+    // Only log to console for developer diagnostics.
+    if (typeof console !== 'undefined' && console.warn) {
+      console.warn('[JCT] Background quote prefetch failed:', err?.message || err, '— using curated quotes. Cooldown active.');
+    }
+
+    // Fill queue with curated defaults and mark today as attempted
+    store.lastPrefetchDate = currentDateKey;
     fillQueueWithDefaults(store, context?.streak || 0, currentDateKey, 3);
     saveMotivationStore(store);
     return store.queue;
@@ -431,15 +510,10 @@ Return ONLY the raw quote string directly, with no quotes or extra formatting.`;
     throw new Error('Empty response from AI');
   } catch (err) {
     if (timeoutId) clearTimeout(timeoutId);
+    // User-initiated: show a brief toast, but don't spam the Notification Center
     const explanation = explainPrefetchError(err, status);
-    showToast(explanation, 'warning', 5000);
-    addNotification({
-      type: NOTIFICATION_TYPES.SYSTEM,
-      title: 'OpenAI / ChatGPT Service Alert',
-      message: explanation,
-      actionType: 'open_settings',
-      meta: { error: err?.message, status },
-    });
+    showToast(explanation, 'warning', 4000);
+
     // Fall back to a new unique quote from local pool
     const cycled = cycleNextMotivationQuote({ today: currentDateKey, streak: context?.streak || 0 });
     return cycled.quote;
