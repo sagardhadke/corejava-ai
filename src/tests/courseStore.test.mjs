@@ -628,8 +628,8 @@ describe('Course Flow & State Management Integration Tests', () => {
     assert.equal(intensity(7200, 3600), 4);
   });
 
-  it('21. Default motivation provides 10 curated messages and rotates deterministically', () => {
-    assert.equal(DEFAULT_MOTIVATION_MESSAGES.length, 10, 'Must have exactly 10 curated motivation messages');
+  it('21. Default motivation provides 15 curated messages and rotates deterministically', () => {
+    assert.equal(DEFAULT_MOTIVATION_MESSAGES.length, 15, 'Must have exactly 15 curated motivation messages');
     DEFAULT_MOTIVATION_MESSAGES.forEach((msg, idx) => {
       assert.ok(typeof msg === 'string' && msg.length > 20, `Message ${idx} must be a substantial encouraging string`);
     });
@@ -1053,13 +1053,28 @@ describe('Course Flow & State Management Integration Tests', () => {
     assert.ok(day1Result.quote && day1Result.quote.text, 'Day 1 quote must be resolved immediately');
     assert.equal(day1Result.quote.date, '2026-10-03', 'Day 1 date must match today');
 
-    // Check store in localStorage
+    // Check store in localStorage: must pre-store all 14 remaining quotes locally
     const storeAfterDay1 = getMotivationStore();
     assert.equal(storeAfterDay1.todayQuote.text, day1Result.quote.text);
-    assert.ok(storeAfterDay1.queue.length >= 3, 'Must pre-store at least 3 quotes in queue for future days');
+    assert.ok(storeAfterDay1.queue.length >= 10, 'Must pre-store 10-15 quotes in queue for future days');
+    assert.equal(storeAfterDay1.queue.length, 14, 'Must pre-store all 14 remaining quotes locally in queue');
 
     const firstQueuedQuote = storeAfterDay1.queue[0].text;
     assert.ok(firstQueuedQuote && firstQueuedQuote.length > 10, 'First queued quote must be pre-populated');
+
+    // Verify randomization across simulated devices on first launch
+    const deviceQuotes = new Set();
+    for (let d = 0; d < 10; d++) {
+      globalThis.localStorage.removeItem(MOTIVATION_STORE_KEY);
+      const res = resolveTodayMotivation({ today: '2026-10-03', streak: 0 });
+      deviceQuotes.add(res.quote.text);
+    }
+    // Across 10 device simulations, it must not return the exact same quote every time
+    assert.ok(deviceQuotes.size > 1, 'Different user devices must receive randomized quotes on first open');
+
+    // Restore Day 1 state for remaining assertions
+    globalThis.localStorage.removeItem(MOTIVATION_STORE_KEY);
+    resolveTodayMotivation({ today: '2026-10-03', streak: 2 });
 
     // 3. Simulated AI prefetch adds custom AI quotes to queue
     const aiQuotes = [

@@ -1,7 +1,7 @@
 import { showToast } from '../../../utils/toast.js';
 
 /**
- * Curated list of 10 best motivational messages for the daily popup dialog.
+ * Curated list of 15 high-impact motivational messages for the daily popup dialog.
  * Designed specifically for students learning Core Java, programming, and software engineering.
  */
 export const DEFAULT_MOTIVATION_MESSAGES = [
@@ -15,13 +15,29 @@ export const DEFAULT_MOTIVATION_MESSAGES = [
   "The best investment you can make is in your own skills. Let's dive in and conquer today's goals.",
   "Progress isn't always loud, but showing up consistently is how breakthroughs happen. Let's write great code.",
   "Every bug you debug and every principle you learn is forging you into a confident, professional developer.",
+  "Clean code is the signature of a disciplined developer. Treat today's study as craft, not just a task.",
+  "Don't worry about understanding everything at once. Build the habit first, and mastery will follow.",
+  "Debugging is where true understanding is born. Embrace the challenges today and level up your problem-solving.",
+  "Mastering Object-Oriented Design and Java concurrency starts with today's fundamentals. Stay relentless.",
+  "The gap between who you are and who you want to become is closed by the code you write today.",
 ];
 
 export const MOTIVATION_STORE_KEY = 'jct_motivation_store_v2';
 
 /**
+ * Fisher-Yates array shuffler to ensure non-deterministic, unbiased quote distribution.
+ */
+export function shuffleArray(arr) {
+  const copy = [...arr];
+  for (let i = copy.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy;
+}
+
+/**
  * Deterministically picks a fresh motivational message based on date and current streak.
- * This ensures the user gets a rotating, variety-rich message each day even without an API key.
  *
  * @param {number} [streak=0] - Current daily streak count
  * @param {string} [dateKey=''] - Date string in 'YYYY-MM-DD' format
@@ -65,14 +81,14 @@ export function getMotivationStore() {
 }
 
 /**
- * Safely writes the motivation store to localStorage.
+ * Safely writes the motivation store to localStorage, preserving up to 25 pre-stored quotes.
  */
 export function saveMotivationStore(store) {
   if (typeof localStorage === 'undefined') return;
   try {
     const cleanStore = {
       todayQuote: store?.todayQuote || null,
-      queue: Array.isArray(store?.queue) ? store.queue.slice(0, 10) : [],
+      queue: Array.isArray(store?.queue) ? store.queue.slice(0, 25) : [],
       lastPrefetchDate: store?.lastPrefetchDate || null,
     };
     localStorage.setItem(MOTIVATION_STORE_KEY, JSON.stringify(cleanStore));
@@ -82,37 +98,60 @@ export function saveMotivationStore(store) {
 }
 
 /**
- * Fills the quote queue with unique default quotes from DEFAULT_MOTIVATION_MESSAGES
- * so that at least minCount (default 3) quotes are queued for future days.
+ * Fills the quote queue with unique quotes from DEFAULT_MOTIVATION_MESSAGES
+ * so that 10-15 quotes are pre-cached locally for future days.
  */
-export function fillQueueWithDefaults(store, streak = 0, today = '', minCount = 3) {
+export function fillQueueWithDefaults(store, streak = 0, today = '', minCount = 14) {
   if (!store || !Array.isArray(store.queue)) return store;
   const existingTexts = new Set([
     ...(store.todayQuote?.text ? [store.todayQuote.text] : []),
     ...store.queue.map(q => q.text),
   ]);
 
-  const baseIdx = streak >= 0 ? streak : 0;
-  for (let i = 0; i < DEFAULT_MOTIVATION_MESSAGES.length && store.queue.length < minCount; i++) {
-    const candidate = DEFAULT_MOTIVATION_MESSAGES[(baseIdx + i + 1) % DEFAULT_MOTIVATION_MESSAGES.length];
-    if (!existingTexts.has(candidate)) {
-      store.queue.push({
-        text: candidate,
-        isAiGenerated: false,
-        createdAt: today || new Date().toISOString().slice(0, 10),
-      });
-      existingTexts.add(candidate);
+  if (store.queue.length >= minCount) return store;
+
+  // Find quotes from DEFAULT_MOTIVATION_MESSAGES not currently in queue or today's quote
+  const available = DEFAULT_MOTIVATION_MESSAGES.filter(msg => !existingTexts.has(msg));
+  const shuffledAvailable = shuffleArray(available);
+
+  for (const text of shuffledAvailable) {
+    if (store.queue.length >= minCount) break;
+    store.queue.push({
+      text,
+      isAiGenerated: false,
+      createdAt: today || new Date().toISOString().slice(0, 10),
+    });
+    existingTexts.add(text);
+  }
+
+  // If still below minCount, reshuffle pool to ensure queue stays full
+  if (store.queue.length < minCount) {
+    const pool = shuffleArray(DEFAULT_MOTIVATION_MESSAGES);
+    for (const text of pool) {
+      if (store.queue.length >= minCount) break;
+      if (text !== store.todayQuote?.text) {
+        store.queue.push({
+          text,
+          isAiGenerated: false,
+          createdAt: today || new Date().toISOString().slice(0, 10),
+        });
+      }
     }
   }
+
   return store;
 }
 
 /**
- * Resolves today's quote with zero latency (instant render).
- * 1. If todayQuote exists and matches today's date, returns it.
- * 2. If it's a new day, pops the next quote from pre-stored queue.
- * 3. If queue was empty, generates a deterministic quote.
- * 4. Ensures the queue is replenished with at least 3 upcoming quotes.
+ * Resolves today's quote with zero latency (instant render) and randomizes first launch.
+ * 1. If todayQuote exists and matches today's date, returns it immediately.
+ * 2. If first launch on this device (empty queue):
+ *    - Shuffles the 15 curated quotes randomly.
+ *    - Selects a unique random quote for today (different across user devices!).
+ *    - Pre-stores the remaining 14 quotes in localStorage queue for upcoming days.
+ * 3. If new day with existing queue:
+ *    - Pops the next pre-cached quote from the user's localStorage queue.
+ *    - Replenishes queue up to 14 quotes so quotes never run out.
  */
 export function resolveTodayMotivation({ today, streak = 0 }) {
   const store = getMotivationStore();
@@ -120,13 +159,29 @@ export function resolveTodayMotivation({ today, streak = 0 }) {
 
   // Already resolved for today
   if (store.todayQuote && store.todayQuote.date === currentDateKey && store.todayQuote.text) {
-    fillQueueWithDefaults(store, streak, currentDateKey, 3);
+    fillQueueWithDefaults(store, streak, currentDateKey, 14);
     saveMotivationStore(store);
     return { quote: store.todayQuote, store };
   }
 
-  // New day or uninitialized: consume from pre-stored queue if available
-  if (store.queue.length > 0) {
+  // First launch on this device: randomize quote and pre-store entire pool
+  if (store.queue.length === 0) {
+    const shuffled = shuffleArray(DEFAULT_MOTIVATION_MESSAGES);
+    const firstQuote = shuffled[0];
+    store.todayQuote = {
+      text: firstQuote,
+      isAiGenerated: false,
+      date: currentDateKey,
+      createdAt: currentDateKey,
+    };
+    // Pre-cache all remaining 14 quotes in localStorage for future days
+    store.queue = shuffled.slice(1).map(text => ({
+      text,
+      isAiGenerated: false,
+      createdAt: currentDateKey,
+    }));
+  } else {
+    // New day: consume from pre-stored queue (0ms delay)
     const next = store.queue.shift();
     store.todayQuote = {
       text: next.text,
@@ -134,19 +189,10 @@ export function resolveTodayMotivation({ today, streak = 0 }) {
       date: currentDateKey,
       createdAt: next.createdAt || currentDateKey,
     };
-  } else {
-    // Fallback: initial deterministic quote
-    const defMsg = pickDefaultMotivation(streak, currentDateKey);
-    store.todayQuote = {
-      text: defMsg,
-      isAiGenerated: false,
-      date: currentDateKey,
-      createdAt: currentDateKey,
-    };
+    // Replenish upcoming queue so tomorrow and upcoming 14 days have quotes ready
+    fillQueueWithDefaults(store, streak, currentDateKey, 14);
   }
 
-  // Replenish upcoming queue so tomorrow already has 2-3 quotes ready
-  fillQueueWithDefaults(store, streak, currentDateKey, 3);
   saveMotivationStore(store);
   return { quote: store.todayQuote, store };
 }
@@ -158,7 +204,7 @@ export function cycleNextMotivationQuote({ today, streak = 0 }) {
   const store = getMotivationStore();
   const currentDateKey = today || new Date().toISOString().slice(0, 10);
 
-  fillQueueWithDefaults(store, streak, currentDateKey, 3);
+  fillQueueWithDefaults(store, streak, currentDateKey, 14);
   const next = store.queue.shift();
   if (next) {
     store.todayQuote = {
@@ -168,7 +214,7 @@ export function cycleNextMotivationQuote({ today, streak = 0 }) {
       createdAt: next.createdAt || currentDateKey,
     };
   }
-  fillQueueWithDefaults(store, streak, currentDateKey, 3);
+  fillQueueWithDefaults(store, streak, currentDateKey, 14);
   saveMotivationStore(store);
   return { quote: store.todayQuote, store };
 }
