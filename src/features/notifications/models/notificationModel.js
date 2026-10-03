@@ -92,6 +92,19 @@ export function addNotification({
     window.dispatchEvent(new CustomEvent('jct:notifications_updated', { detail: { newNotif, count: updated.length } }));
   }
 
+  // Dispatch native browser push notification if push service is active & permission granted
+  try {
+    const settings = getNotificationSettings();
+    if (settings.pushEnabled && getBrowserPermissionStatus() === 'granted') {
+      sendBrowserPushNotification(title, {
+        body: String(message || ''),
+        tag: `jct-${type}-${newNotif.id}`,
+      });
+    }
+  } catch {
+    // ignore in environments without Notification API
+  }
+
   return newNotif;
 }
 
