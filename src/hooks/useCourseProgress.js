@@ -16,7 +16,11 @@ import {
   autoApplyStreakFreezes,
   redeemStreakPromoCode,
 } from '../features/streak/models/streakFreezeModel.js';
-import { addNotification, NOTIFICATION_TYPES } from '../features/notifications/models/notificationModel.js';
+import {
+  addNotification,
+  getNotifications,
+  NOTIFICATION_TYPES,
+} from '../features/notifications/models/notificationModel.js';
 import { showToast } from '../utils/toast.js';
 
 /**
@@ -329,19 +333,90 @@ export function useCourseProgress(course) {
       if (!initialBadgesMountRef.current) {
         setNewlyUnlockedBadge(missingFromStorage[0]);
         missingFromStorage.forEach((b) => {
-          addNotification({
-            type: NOTIFICATION_TYPES.ACHIEVEMENT,
-            title: `Achievement Unlocked: ${b.title}! 🏆`,
-            message: b.desc || `Congratulations on unlocking the ${b.title} badge!`,
-            actionType: 'open_badges',
-            meta: { badgeId: b.id, icon: b.icon },
-          });
+          showToast(`🏆 Achievement Unlocked: ${b.title}!`, 'success', 5000);
         });
       }
     }
 
+    // Ensure all unlocked badges exist in the Notification Center
+    if (currentUnlocked.length > 0) {
+      const existingNotifs = getNotifications();
+      const existingBadgeIds = new Set(
+        existingNotifs
+          .filter((n) => n.type === NOTIFICATION_TYPES.ACHIEVEMENT && n.meta?.badgeId)
+          .map((n) => n.meta.badgeId)
+      );
+
+      currentUnlocked.forEach((b) => {
+        if (!existingBadgeIds.has(b.id)) {
+          addNotification({
+            type: NOTIFICATION_TYPES.ACHIEVEMENT,
+            title: `Achievement Unlocked: ${b.title}! 🏆`,
+            message: b.description || b.subtitle || `Congratulations on unlocking the ${b.title} badge!`,
+            actionType: 'open_badges',
+            meta: { badgeId: b.id, courseId },
+          });
+        }
+      });
+    }
+
     initialBadgesMountRef.current = false;
   }, [badges, courseId, unlockedBadges, setUnlockedBadges]);
+
+  // Track 100% Course Completion milestone notification
+  const prevPctRef = useRef(stats.pct);
+  useEffect(() => {
+    if (stats.pct === 100 && stats.totalCount > 0) {
+      const existingNotifs = getNotifications();
+      const alreadyHasCompletionNotif = existingNotifs.some(
+        (n) => n.type === NOTIFICATION_TYPES.ACHIEVEMENT && n.meta?.courseCompletedId === courseId
+      );
+      if (!alreadyHasCompletionNotif) {
+        addNotification({
+          type: NOTIFICATION_TYPES.ACHIEVEMENT,
+          title: `Course Completed: ${course?.title || 'Core Java'}! 🎓🎉`,
+          message: `Outstanding dedication! You have successfully completed 100% of ${course?.title || 'the course'} (${stats.totalCount} lectures). You are job-ready!`,
+          actionType: 'open_badges',
+          meta: { courseCompletedId: courseId, courseId, totalLectures: stats.totalCount },
+        });
+        if (prevPctRef.current < 100) {
+          showToast(`🎓 Incredible! You completed 100% of ${course?.title || 'the course'}! 🎉`, 'success', 7000);
+        }
+      }
+    }
+    prevPctRef.current = stats.pct;
+  }, [stats.pct, stats.totalCount, course?.title, courseId]);
+
+  // Track Streak Updates & Milestone notifications
+  const prevStreakRef = useRef(streak);
+  useEffect(() => {
+    if (streak > 0) {
+      const existingNotifs = getNotifications();
+      const hasAnyStreakNotif = existingNotifs.some((n) => n.type === NOTIFICATION_TYPES.STREAK);
+
+      if (!hasAnyStreakNotif) {
+        addNotification({
+          type: NOTIFICATION_TYPES.STREAK,
+          title: `Streak Active: ${streak} Days! 🔥`,
+          message: `You have an active ${streak}-day study streak in ${course?.title || 'Core Java'}! Keep up the daily momentum.`,
+          actionType: 'open_streak',
+          meta: { streak, courseId },
+        });
+      } else if (streak > prevStreakRef.current) {
+        addNotification({
+          type: NOTIFICATION_TYPES.STREAK,
+          title: `Streak Level Up: ${streak} Days! 🔥`,
+          message: streak === 1
+            ? `You've officially started your study streak in ${course?.title || 'Core Java'}! Keep showing up every day.`
+            : `Incredible consistency! You have unlocked a ${streak}-day study streak! Keep the fire burning!`,
+          actionType: 'open_streak',
+          meta: { streak, courseId },
+        });
+        showToast(`🔥 Streak updated: ${streak} Day${streak > 1 ? 's' : ''}! Great work!`, 'success', 5000);
+      }
+    }
+    prevStreakRef.current = streak;
+  }, [streak, course?.title, courseId]);
 
   return {
     watchedSet,
