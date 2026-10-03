@@ -4,7 +4,10 @@ import {
   resolveTodayMotivation,
   cycleNextMotivationQuote,
   prefetchUpcomingQuotes,
+  generateFreshMotivationQuote,
+  getMotivationStore,
 } from '../models/motivationModel.js';
+import { showToast } from '../../../utils/toast.js';
 
 const SHOWN_KEY = 'jct_motivation_shown_v1';
 
@@ -69,14 +72,53 @@ export function useMotivationViewModel({ today, stats, streak, courseTitle }) {
     return resolveTodayMotivation({ today: currentDateKey, streak: streak || 0 });
   }, [resolved, currentDateKey, streak]);
 
+  const [loading, setLoading] = useState(false);
+
+  // Live refresh/regenerate quote from API (or cycle if no key)
+  const refreshQuote = useCallback(async (forceApi = true) => {
+    setLoading(true);
+    try {
+      const apiKey = getStoredApiKey();
+      const freshQuote = await generateFreshMotivationQuote({
+        apiKey: forceApi ? apiKey : null,
+        context: {
+          pct: stats?.pct || 0,
+          watchedCount: stats?.watchedCount || 0,
+          totalCount: stats?.totalCount || 0,
+          remainingSec: stats?.remainingSec || 0,
+          streak: streak || 0,
+          courseTitle: courseTitle || 'Core Java + AI',
+        },
+        today: currentDateKey,
+      });
+
+      if (freshQuote) {
+        setResolved({ quote: freshQuote, store: getMotivationStore() });
+        if (freshQuote.isAiGenerated) {
+          showToast('✨ Generated fresh study message from OpenAI!', 'success', 3500);
+        } else {
+          showToast('Loaded new study quote from curated library', 'info', 2500);
+        }
+      }
+    } catch {
+      // Fallback already handled inside generateFreshMotivationQuote
+    } finally {
+      setLoading(false);
+    }
+  }, [currentDateKey, stats, streak, courseTitle]);
+
   // Handle global trigger events (e.g. from Settings preview or Command Palette)
   useEffect(() => {
-    const handleTrigger = () => {
+    const handleTrigger = (e) => {
       setVisible(true);
+      const shouldRefresh = e?.detail?.refreshFromApi ?? false;
+      if (shouldRefresh) {
+        refreshQuote(true);
+      }
     };
     window.addEventListener('jct:show_motivation', handleTrigger);
     return () => window.removeEventListener('jct:show_motivation', handleTrigger);
-  }, []);
+  }, [refreshQuote]);
 
   // Silent background prefetch:
   // Pre-generates 2-3 quotes for tomorrow and upcoming days quietly in localStorage without any loading flash
@@ -124,11 +166,12 @@ export function useMotivationViewModel({ today, stats, streak, courseTitle }) {
   return {
     visible,
     message: activeResolved?.quote?.text || '',
-    loading: false,
+    loading,
     isAiGenerated: !!activeResolved?.quote?.isAiGenerated,
     queueCount: activeResolved?.store?.queue?.length || 0,
     dismiss,
     show,
     cycleNextQuote,
+    refreshQuote,
   };
 }

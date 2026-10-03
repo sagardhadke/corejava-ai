@@ -343,10 +343,10 @@ export default function SettingsPanel({
               onClick={() => {
                 onClose();
                 setTimeout(() => {
-                  window.dispatchEvent(new CustomEvent('jct:show_motivation'));
+                  window.dispatchEvent(new CustomEvent('jct:show_motivation', { detail: { refreshFromApi: true } }));
                 }, 120);
               }}
-              title="Preview daily motivation popup"
+              title="Preview daily motivation popup with fresh quote from API"
             >
               ✨ Preview popup
             </button>
