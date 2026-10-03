@@ -368,3 +368,81 @@ Return ONLY a valid JSON array of ${count} strings, example: ["Message 1", "Mess
 
   return store.queue;
 }
+
+/**
+ * Live generates or fetches a brand new fresh motivation quote immediately.
+ * If user has saved an OpenAI API key, queries the API directly so the user can test their key in real-time.
+ * If no key or on API failure, cycles to the next fresh quote from the curated pool.
+ */
+export async function generateFreshMotivationQuote({ apiKey, context, today = '' }) {
+  const store = getMotivationStore();
+  const currentDateKey = today || new Date().toISOString().slice(0, 10);
+
+  if (!apiKey || !apiKey.trim()) {
+    // No API key: cycle to next unique quote from local pool
+    const cycled = cycleNextMotivationQuote({ today: currentDateKey, streak: context?.streak || 0 });
+    return cycled.quote;
+  }
+
+  const prompt = `You are an expert developer study coach. The user is actively studying "${context?.courseTitle || 'Core Java'}".
+Progress: ${context?.pct || 0}% complete (${context?.watchedCount || 0}/${context?.totalCount || 0} lectures), streak: ${context?.streak || 0} days.
+Generate exactly ONE inspiring, concise, energetic study coaching quote (maximum 2 sentences, at most one emoji) for this study session.
+Return ONLY the raw quote string directly, with no quotes or extra formatting.`;
+
+  const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+  const timeoutId = controller ? setTimeout(() => controller.abort(), 9000) : null;
+  let status = null;
+
+  try {
+    const res = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${apiKey.trim()}`,
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        messages: [{ role: 'user', content: prompt }],
+        max_tokens: 150,
+        temperature: 0.9,
+      }),
+      signal: controller?.signal,
+    });
+
+    if (timeoutId) clearTimeout(timeoutId);
+    status = res.status;
+    if (!res.ok) throw new Error(`OpenAI API error (${res.status})`);
+
+    const data = await res.json();
+    let text = data?.choices?.[0]?.message?.content?.trim() || '';
+    text = text.replace(/^["']|["']$/g, '').trim();
+
+    if (text.length > 10) {
+      const freshQuote = {
+        text,
+        isAiGenerated: true,
+        date: currentDateKey,
+        createdAt: currentDateKey,
+      };
+      store.todayQuote = freshQuote;
+      saveMotivationStore(store);
+      return freshQuote;
+    }
+    throw new Error('Empty response from AI');
+  } catch (err) {
+    if (timeoutId) clearTimeout(timeoutId);
+    const explanation = explainPrefetchError(err, status);
+    showToast(explanation, 'warning', 5000);
+    addNotification({
+      type: NOTIFICATION_TYPES.SYSTEM,
+      title: 'OpenAI / ChatGPT Service Alert',
+      message: explanation,
+      actionType: 'open_settings',
+      meta: { error: err?.message, status },
+    });
+    // Fall back to a new unique quote from local pool
+    const cycled = cycleNextMotivationQuote({ today: currentDateKey, streak: context?.streak || 0 });
+    return cycled.quote;
+  }
+}
+

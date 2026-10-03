@@ -1116,6 +1116,16 @@ describe('Course Flow & State Management Integration Tests', () => {
 
     const timeoutErr = explainPrefetchError(new Error('The operation was aborted'), null);
     assert.ok(timeoutErr.includes('Timeout'), 'Must diagnose timeout error');
+
+    // 7. Test generateFreshMotivationQuote live generation & cycling
+    const { generateFreshMotivationQuote } = await import('../features/motivation/models/motivationModel.js');
+    const freshWithoutKey = await generateFreshMotivationQuote({
+      apiKey: null,
+      context: { streak: 5, courseTitle: 'Core Java + AI' },
+      today: '2026-10-04',
+    });
+    assert.ok(freshWithoutKey?.text, 'Must return a fresh quote even without API key');
+    assert.ok(freshWithoutKey.text.length > 10);
   });
 
   it('Subtest 29: Enterprise Notification Center and Push Reminder Service', async () => {
