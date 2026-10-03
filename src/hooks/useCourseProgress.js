@@ -16,6 +16,7 @@ import {
   autoApplyStreakFreezes,
   redeemStreakPromoCode,
 } from '../features/streak/models/streakFreezeModel.js';
+import { addNotification, NOTIFICATION_TYPES } from '../features/notifications/models/notificationModel.js';
 import { showToast } from '../utils/toast.js';
 
 /**
@@ -207,6 +208,13 @@ export function useCourseProgress(course) {
         'success',
         6000
       );
+      addNotification({
+        type: NOTIFICATION_TYPES.STREAK,
+        title: 'Streak Shield Auto-Applied! 🛡️',
+        message: `Protected ${result.appliedCount} missed day(s) (${datesFormatted}) to keep your streak alive!`,
+        actionType: 'open_streak',
+        meta: { appliedDates: result.appliedDates },
+      });
     }
   }, [courseId, today, history, startDate, freezeStore, settings.streakMode, targetSec, setHistory, setFreezeStore]);
 
@@ -215,6 +223,12 @@ export function useCourseProgress(course) {
     if (res.success) {
       setFreezeStore(res.updatedStore);
       showToast(`🎉 Promo code redeemed! +${res.addedShields} Streak Shields added 🛡️`, 'success', 5000);
+      addNotification({
+        type: NOTIFICATION_TYPES.STREAK,
+        title: 'Promo Code Redeemed! 🎉',
+        message: `+${res.addedShields} Streak Shields added to your inventory.`,
+        actionType: 'open_streak',
+      });
       return res;
     } else {
       showToast(res.error, 'error', 4500);
@@ -314,6 +328,15 @@ export function useCourseProgress(course) {
 
       if (!initialBadgesMountRef.current) {
         setNewlyUnlockedBadge(missingFromStorage[0]);
+        missingFromStorage.forEach((b) => {
+          addNotification({
+            type: NOTIFICATION_TYPES.ACHIEVEMENT,
+            title: `Achievement Unlocked: ${b.title}! 🏆`,
+            message: b.desc || `Congratulations on unlocking the ${b.title} badge!`,
+            actionType: 'open_badges',
+            meta: { badgeId: b.id, icon: b.icon },
+          });
+        });
       }
     }
 

@@ -1,4 +1,5 @@
 import { showToast } from '../../../utils/toast.js';
+import { addNotification, NOTIFICATION_TYPES } from '../../notifications/models/notificationModel.js';
 
 /**
  * Curated list of 15 high-impact motivational messages for the daily popup dialog.
@@ -351,6 +352,13 @@ Return ONLY a valid JSON array of ${count} strings, example: ["Message 1", "Mess
     // Notify user in bottom-right toast with exact diagnostic information
     const explanation = explainPrefetchError(err, status);
     showToast(explanation, 'warning', 5000);
+    addNotification({
+      type: NOTIFICATION_TYPES.SYSTEM,
+      title: 'OpenAI / ChatGPT Service Alert',
+      message: explanation,
+      actionType: 'open_settings',
+      meta: { error: err?.message, status },
+    });
 
     // On failure or offline, ensure deterministic defaults fill the queue
     fillQueueWithDefaults(store, context?.streak || 0, currentDateKey, 3);

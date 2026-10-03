@@ -7,6 +7,16 @@ import CourseSelector from '../../../components/CourseSelector.jsx';
 import { getStoredApiKey, setStoredApiKey, verifyOpenAiApiKey } from '../../motivation/models/apiKeyModel.js';
 import { formatDuration } from '../../../utils/time.js';
 import { TARGET_PRESETS, PER_SECTION_OPTIONS } from '../models/settingsModel.js';
+import {
+  getNotificationSettings,
+  saveNotificationSettings,
+  getBrowserPermissionStatus,
+  requestBrowserNotificationPermission,
+  sendBrowserPushNotification,
+  addNotification,
+  NOTIFICATION_TYPES,
+} from '../../notifications/models/notificationModel.js';
+import { showToast } from '../../../utils/toast.js';
 import './SettingsPanel.css';
 
 export default function SettingsPanel({
@@ -384,6 +394,8 @@ export default function SettingsPanel({
         </div>
       </section>
 
+      <NotificationSettingsSection onClose={onClose} />
+
       <section className="settings-section">
         <h3>Memory management</h3>
         <p className="settings-help">All courses currently stored on this device, and how much space each uses.</p>
@@ -428,6 +440,127 @@ export default function SettingsPanel({
         warningMessage="This will delete ALL courses, ALL progress data, ALL settings, and reset the app to its initial state. This action cannot be undone."
       />
     </Drawer>
+  );
+}
+
+function NotificationSettingsSection({ onClose }) {
+  const [notifSettings, setNotifSettings] = useState(() => getNotificationSettings());
+  const [perm, setPerm] = useState(() => getBrowserPermissionStatus());
+
+  const handleToggleDailyReminder = (enabled) => {
+    saveNotificationSettings({ dailyReminderEnabled: enabled });
+    setNotifSettings((prev) => ({ ...prev, dailyReminderEnabled: enabled }));
+    showToast(enabled ? 'Daily study reminders enabled' : 'Daily reminders paused', 'info', 2500);
+  };
+
+  const handleTimeChange = (newTime) => {
+    saveNotificationSettings({ studyReminderTime: newTime });
+    setNotifSettings((prev) => ({ ...prev, studyReminderTime: newTime }));
+  };
+
+  const handleRequestPush = async () => {
+    const res = await requestBrowserNotificationPermission();
+    setPerm(getBrowserPermissionStatus());
+    setNotifSettings(getNotificationSettings());
+    if (res === 'granted') {
+      showToast('🔔 Browser push notifications active! Study alerts will be delivered daily.', 'success', 4000);
+      sendBrowserPushNotification('Study Push Alerts Active 🔔', {
+        body: 'You will receive reminders at your scheduled study time.',
+      });
+    } else if (res === 'denied') {
+      showToast('Notifications blocked in browser. Please permit notifications in site settings.', 'warning', 4500);
+    }
+  };
+
+  const handleTestAlert = () => {
+    const title = 'Core Java Study Reminder ☕🔥';
+    const body = "Don't let today slip away without writing code! Jump back into your Java course.";
+    addNotification({
+      type: NOTIFICATION_TYPES.REMINDER,
+      title,
+      message: body,
+      actionType: 'open_today',
+      meta: { isTest: true },
+    });
+    if (getBrowserPermissionStatus() === 'granted') {
+      sendBrowserPushNotification(title, { body });
+      showToast('Test push alert dispatched to your device! 🔔', 'success', 3500);
+    } else {
+      showToast('Test reminder added to Notification Center (enable Browser Push for system alerts)', 'info', 4000);
+    }
+  };
+
+  return (
+    <section className="settings-section">
+      <div className="settings-section__head">
+        <h3>Push Notifications &amp; Study Schedule</h3>
+      </div>
+      <p className="settings-help">
+        Keep your coding habit unbreakable with native browser push alerts and in-app milestone notifications.
+      </p>
+
+      <div className="notif-settings-box">
+        <div className="notif-settings-row">
+          <div>
+            <div className="notif-settings-title">Browser Push Permission</div>
+            <div className="notif-settings-desc">
+              Status: <strong className={`notif-status-badge notif-status-badge--${perm}`}>{perm.toUpperCase()}</strong>
+            </div>
+          </div>
+          {perm !== 'granted' ? (
+            <button
+              type="button"
+              className="notif-enable-btn"
+              onClick={handleRequestPush}
+            >
+              Enable Push
+            </button>
+          ) : (
+            <span className="notif-active-chip">Active ✓</span>
+          )}
+        </div>
+
+        <ToggleRow
+          label="Daily study reminder"
+          checked={!!notifSettings.dailyReminderEnabled}
+          onChange={handleToggleDailyReminder}
+        />
+
+        {notifSettings.dailyReminderEnabled && (
+          <div className="notif-time-select-row">
+            <span className="notif-time-label">Daily Reminder Time:</span>
+            <input
+              type="time"
+              className="notif-time-input"
+              value={notifSettings.studyReminderTime || '20:00'}
+              onChange={(e) => handleTimeChange(e.target.value)}
+            />
+          </div>
+        )}
+
+        <div className="notif-settings-actions">
+          <button
+            type="button"
+            className="api-btn api-btn--test"
+            onClick={handleTestAlert}
+          >
+            🔔 Test notification
+          </button>
+          <button
+            type="button"
+            className="api-btn api-btn--preview"
+            onClick={() => {
+              if (onClose) onClose();
+              setTimeout(() => {
+                window.location.hash = '#notifications';
+              }, 100);
+            }}
+          >
+            Open notification hub →
+          </button>
+        </div>
+      </div>
+    </section>
   );
 }
 

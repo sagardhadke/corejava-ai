@@ -213,6 +213,14 @@
   color: #ffd54a;
 }
 
+.mobile-menu-badge--red {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: rgba(239, 68, 68, 0.5);
+  color: #f87171;
+  font-weight: 800;
+  box-shadow: 0 0 8px rgba(239, 68, 68, 0.3);
+}
+
 .mobile-menu-streak-tag {
   display: flex;
   align-items: center;
