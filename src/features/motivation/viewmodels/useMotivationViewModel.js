@@ -1,7 +1,10 @@
-import { useState, useEffect, useCallback } from 'react';
-import { formatDuration } from '../../../utils/time.js';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { getStoredApiKey } from '../models/apiKeyModel.js';
-import { pickDefaultMotivation } from '../models/motivationModel.js';
+import {
+  resolveTodayMotivation,
+  cycleNextMotivationQuote,
+  prefetchUpcomingQuotes,
+} from '../models/motivationModel.js';
 
 const SHOWN_KEY = 'jct_motivation_shown_v1';
 
@@ -27,109 +30,105 @@ export function triggerMotivationPopup() {
   }
 }
 
-async function fetchMotivationFromOpenAI(apiKey, context) {
-  const prompt = `You are a friendly, encouraging study coach. The user is learning through an online course tracker (currently: "${context.courseTitle}").
-Current stats: ${context.pct}% of the course complete (${context.watchedCount}/${context.totalCount} lectures), ${formatDuration(context.remainingSec)} of lecture time remaining, current streak ${context.streak} day(s).
-Write ONE short, warm, motivating message (max 2 sentences, no emoji spam, at most one emoji) to greet them at the start of today's study session. Be specific and encouraging, not generic corporate positivity.`;
-
-  const res = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model: 'gpt-4o-mini',
-      messages: [{ role: 'user', content: prompt }],
-      max_tokens: 120,
-      temperature: 0.9,
-    }),
-  });
-
-  if (!res.ok) throw new Error(`OpenAI API error: ${res.status}`);
-  const data = await res.json();
-  const text = data?.choices?.[0]?.message?.content?.trim();
-  if (!text) throw new Error('Empty response from OpenAI');
-  return text;
-}
-
 /**
  * Headless Motivation ViewModel Hook
+ * Implements professional offline-first prefetching:
+ * - Instantly resolves today's quote from localStorage with 0ms latency and 0 loading spinner.
+ * - Silently prefetches and queues 2-3 quotes in the background for upcoming days.
+ * - When opened the next day, the next quote is already stored in localStorage and displays immediately.
  */
 export function useMotivationViewModel({ today, stats, streak, courseTitle }) {
-  const [visible, setVisible] = useState(false);
-  const [message, setMessage] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [isAiGenerated, setIsAiGenerated] = useState(false);
+  const currentDateKey = useMemo(() => today || new Date().toISOString().slice(0, 10), [today]);
 
-  const generateOrPick = useCallback((force = false) => {
-    const apiKey = getStoredApiKey();
-    if (apiKey) {
-      setLoading(true);
-      setVisible(true);
-      fetchMotivationFromOpenAI(apiKey, {
-        pct: stats?.pct || 0,
-        watchedCount: stats?.watchedCount || 0,
-        totalCount: stats?.totalCount || 0,
-        remainingSec: stats?.remainingSec || 0,
-        streak: streak || 0,
-        courseTitle: courseTitle || 'Core Java + AI',
-      })
-        .then((aiMsg) => {
-          setMessage(aiMsg);
-          setIsAiGenerated(true);
-          if (!force) setShownDate(today);
-        })
-        .catch(() => {
-          setMessage(pickDefaultMotivation(streak, today));
-          setIsAiGenerated(false);
-          if (!force) setShownDate(today);
-        })
-        .finally(() => {
-          setLoading(false);
-        });
-    } else {
-      setMessage(pickDefaultMotivation(streak, today));
-      setIsAiGenerated(false);
-      setVisible(true);
-      if (!force) setShownDate(today);
+  // Synchronously resolve today's pre-cached quote on mount (0ms delay)
+  const [resolved, setResolved] = useState(() => {
+    return resolveTodayMotivation({ today: currentDateKey, streak: streak || 0 });
+  });
+
+  // Automatically determine initial visibility without cascading effect renders
+  const [visible, setVisible] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    const isNoModal = window.location.search.includes('nomodal');
+    if (isNoModal) return false;
+    const isHashTriggered = window.location.hash === '#motivation';
+    const alreadyShown = getShownDate() === currentDateKey;
+    if (isHashTriggered || !alreadyShown) {
+      if (!isHashTriggered) {
+        setShownDate(currentDateKey);
+      }
+      return true;
     }
-  }, [today, stats?.pct, stats?.watchedCount, stats?.totalCount, stats?.remainingSec, streak, courseTitle]);
+    return false;
+  });
+
+  // Track the resolved quote corresponding to currentDateKey and streak
+  const activeResolved = useMemo(() => {
+    if (resolved?.quote?.date === currentDateKey) {
+      return resolved;
+    }
+    return resolveTodayMotivation({ today: currentDateKey, streak: streak || 0 });
+  }, [resolved, currentDateKey, streak]);
 
   // Handle global trigger events (e.g. from Settings preview or Command Palette)
   useEffect(() => {
     const handleTrigger = () => {
-      generateOrPick(true);
+      setVisible(true);
     };
     window.addEventListener('jct:show_motivation', handleTrigger);
     return () => window.removeEventListener('jct:show_motivation', handleTrigger);
-  }, [generateOrPick]);
+  }, []);
 
-  // Initial mount check (daily auto-show or #motivation hash deep-link)
+  // Silent background prefetch:
+  // Pre-generates 2-3 quotes for tomorrow and upcoming days quietly in localStorage without any loading flash
   useEffect(() => {
-    const isHashTriggered = typeof window !== 'undefined' && window.location.hash === '#motivation';
-    const isNoModal = typeof window !== 'undefined' && window.location.search.includes('nomodal');
-    if (isNoModal) return;
+    const apiKey = getStoredApiKey();
+    if (!apiKey) return;
 
-    const alreadyShown = getShownDate() === today;
-    if (isHashTriggered || !alreadyShown) {
-      const timer = setTimeout(() => {
-        generateOrPick(isHashTriggered);
-      }, 0);
-      return () => clearTimeout(timer);
-    }
-  }, [today, generateOrPick]);
+    const timer = setTimeout(() => {
+      prefetchUpcomingQuotes({
+        apiKey,
+        context: {
+          pct: stats?.pct || 0,
+          watchedCount: stats?.watchedCount || 0,
+          totalCount: stats?.totalCount || 0,
+          remainingSec: stats?.remainingSec || 0,
+          streak: streak || 0,
+          courseTitle: courseTitle || 'Core Java + AI',
+        },
+        today: currentDateKey,
+        count: 3,
+      }).catch((err) => {
+        // Safe silent warning in background
+        if (typeof console !== 'undefined' && console.warn) {
+          console.warn('Background quote prefetch notice:', err?.message || err);
+        }
+      });
+    }, 1200);
+
+    return () => clearTimeout(timer);
+  }, [currentDateKey, stats?.pct, stats?.watchedCount, stats?.totalCount, stats?.remainingSec, streak, courseTitle]);
+
+  const cycleNextQuote = useCallback(() => {
+    const next = cycleNextMotivationQuote({ today: currentDateKey, streak: streak || 0 });
+    setResolved(next);
+  }, [currentDateKey, streak]);
 
   const dismiss = useCallback(() => {
     setVisible(false);
   }, []);
 
+  const show = useCallback(() => {
+    setVisible(true);
+  }, []);
+
   return {
     visible,
-    message,
-    loading,
-    isAiGenerated,
+    message: activeResolved?.quote?.text || '',
+    loading: false,
+    isAiGenerated: !!activeResolved?.quote?.isAiGenerated,
+    queueCount: activeResolved?.store?.queue?.length || 0,
     dismiss,
-    show: () => generateOrPick(true),
+    show,
+    cycleNextQuote,
   };
 }

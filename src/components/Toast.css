@@ -55,6 +55,13 @@
   color: var(--amber, #ffb800);
 }
 
+.toast-item--error {
+  border-color: rgba(239, 68, 68, 0.45);
+}
+.toast-item--error .toast-item__icon {
+  color: var(--bad, #ef4444);
+}
+
 .toast-item--info {
   border-color: rgba(124, 140, 255, 0.35);
 }

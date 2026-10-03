@@ -33,7 +33,7 @@ export default function ToastContainer() {
         <div key={toast.id} className={`toast-item toast-item--${toast.type}`} role="status">
           <div className="toast-item__icon">
             {toast.type === 'success' && <CheckCircleIcon />}
-            {toast.type === 'warning' && <AlertCircleIcon />}
+            {(toast.type === 'warning' || toast.type === 'error') && <AlertCircleIcon />}
             {toast.type === 'info' && <InfoCircleIcon />}
           </div>
           <span className="toast-item__msg">{toast.message}</span>
