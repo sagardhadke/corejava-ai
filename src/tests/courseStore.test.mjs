@@ -1035,6 +1035,75 @@ describe('Course Flow & State Management Integration Tests', () => {
     assert.equal(eventReceived, true, 'triggerMotivationPopup must dispatch jct:show_motivation');
     globalThis.window.removeEventListener('jct:show_motivation', onTrigger);
   });
+
+  it('28. Motivational quotes offline-first prefetching, queueing, and next-day instant display', async () => {
+    const {
+      getMotivationStore,
+      resolveTodayMotivation,
+      cycleNextMotivationQuote,
+      enqueueUpcomingQuotes,
+      MOTIVATION_STORE_KEY,
+    } = await import('../features/motivation/models/motivationModel.js');
+
+    // 1. Clear motivation storage
+    globalThis.localStorage.removeItem(MOTIVATION_STORE_KEY);
+
+    // 2. Day 1: User logs in today (2026-10-03)
+    const day1Result = resolveTodayMotivation({ today: '2026-10-03', streak: 2 });
+    assert.ok(day1Result.quote && day1Result.quote.text, 'Day 1 quote must be resolved immediately');
+    assert.equal(day1Result.quote.date, '2026-10-03', 'Day 1 date must match today');
+
+    // Check store in localStorage
+    const storeAfterDay1 = getMotivationStore();
+    assert.equal(storeAfterDay1.todayQuote.text, day1Result.quote.text);
+    assert.ok(storeAfterDay1.queue.length >= 3, 'Must pre-store at least 3 quotes in queue for future days');
+
+    const firstQueuedQuote = storeAfterDay1.queue[0].text;
+    assert.ok(firstQueuedQuote && firstQueuedQuote.length > 10, 'First queued quote must be pre-populated');
+
+    // 3. Simulated AI prefetch adds custom AI quotes to queue
+    const aiQuotes = [
+      'Mastering Core Java is like building muscle: daily deliberate practice turns confusion into mastery.',
+      'One clean method at a time. Your dedication today will unlock senior engineering opportunities.',
+    ];
+    enqueueUpcomingQuotes(aiQuotes, '2026-10-03');
+
+    const storeWithAi = getMotivationStore();
+    assert.equal(storeWithAi.queue[0].text, aiQuotes[0], 'AI generated quote must be queued at head of upcoming queue');
+    assert.equal(storeWithAi.queue[0].isAiGenerated, true);
+
+    // 4. Day 2: User opens the app on the next day (2026-10-04)
+    // Should immediately display the pre-fetched quote with 0ms delay!
+    const day2Result = resolveTodayMotivation({ today: '2026-10-04', streak: 3 });
+    assert.equal(day2Result.quote.date, '2026-10-04');
+    assert.equal(day2Result.quote.text, aiQuotes[0], 'Day 2 must immediately serve the quote pre-cached on Day 1');
+    assert.equal(day2Result.quote.isAiGenerated, true);
+
+    // Verify queue still maintains upcoming quotes
+    const storeAfterDay2 = getMotivationStore();
+    assert.ok(storeAfterDay2.queue.length >= 3, 'Queue must replenish automatically for subsequent days');
+
+    // 5. Test manual cycling of pre-stored quotes
+    const cycledResult = cycleNextMotivationQuote({ today: '2026-10-04', streak: 3 });
+    assert.notEqual(cycledResult.quote.text, day2Result.quote.text, 'Cycled quote must advance to next pre-cached quote');
+    assert.ok(cycledResult.quote.text.length > 10);
+
+    // 6. Test error diagnosis and fallback toast notifications
+    const { explainPrefetchError } = await import('../features/motivation/models/motivationModel.js');
+    const authErr = explainPrefetchError(new Error('Invalid key'), 401);
+    assert.ok(authErr.includes('OpenAI Auth Error (401)') || authErr.includes('401'), 'Must diagnose 401 auth error');
+
+    const quotaErr = explainPrefetchError(new Error('Rate limited'), 429);
+    assert.ok(quotaErr.includes('429') && quotaErr.includes('Quota'), 'Must diagnose 429 quota error');
+
+    const serverErr = explainPrefetchError(new Error('Gateway down'), 503);
+    assert.ok(serverErr.includes('503') && serverErr.includes('Server Down'), 'Must diagnose 503 server down');
+
+    const timeoutErr = explainPrefetchError(new Error('The operation was aborted'), null);
+    assert.ok(timeoutErr.includes('Timeout'), 'Must diagnose timeout error');
+  });
 });
+
+
 
 
