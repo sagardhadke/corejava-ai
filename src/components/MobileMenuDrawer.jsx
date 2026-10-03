@@ -21,9 +21,11 @@ export default function MobileMenuDrawer({
   streak = 0,
   availableFreezes = 2,
   unlockedBadgesCount = 0,
+  unreadNotificationsCount = 0,
   onOpenPlan,
   onOpenStreak,
   onOpenBadges,
+  onOpenNotifications,
   onOpenSettings,
   onOpenCommandPalette,
   onOpenPracticeModal,
@@ -163,6 +165,24 @@ export default function MobileMenuDrawer({
                 <span className="mobile-menu-badge mobile-menu-badge--gold">
                   {unlockedBadgesCount}/12
                 </span>
+              </button>
+            </li>
+
+            <li>
+              <button
+                type="button"
+                className="mobile-menu-item"
+                onClick={() => handleNav(onOpenNotifications)}
+              >
+                <span className="mobile-menu-icon">
+                  <BellMenuIcon />
+                </span>
+                <span className="mobile-menu-label">Notifications & Alerts</span>
+                {unreadNotificationsCount > 0 && (
+                  <span className="mobile-menu-badge mobile-menu-badge--red">
+                    {unreadNotificationsCount}
+                  </span>
+                )}
               </button>
             </li>
 
@@ -383,3 +403,13 @@ function DownloadIcon() {
     </svg>
   );
 }
+
+function BellMenuIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+      <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+    </svg>
+  );
+}
+

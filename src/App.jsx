@@ -30,6 +30,7 @@ import { CalendarPanel, PracticeDayModal } from './features/streak/index.js';
 import { BadgesPanel, BadgeToast } from './features/badges/index.js';
 import { SettingsPanel } from './features/settings/index.js';
 import { MotivationPopup } from './features/motivation/index.js';
+import { NotificationsPanel, useNotificationsViewModel } from './features/notifications/index.js';
 import './App.css';
 
 export default function App() {
@@ -75,10 +76,18 @@ export default function App() {
     onRefreshCourses: refreshCourseList,
   });
 
+  // Headless Notifications & Push Reminder ViewModel
+  const notificationsVM = useNotificationsViewModel({
+    streak,
+    courseTitle: course?.title,
+    remainingLectures: Math.max(0, (stats?.totalCount || 0) - (stats?.completedCount || 0)),
+  });
+
   // Drawer and Modal visibility
   const [calendarOpen, setCalendarOpen] = useState(() => typeof window !== 'undefined' && window.location.hash === '#calendar');
   const [settingsOpen, setSettingsOpen] = useState(() => typeof window !== 'undefined' && window.location.hash === '#settings');
   const [badgesOpen, setBadgesOpen] = useState(() => typeof window !== 'undefined' && window.location.hash === '#badges');
+  const [notificationsOpen, setNotificationsOpen] = useState(() => typeof window !== 'undefined' && window.location.hash === '#notifications');
   const [practiceModalOpen, setPracticeModalOpen] = useState(false);
   const [practiceModalDate, setPracticeModalDate] = useState(null);
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
@@ -90,6 +99,7 @@ export default function App() {
     setCalendarOpen(false);
     setSettingsOpen(false);
     setBadgesOpen(false);
+    setNotificationsOpen(false);
     setMobileMenuOpen(false);
     setCommandPaletteOpen(false);
     setActiveNavTab('home');
@@ -98,6 +108,7 @@ export default function App() {
   const openStreakDrawer = useCallback(() => {
     setSettingsOpen(false);
     setBadgesOpen(false);
+    setNotificationsOpen(false);
     setMobileMenuOpen(false);
     setCommandPaletteOpen(false);
     setCalendarOpen(true);
@@ -107,6 +118,7 @@ export default function App() {
   const openBadgesDrawer = useCallback(() => {
     setCalendarOpen(false);
     setSettingsOpen(false);
+    setNotificationsOpen(false);
     setMobileMenuOpen(false);
     setCommandPaletteOpen(false);
     setBadgesOpen(true);
@@ -116,10 +128,21 @@ export default function App() {
   const openSettingsDrawer = useCallback(() => {
     setCalendarOpen(false);
     setBadgesOpen(false);
+    setNotificationsOpen(false);
     setMobileMenuOpen(false);
     setCommandPaletteOpen(false);
     setSettingsOpen(true);
     setActiveNavTab('settings');
+  }, []);
+
+  const openNotificationsDrawer = useCallback(() => {
+    setCalendarOpen(false);
+    setBadgesOpen(false);
+    setSettingsOpen(false);
+    setMobileMenuOpen(false);
+    setCommandPaletteOpen(false);
+    setNotificationsOpen(true);
+    setActiveNavTab('notifications');
   }, []);
 
   const toggleStreakDrawer = useCallback(() => {
@@ -174,10 +197,18 @@ export default function App() {
       if (window.location.hash === '#calendar') openStreakDrawer();
       if (window.location.hash === '#settings') openSettingsDrawer();
       if (window.location.hash === '#badges') openBadgesDrawer();
+      if (window.location.hash === '#notifications') openNotificationsDrawer();
     };
     window.addEventListener('hashchange', handleHash);
     return () => window.removeEventListener('hashchange', handleHash);
-  }, [openStreakDrawer, openSettingsDrawer, openBadgesDrawer]);
+  }, [openStreakDrawer, openSettingsDrawer, openBadgesDrawer, openNotificationsDrawer]);
+
+  // Listener for test push notification trigger
+  useEffect(() => {
+    const handleSendTest = () => notificationsVM.sendTestNotification();
+    window.addEventListener('jct:send_test_notification', handleSendTest);
+    return () => window.removeEventListener('jct:send_test_notification', handleSendTest);
+  }, [notificationsVM]);
 
   // Global keyboard shortcuts (Ctrl+K or Cmd+K for Command Palette)
   useEffect(() => {
@@ -263,6 +294,8 @@ export default function App() {
         onSwitchCourse={handleSwitchCourse}
         unlockedBadgesCount={unlockedBadgesCount}
         onOpenBadges={openBadgesDrawer}
+        unreadNotificationsCount={notificationsVM.unreadCount}
+        onOpenNotifications={openNotificationsDrawer}
         onOpenCommandPalette={() => {
           closeAllDrawers();
           setCommandPaletteOpen(true);
@@ -427,6 +460,8 @@ export default function App() {
         onJumpToSection={courseVM.jumpToSection}
         onOpenCalendar={openStreakDrawer}
         onOpenBadges={openBadgesDrawer}
+        onOpenNotifications={openNotificationsDrawer}
+        onSendTestNotification={notificationsVM.sendTestNotification}
         onOpenSettings={openSettingsDrawer}
         onOpenPracticeModal={openPracticeModalForToday}
         onOpenImport={() => {
@@ -448,9 +483,11 @@ export default function App() {
         streak={streak}
         availableFreezes={availableFreezes}
         unlockedBadgesCount={unlockedBadgesCount}
+        unreadNotificationsCount={notificationsVM.unreadCount}
         onOpenPlan={navigateToday}
         onOpenStreak={openStreakDrawer}
         onOpenBadges={openBadgesDrawer}
+        onOpenNotifications={openNotificationsDrawer}
         onOpenSettings={openSettingsDrawer}
         onOpenCommandPalette={() => {
           closeAllDrawers();
@@ -472,6 +509,16 @@ export default function App() {
           URL.revokeObjectURL(url);
           showToast('Backup exported successfully!', 'success', 3000);
         }}
+      />
+
+      <NotificationsPanel
+        open={notificationsOpen}
+        onClose={() => { setNotificationsOpen(false); setActiveNavTab('home'); }}
+        viewModel={notificationsVM}
+        onOpenBadges={openBadgesDrawer}
+        onOpenStreak={openStreakDrawer}
+        onOpenToday={navigateToday}
+        onOpenSettings={openSettingsDrawer}
       />
 
       <MobileBottomNav

@@ -16,6 +16,8 @@ export default function CommandPalette({
   onJumpToSection,
   onOpenCalendar,
   onOpenBadges,
+  onOpenNotifications,
+  onSendTestNotification,
   onOpenSettings,
   onOpenPracticeModal,
   onOpenImport,
@@ -59,6 +61,29 @@ export default function CommandPalette({
         run: () => {
           onClose();
           window.dispatchEvent(new CustomEvent('jct:show_motivation'));
+        },
+      },
+      {
+        id: 'action-notifications',
+        category: 'Quick Actions',
+        title: 'Open Notifications & Push Alerts Hub',
+        shortcut: 'N',
+        icon: '🔔',
+        run: () => { onClose(); onOpenNotifications?.(); },
+      },
+      {
+        id: 'action-test-notification',
+        category: 'Quick Actions',
+        title: 'Send Test Study Push Notification',
+        shortcut: 'T',
+        icon: '📱',
+        run: () => {
+          onClose();
+          if (typeof onSendTestNotification === 'function') {
+            onSendTestNotification();
+          } else {
+            window.dispatchEvent(new CustomEvent('jct:send_test_notification'));
+          }
         },
       },
       {
@@ -198,7 +223,7 @@ export default function CommandPalette({
     }
 
     return result;
-  }, [query, course, courses, onClose, onOpenBadges, onOpenCalendar, onOpenSettings, onOpenPracticeModal, onOpenImport, onClearPlan, onSwitchCourse, onJumpToSection]);
+  }, [query, course, courses, onClose, onOpenBadges, onOpenCalendar, onOpenNotifications, onSendTestNotification, onOpenSettings, onOpenPracticeModal, onOpenImport, onClearPlan, onSwitchCourse, onJumpToSection]);
 
   // Keyboard navigation inside palette
   useEffect(() => {

@@ -1117,7 +1117,129 @@ describe('Course Flow & State Management Integration Tests', () => {
     const timeoutErr = explainPrefetchError(new Error('The operation was aborted'), null);
     assert.ok(timeoutErr.includes('Timeout'), 'Must diagnose timeout error');
   });
+
+  it('Subtest 29: Enterprise Notification Center and Push Reminder Service', async () => {
+    const {
+      getNotifications,
+      addNotification,
+      markNotificationRead,
+      markAllNotificationsRead,
+      deleteNotification,
+      clearAllNotifications,
+      getUnreadNotificationCount,
+      getNotificationSettings,
+      saveNotificationSettings,
+      checkAndTriggerScheduledReminder,
+      NOTIFICATION_TYPES,
+    } = await import('../features/notifications/models/notificationModel.js');
+
+    // 1. Storage starts clean
+    clearAllNotifications();
+    assert.equal(getNotifications().length, 0);
+    assert.equal(getUnreadNotificationCount(), 0);
+
+    // 2. Add notifications of different categories
+    const notif1 = addNotification({
+      type: NOTIFICATION_TYPES.ACHIEVEMENT,
+      title: 'Achievement Unlocked: Quick Starter! 🏆',
+      message: 'Completed your first 5 lectures.',
+      actionType: 'open_badges',
+    });
+    assert.ok(notif1?.id, 'Notification must have a generated ID');
+    assert.equal(notif1.read, false, 'New notification must be unread');
+
+    const notif2 = addNotification({
+      type: NOTIFICATION_TYPES.SYSTEM,
+      title: 'OpenAI / ChatGPT Service Alert',
+      message: 'Quota exceeded (429). Fallback motivational quotes active.',
+      actionType: 'open_settings',
+    });
+    assert.ok(notif2?.id);
+
+    const notif3 = addNotification({
+      type: NOTIFICATION_TYPES.STREAK,
+      title: 'Streak Shield Auto-Applied! 🛡️',
+      message: 'Protected 1 missed day to keep your streak alive.',
+      actionType: 'open_streak',
+    });
+    assert.ok(notif3?.id);
+
+    // Verify list and unread count
+    const list = getNotifications();
+    assert.equal(list.length, 3);
+    assert.equal(getUnreadNotificationCount(), 3);
+
+    // 3. Deduplication check: adding identical alert immediately should return null
+    const duplicate = addNotification({
+      type: NOTIFICATION_TYPES.SYSTEM,
+      title: 'OpenAI / ChatGPT Service Alert',
+      message: 'Quota exceeded (429). Fallback motivational quotes active.',
+    });
+    assert.equal(duplicate, null, 'Duplicate alert within 30s must be suppressed');
+    assert.equal(getNotifications().length, 3);
+
+    // 4. Mark single item as read
+    markNotificationRead(notif1.id);
+    assert.equal(getUnreadNotificationCount(), 2);
+    const updatedList = getNotifications();
+    const found1 = updatedList.find((n) => n.id === notif1.id);
+    assert.equal(found1.read, true);
+
+    // 5. Mark all as read
+    markAllNotificationsRead();
+    assert.equal(getUnreadNotificationCount(), 0);
+
+    // 6. Delete single item
+    deleteNotification(notif2.id);
+    const afterDelete = getNotifications();
+    assert.equal(afterDelete.length, 2);
+    assert.ok(!afterDelete.some((n) => n.id === notif2.id));
+
+    // 7. Notification settings persistence
+    saveNotificationSettings({
+      dailyReminderEnabled: true,
+      studyReminderTime: '19:30',
+      pushEnabled: true,
+    });
+    const savedSettings = getNotificationSettings();
+    assert.equal(savedSettings.dailyReminderEnabled, true);
+    assert.equal(savedSettings.studyReminderTime, '19:30');
+    assert.equal(savedSettings.pushEnabled, true);
+
+    // 8. Scheduled study reminder engine
+    // Set reminder time to 00:00 so it is definitely due today
+    saveNotificationSettings({
+      dailyReminderEnabled: true,
+      studyReminderTime: '00:00',
+      lastSentReminderDate: null,
+    });
+    const triggered = checkAndTriggerScheduledReminder({
+      streak: 5,
+      courseTitle: 'Core Java + AI',
+      remainingLectures: 42,
+    });
+    assert.equal(triggered, true, 'Must trigger reminder when time condition is satisfied');
+
+    // Verify that the reminder was added to Notification Center
+    const latestNotifs = getNotifications();
+    const reminderNotif = latestNotifs.find((n) => n.type === NOTIFICATION_TYPES.REMINDER);
+    assert.ok(reminderNotif, 'Reminder notification must be stored in Notification Center');
+    assert.ok(reminderNotif.title.includes('Study') || reminderNotif.title.includes('Core Java'));
+
+    // Verify deduplication: calling again today should NOT trigger another reminder
+    const secondTrigger = checkAndTriggerScheduledReminder({
+      streak: 5,
+      courseTitle: 'Core Java + AI',
+      remainingLectures: 42,
+    });
+    assert.equal(secondTrigger, false, 'Must not duplicate reminder on the same date');
+
+    // 9. Clear all notifications
+    clearAllNotifications();
+    assert.equal(getNotifications().length, 0);
+  });
 });
+
 
 
 

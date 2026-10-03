@@ -13,6 +13,8 @@ export default function Header({
   onSwitchCourse,
   unlockedBadgesCount = 0,
   onOpenBadges,
+  unreadNotificationsCount = 0,
+  onOpenNotifications,
   onOpenCommandPalette,
   onOpenMobileMenu,
 }) {
@@ -78,6 +80,17 @@ export default function Header({
           <span className="mobile-pct-badge" title={`Course progress: ${pct}%`}>
             {pct}%
           </span>
+          <button
+            className={`icon-btn notif-btn ${unreadNotificationsCount > 0 ? 'notif-btn--has-unread' : ''}`}
+            onClick={onOpenNotifications}
+            title={unreadNotificationsCount > 0 ? `Notifications (${unreadNotificationsCount} unread)` : 'Notifications'}
+            aria-label="Open notifications"
+          >
+            <BellIcon />
+            {unreadNotificationsCount > 0 && (
+              <span className="notif-badge">{unreadNotificationsCount > 9 ? '9+' : unreadNotificationsCount}</span>
+            )}
+          </button>
           <button
             className="icon-btn badges-btn"
             onClick={onOpenBadges}
@@ -193,3 +206,25 @@ function HamburgerIcon() {
     </svg>
   );
 }
+
+function BellIcon() {
+  return (
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path
+        d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M13.73 21a2 2 0 0 1-3.46 0"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
