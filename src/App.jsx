@@ -24,6 +24,8 @@ import {
   SectionCard,
   PerSectionProgress,
   CourseImportModal,
+  CourseCompletionBanner,
+  resetCompletionState,
 } from './features/course/index.js';
 import { TodayPlanCard } from './features/today-plan/index.js';
 import { CalendarPanel, PracticeDayModal } from './features/streak/index.js';
@@ -258,6 +260,7 @@ export default function App() {
   const handleDeleteEverything = () => {
     courseVM.deleteEverything();
     const freshId = getActiveCourseId();
+    resetCompletionState(freshId);
     setActiveCourseIdState(freshId);
     setCourse(getCourseById(freshId));
     refreshCourseList();
@@ -308,6 +311,13 @@ export default function App() {
 
       <main className="app-main">
         <StatsBar stats={stats} targetSec={targetSec} autoPlan={settings.autoPlan} />
+
+        <CourseCompletionBanner
+          courseId={activeCourseId}
+          pct={stats.pct}
+          stats={stats}
+          courseTitle={course?.title}
+        />
 
         <div className="app-layout" id="syllabus-section">
           <div className="app-layout__main">
@@ -456,6 +466,7 @@ export default function App() {
         onClose={() => setCommandPaletteOpen(false)}
         course={course}
         courses={courses}
+        stats={stats}
         onSwitchCourse={handleSwitchCourse}
         onJumpToSection={courseVM.jumpToSection}
         onOpenCalendar={openStreakDrawer}

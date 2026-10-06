@@ -10,6 +10,7 @@ import {
   computeFirstWatchedDate,
   computeEffectiveStartDate,
 } from '../features/course/models/courseProgressModel.js';
+import { resetCompletionState } from '../features/course/models/courseCompletionModel.js';
 import { computeCurrentStreak, computeLongestStreak } from '../features/streak/models/streakModel.js';
 import {
   createInitialStreakFreezeState,
@@ -249,7 +250,8 @@ export function useCourseProgress(course) {
     setUnlockedBadges({});
     setNewlyUnlockedBadge(null);
     setFreezeStore(createInitialStreakFreezeState());
-  }, [setWatched, setPlanStore, setHistory, settings.autoPlan, targetSec, allLectures, setIsStartDateManual, setStoredStartDate, setUnlockedBadges, setFreezeStore]);
+    resetCompletionState(courseId);
+  }, [setWatched, setPlanStore, setHistory, settings.autoPlan, targetSec, allLectures, setIsStartDateManual, setStoredStartDate, setUnlockedBadges, setFreezeStore, courseId]);
 
   const updateSettings = useCallback((patch) => {
     setSettings((prev) => ({ ...prev, ...patch }));

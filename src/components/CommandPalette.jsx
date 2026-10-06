@@ -12,6 +12,7 @@ export default function CommandPalette({
   onClose,
   course,
   courses = [],
+  stats,
   onSwitchCourse,
   onJumpToSection,
   onOpenCalendar,
@@ -52,6 +53,17 @@ export default function CommandPalette({
 
     // 1. App actions
     const actions = [
+      ...((stats?.pct || 0) >= 90 ? [{
+        id: 'action-mark-complete',
+        category: 'Quick Actions',
+        title: 'Mark Course as Complete (8-Digit PIN Verification)',
+        shortcut: '✓',
+        icon: '🎓',
+        run: () => {
+          onClose();
+          window.dispatchEvent(new CustomEvent('jct:open_completion_modal'));
+        },
+      }] : []),
       {
         id: 'action-motivation',
         category: 'Quick Actions',
@@ -223,7 +235,7 @@ export default function CommandPalette({
     }
 
     return result;
-  }, [query, course, courses, onClose, onOpenBadges, onOpenCalendar, onOpenNotifications, onSendTestNotification, onOpenSettings, onOpenPracticeModal, onOpenImport, onClearPlan, onSwitchCourse, onJumpToSection]);
+  }, [query, course, courses, stats?.pct, onClose, onOpenBadges, onOpenCalendar, onOpenNotifications, onSendTestNotification, onOpenSettings, onOpenPracticeModal, onOpenImport, onClearPlan, onSwitchCourse, onJumpToSection]);
 
   // Keyboard navigation inside palette
   useEffect(() => {

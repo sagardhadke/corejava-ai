@@ -50,6 +50,15 @@ const { buildWeeksForYear, intensity } = await import('../utils/calendarGrid.js'
 const { DEFAULT_MOTIVATION_MESSAGES, pickDefaultMotivation } = await import('../utils/motivation.js');
 const { verifyOpenAiApiKey } = await import('../utils/apiKey.js');
 
+const {
+  COMPLETION_STATUS,
+  getCompletionState,
+  initiateVerification,
+  attemptPinVerification,
+  evaluateCompletionBanner,
+  resetCompletionState,
+} = await import('../features/course/models/courseCompletionModel.js');
+
 const SAMPLE_COURSE_1 = {
   id: 'course-python-ai-101',
   title: 'Python for AI & ML',
@@ -1247,6 +1256,101 @@ describe('Course Flow & State Management Integration Tests', () => {
     // 9. Clear all notifications
     clearAllNotifications();
     assert.equal(getNotifications().length, 0);
+  });
+
+  it('30. 90% Course Completion flow, 8-digit PIN verification gate, and 100% final completion transition', () => {
+    const courseId = 'course-completion-test-101';
+    resetCompletionState(courseId);
+
+    // 1. Below 90% threshold: no completion banner or prompt shown
+    const underThreshold = evaluateCompletionBanner(courseId, 85);
+    assert.equal(underThreshold.show, false);
+    assert.equal(underThreshold.milestone, null);
+    assert.equal(underThreshold.status, COMPLETION_STATUS.IN_PROGRESS);
+
+    // 2. Reaching 90%: Mark as Complete banner becomes available
+    const at90 = evaluateCompletionBanner(courseId, 90);
+    assert.equal(at90.show, true);
+    assert.ok(at90.milestone);
+    assert.equal(at90.milestone.pct, 90);
+    assert.equal(at90.milestone.cta, 'Mark as Complete');
+    assert.equal(at90.status, COMPLETION_STATUS.IN_PROGRESS);
+
+    // Initial state check
+    const initialState = getCompletionState(courseId);
+    assert.equal(initialState.status, COMPLETION_STATUS.IN_PROGRESS);
+    assert.equal(initialState.pin, null);
+    assert.equal(initialState.verifiedAt, null);
+    assert.equal(initialState.completedAt, null);
+
+    // 3. User clicks "Mark as Complete" -> generates 8-digit PIN
+    const pendingState = initiateVerification(courseId);
+    assert.equal(pendingState.status, COMPLETION_STATUS.VERIFICATION_PENDING);
+    assert.ok(pendingState.pin);
+    assert.equal(typeof pendingState.pin, 'string');
+    assert.equal(pendingState.pin.length, 8);
+    assert.match(pendingState.pin, /^\d{8}$/, 'PIN must consist of exactly 8 numeric digits');
+    assert.ok(pendingState.pinGeneratedAt);
+
+    // 4. PIN verification gate validation
+    // Test: empty PIN
+    const emptyRes = attemptPinVerification(courseId, '');
+    assert.equal(emptyRes.success, false);
+    assert.ok(emptyRes.error.includes('PIN'));
+
+    // Test: wrong length
+    const shortRes = attemptPinVerification(courseId, '12345');
+    assert.equal(shortRes.success, false);
+    assert.equal(shortRes.error, 'PIN must be exactly 8 digits.');
+
+    // Test: wrong digits
+    const incorrectPin = pendingState.pin === '12345678' ? '87654321' : '12345678';
+    const wrongRes = attemptPinVerification(courseId, incorrectPin);
+    assert.equal(wrongRes.success, false);
+    assert.equal(wrongRes.error, 'Incorrect PIN. Please check and try again.');
+
+    // Test: correct 8-digit PIN
+    const correctRes = attemptPinVerification(courseId, pendingState.pin);
+    assert.equal(correctRes.success, true);
+    assert.equal(correctRes.state.status, COMPLETION_STATUS.VERIFICATION_COMPLETED);
+    assert.equal(correctRes.state.pin, null, 'PIN must be cleared after successful verification');
+    assert.ok(correctRes.state.verifiedAt);
+    assert.equal(correctRes.state.completedAt, null, 'Course must NOT be marked completed yet (only 90%)');
+
+    // 5. At 95% completion, course is pre-verified but NOT officially completed
+    const at95 = evaluateCompletionBanner(courseId, 95);
+    assert.equal(at95.show, true);
+    assert.equal(at95.milestone.pct, 95);
+    assert.equal(at95.status, COMPLETION_STATUS.VERIFICATION_COMPLETED);
+    const stateAt95 = getCompletionState(courseId);
+    assert.equal(stateAt95.status, COMPLETION_STATUS.VERIFICATION_COMPLETED);
+    assert.equal(stateAt95.completedAt, null, 'Course must not be marked complete below 100%');
+
+    // 6. User reaches 100% completion -> Course officially and automatically marked as Completed
+    const at100 = evaluateCompletionBanner(courseId, 100);
+    assert.equal(at100.show, true);
+    assert.equal(at100.milestone.pct, 100);
+    assert.equal(at100.status, COMPLETION_STATUS.COMPLETED);
+
+    const stateAt100 = getCompletionState(courseId);
+    assert.equal(stateAt100.status, COMPLETION_STATUS.COMPLETED);
+    assert.ok(stateAt100.completedAt, 'completedAt timestamp must be recorded at 100%');
+
+    // 7. If user unchecks a lecture (drops below 100%), status reverts from COMPLETED
+    const dropped = evaluateCompletionBanner(courseId, 98);
+    assert.equal(dropped.status, COMPLETION_STATUS.VERIFICATION_COMPLETED);
+    assert.equal(getCompletionState(courseId).completedAt, null);
+
+    // 8. Multi-course isolation: completion in courseId does not affect otherCourse
+    const otherCourseId = 'course-other-isolated-202';
+    resetCompletionState(otherCourseId);
+    const otherBanner = evaluateCompletionBanner(otherCourseId, 92);
+    assert.equal(otherBanner.status, COMPLETION_STATUS.IN_PROGRESS, 'Other course status must remain isolated');
+    assert.equal(getCompletionState(otherCourseId).verifiedAt, null);
+
+    // 9. Resetting completion state clears everything
+    resetCompletionState(courseId);
+    assert.equal(getCompletionState(courseId).status, COMPLETION_STATUS.IN_PROGRESS);
   });
 });
 
