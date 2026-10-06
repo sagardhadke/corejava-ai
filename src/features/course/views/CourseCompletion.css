@@ -1,0 +1,851 @@
+/* ==========================================================================
+   COURSE COMPLETION BANNER & 8-DIGIT PIN VERIFICATION MODAL
+   Styled with enterprise dark theme tokens: amber/gold accents (#ffb800),
+   monospaced security inputs, glassmorphic modals, and 100% responsive layouts.
+   ========================================================================== */
+
+/* ── Completion Banner (Slides in between StatsBar and syllabus) ── */
+.completion-banner {
+  position: relative;
+  border-radius: var(--r-lg, 10px);
+  padding: 22px 26px;
+  margin-bottom: 20px;
+  border: 1px solid rgba(255, 184, 0, 0.3);
+  background: linear-gradient(135deg, rgba(255, 184, 0, 0.08) 0%, rgba(25, 28, 34, 0.96) 50%, rgba(19, 21, 25, 0.98) 100%);
+  box-shadow: 0 12px 32px -12px rgba(0, 0, 0, 0.6), 0 0 24px rgba(255, 184, 0, 0.08);
+  overflow: hidden;
+  animation: completionSlideIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+  box-sizing: border-box;
+}
+
+@keyframes completionSlideIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.completion-banner::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(ellipse 60% 80% at 0% 0%, rgba(255, 184, 0, 0.12), transparent 60%),
+              radial-gradient(ellipse 40% 60% at 100% 100%, rgba(255, 213, 74, 0.06), transparent 50%);
+  pointer-events: none;
+}
+
+/* Completed (100%) Banner Variant */
+.completion-banner--completed {
+  border-color: rgba(74, 222, 128, 0.4);
+  background: linear-gradient(135deg, rgba(74, 222, 128, 0.08) 0%, rgba(25, 28, 34, 0.96) 50%, rgba(255, 184, 0, 0.06) 100%);
+  box-shadow: 0 12px 32px -12px rgba(0, 0, 0, 0.6), 0 0 28px rgba(74, 222, 128, 0.12);
+}
+
+.completion-banner--completed::before {
+  background: radial-gradient(ellipse 60% 80% at 0% 0%, rgba(74, 222, 128, 0.12), transparent 60%),
+              radial-gradient(ellipse 40% 60% at 100% 100%, rgba(255, 184, 0, 0.08), transparent 50%);
+}
+
+/* Dismiss button */
+.completion-banner__dismiss {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  background: var(--surface-2, #191c22);
+  border: 1px solid var(--border, #2a2e37);
+  color: var(--ink-faint, #626874);
+  font-size: 13px;
+  width: 30px;
+  height: 30px;
+  border-radius: var(--r-sm, 4px);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+  z-index: 2;
+}
+
+.completion-banner__dismiss:hover {
+  background: var(--surface-3, #21252d);
+  color: var(--amber, #ffb800);
+  border-color: var(--amber-dim, #8a6600);
+}
+
+/* Header & Typography */
+.completion-banner__header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+  position: relative;
+  z-index: 1;
+}
+
+.completion-banner__emoji {
+  font-size: 28px;
+  line-height: 1;
+  flex-shrink: 0;
+  animation: completionPulse 2.4s ease-in-out infinite;
+}
+
+@keyframes completionPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+}
+
+.completion-banner__title {
+  font-family: var(--font-display);
+  font-size: 19px;
+  font-weight: 700;
+  color: var(--ink, #eef0f3);
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+
+.completion-banner__body {
+  font-family: var(--font-body);
+  font-size: 13.5px;
+  color: var(--ink-soft, #a6acb8);
+  line-height: 1.6;
+  margin: 0 0 18px;
+  max-width: 680px;
+  position: relative;
+  z-index: 1;
+}
+
+/* ── Progress Section (90% → 100%) ── */
+.completion-banner__progress-section {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin-bottom: 20px;
+  position: relative;
+  z-index: 1;
+}
+
+.completion-progress-ring {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.completion-progress-ring__svg {
+  display: block;
+  transform: rotate(-90deg);
+}
+
+.completion-progress-ring__bg {
+  fill: none;
+  stroke: var(--surface-3, #21252d);
+  stroke-width: 6;
+}
+
+.completion-progress-ring__fill {
+  fill: none;
+  stroke: url(#completionGradient);
+  stroke-width: 6;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.completion-progress-ring__center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.completion-progress-ring__pct {
+  font-family: var(--font-mono);
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--amber-bright, #ffd54a);
+  line-height: 1;
+}
+
+.completion-progress-ring__label {
+  font-size: 8px;
+  color: var(--ink-faint, #626874);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-top: 2px;
+}
+
+.completion-progress-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.completion-progress-info__remaining {
+  font-size: 13px;
+  color: var(--ink-soft, #a6acb8);
+  margin-bottom: 8px;
+}
+
+.completion-progress-info__remaining strong {
+  color: var(--amber, #ffb800);
+  font-weight: 600;
+}
+
+.completion-progress-bar {
+  height: 9px;
+  border-radius: 6px;
+  background: var(--surface-3, #21252d);
+  overflow: hidden;
+  border: 1px solid var(--border-soft, #1d2027);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.4);
+}
+
+.completion-progress-bar__fill {
+  height: 100%;
+  border-radius: 6px;
+  background: linear-gradient(90deg, #ffb800 0%, #ffd54a 70%, #4ade80 100%);
+  box-shadow: 0 0 10px rgba(255, 184, 0, 0.45);
+  transition: width 0.6s ease;
+}
+
+.completion-progress-bar__labels {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 5px;
+  font-size: 10px;
+  color: var(--ink-faint, #626874);
+  font-family: var(--font-mono);
+}
+
+/* ── Banner Actions ── */
+.completion-banner__actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+  position: relative;
+  z-index: 1;
+}
+
+.completion-banner__cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border-radius: var(--r-md, 6px);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  border: none;
+  transition: all 0.18s ease;
+  font-family: var(--font-body);
+  line-height: 1.3;
+}
+
+/* Primary "Mark as Complete" CTA (Signature Amber/Gold) */
+.completion-banner__cta--primary {
+  background: linear-gradient(135deg, #ffb800 0%, #ff9800 100%);
+  color: #0c0d10;
+  box-shadow: 0 4px 16px rgba(255, 184, 0, 0.35);
+}
+
+.completion-banner__cta--primary:hover {
+  background: linear-gradient(135deg, #ffd54a 0%, #ffa726 100%);
+  box-shadow: 0 6px 22px rgba(255, 184, 0, 0.5);
+  transform: translateY(-1px);
+}
+
+.completion-banner__cta--primary:active {
+  transform: translateY(0);
+}
+
+.completion-banner__cta--secondary {
+  background: var(--surface-2, #191c22);
+  color: var(--ink-soft, #a6acb8);
+  border: 1px solid var(--border, #2a2e37);
+}
+
+.completion-banner__cta--secondary:hover {
+  background: var(--surface-3, #21252d);
+  color: var(--ink, #eef0f3);
+  border-color: var(--amber-dim, #8a6600);
+}
+
+.completion-banner__cta--gold {
+  background: linear-gradient(135deg, #ffd54a 0%, #ffb800 100%);
+  color: #0c0d10;
+  box-shadow: 0 4px 18px rgba(255, 184, 0, 0.4);
+}
+
+.completion-banner__cta--gold:hover {
+  box-shadow: 0 6px 24px rgba(255, 184, 0, 0.55);
+  transform: translateY(-1px);
+}
+
+/* Verification Status Badges */
+.completion-banner__status {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--amber-bright, #ffd54a);
+  background: rgba(255, 184, 0, 0.08);
+  border: 1px solid rgba(255, 184, 0, 0.25);
+  padding: 4px 12px;
+  border-radius: 999px;
+  margin-bottom: 12px;
+  position: relative;
+  z-index: 1;
+}
+
+.completion-banner__status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--amber, #ffb800);
+  animation: statusPulse 1.6s ease-in-out infinite;
+}
+
+@keyframes statusPulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.8); }
+}
+
+.completion-banner__completed-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, rgba(255, 184, 0, 0.12), rgba(74, 222, 128, 0.12));
+  border: 1px solid rgba(255, 184, 0, 0.35);
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--amber-bright, #ffd54a);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 12px;
+  position: relative;
+  z-index: 1;
+}
+
+/* ==========================================================================
+   PIN VERIFICATION MODAL
+   Glassmorphic theme matching MotivationPopup & PracticeDayModal
+   ========================================================================== */
+
+.pin-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1050;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(4, 5, 8, 0.82);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  animation: pinOverlayIn 0.2s ease both;
+  padding: 16px;
+  box-sizing: border-box;
+}
+
+@keyframes pinOverlayIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.pin-modal {
+  position: relative;
+  background: linear-gradient(145deg, #181c24 0%, #0f1217 100%);
+  border: 1px solid rgba(255, 184, 0, 0.35);
+  border-radius: var(--r-lg, 10px);
+  width: 100%;
+  max-width: 440px;
+  max-height: calc(100dvh - 32px);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 28px 24px 24px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.8), 0 0 28px rgba(255, 184, 0, 0.15);
+  animation: pinModalIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) both;
+  box-sizing: border-box;
+}
+
+@keyframes pinModalIn {
+  from { opacity: 0; transform: translateY(12px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.pin-modal::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(ellipse 70% 50% at 50% 0%, rgba(255, 184, 0, 0.08), transparent 60%);
+  pointer-events: none;
+}
+
+.pin-modal__close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--r-sm, 4px);
+  background: var(--surface-2, #191c22);
+  border: 1px solid var(--border, #2a2e37);
+  color: var(--ink-soft, #a6acb8);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  transition: all 0.15s ease;
+  z-index: 2;
+}
+
+.pin-modal__close:hover {
+  color: var(--amber, #ffb800);
+  border-color: var(--amber-dim, #8a6600);
+  background: rgba(255, 184, 0, 0.1);
+}
+
+.pin-modal__icon {
+  font-size: 36px;
+  text-align: center;
+  margin-bottom: 12px;
+  position: relative;
+  z-index: 1;
+}
+
+.pin-modal__title {
+  font-family: var(--font-display);
+  font-size: 19px;
+  font-weight: 700;
+  color: var(--ink, #eef0f3);
+  text-align: center;
+  margin: 0 0 8px;
+  position: relative;
+  z-index: 1;
+}
+
+.pin-modal__desc {
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: var(--ink-soft, #a6acb8);
+  text-align: center;
+  line-height: 1.55;
+  margin: 0 0 18px;
+  position: relative;
+  z-index: 1;
+}
+
+.pin-modal__why {
+  background: rgba(255, 184, 0, 0.06);
+  border: 1px solid rgba(255, 184, 0, 0.22);
+  border-radius: var(--r-md, 6px);
+  padding: 11px 13px;
+  font-size: 12px;
+  color: var(--ink-soft, #a6acb8);
+  line-height: 1.5;
+  margin-bottom: 20px;
+  position: relative;
+  z-index: 1;
+  text-align: left;
+}
+
+.pin-modal__why strong {
+  color: var(--amber-bright, #ffd54a);
+}
+
+/* ── PIN Display (8 Digits - Fully Responsive Grid) ── */
+.pin-modal__pin-display {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(3px, 1.2vw, 6px);
+  width: 100%;
+  max-width: 100%;
+  margin-bottom: 12px;
+  position: relative;
+  z-index: 1;
+  box-sizing: border-box;
+}
+
+.pin-modal__pin-digit {
+  flex: 1 1 0;
+  min-width: 0;
+  max-width: 42px;
+  height: clamp(38px, 9.5vw, 46px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono);
+  font-size: clamp(16px, 4.2vw, 21px);
+  font-weight: 700;
+  color: var(--amber-bright, #ffd54a);
+  background: var(--surface-2, #191c22);
+  border: 1px solid rgba(255, 184, 0, 0.4);
+  border-radius: var(--r-md, 6px);
+  box-shadow: 0 2px 8px rgba(255, 184, 0, 0.12);
+  user-select: all;
+  box-sizing: border-box;
+}
+
+.pin-modal__pin-separator {
+  width: clamp(4px, 1.2vw, 8px);
+  height: 3px;
+  border-radius: 2px;
+  background: var(--amber-dim, #8a6600);
+  margin: 0 1px;
+  flex-shrink: 0;
+}
+
+/* ── Helper buttons (Copy PIN, Quick Fill) ── */
+.pin-modal__pin-helpers {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 20px;
+  position: relative;
+  z-index: 1;
+}
+
+.pin-helper-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  background: var(--surface-2, #191c22);
+  border: 1px solid var(--border, #2a2e37);
+  border-radius: var(--r-sm, 4px);
+  color: var(--ink-soft, #a6acb8);
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-family: var(--font-body);
+}
+
+.pin-helper-btn:hover {
+  background: var(--surface-3, #21252d);
+  color: var(--amber-bright, #ffd54a);
+  border-color: var(--amber, #ffb800);
+  transform: translateY(-1px);
+}
+
+/* ── PIN Input Form ── */
+.pin-modal__input-group {
+  position: relative;
+  margin-bottom: 20px;
+  z-index: 1;
+}
+
+.pin-modal__input-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink-faint, #626874);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 8px;
+  text-align: left;
+}
+
+.pin-modal__input {
+  width: 100%;
+  padding: 12px 14px;
+  font-family: var(--font-mono);
+  font-size: clamp(17px, 4.5vw, 21px);
+  font-weight: 600;
+  letter-spacing: clamp(0.18em, 2vw, 0.3em);
+  text-align: center;
+  background: var(--surface-2, #191c22);
+  border: 2px solid var(--border, #2a2e37);
+  border-radius: var(--r-md, 6px);
+  color: var(--ink, #eef0f3);
+  outline: none;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+  box-sizing: border-box;
+}
+
+.pin-modal__input:focus {
+  border-color: var(--amber, #ffb800);
+  box-shadow: 0 0 0 3px rgba(255, 184, 0, 0.2);
+}
+
+.pin-modal__input::placeholder {
+  color: var(--ink-faint, #626874);
+  letter-spacing: 0.12em;
+  font-size: 14px;
+}
+
+.pin-modal__input--error {
+  border-color: var(--danger, #f0654f);
+  box-shadow: 0 0 0 3px rgba(240, 101, 79, 0.2);
+  animation: inputShake 0.3s ease;
+}
+
+@keyframes inputShake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-4px); }
+  75% { transform: translateX(4px); }
+}
+
+.pin-modal__error {
+  color: var(--danger, #f0654f);
+  font-size: 12px;
+  margin-top: 8px;
+  text-align: center;
+}
+
+/* Modal Actions */
+.pin-modal__actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  position: relative;
+  z-index: 1;
+}
+
+.pin-modal__btn {
+  padding: 10px 18px;
+  border-radius: var(--r-md, 6px);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: all 0.15s ease;
+  font-family: var(--font-body);
+}
+
+.pin-modal__btn--cancel {
+  background: var(--surface-2, #191c22);
+  color: var(--ink-soft, #a6acb8);
+  border: 1px solid var(--border, #2a2e37);
+}
+
+.pin-modal__btn--cancel:hover {
+  background: var(--surface-3, #21252d);
+  color: var(--ink, #eef0f3);
+  border-color: var(--ink-faint, #626874);
+}
+
+.pin-modal__btn--verify {
+  background: linear-gradient(135deg, #ffb800 0%, #ff9800 100%);
+  color: #0c0d10;
+  font-weight: 700;
+  box-shadow: 0 3px 12px rgba(255, 184, 0, 0.35);
+}
+
+.pin-modal__btn--verify:hover:not(:disabled) {
+  background: linear-gradient(135deg, #ffd54a 0%, #ffa726 100%);
+  box-shadow: 0 5px 18px rgba(255, 184, 0, 0.45);
+  transform: translateY(-1px);
+}
+
+.pin-modal__btn--verify:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* ── Success State in Modal ── */
+.pin-modal__success {
+  text-align: center;
+  padding: 8px 0;
+  position: relative;
+  z-index: 1;
+}
+
+.pin-modal__success-icon {
+  font-size: 42px;
+  margin-bottom: 12px;
+  animation: completionPulse 1.8s ease-in-out infinite;
+}
+
+.pin-modal__success-title {
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--ink, #eef0f3);
+  margin-bottom: 10px;
+}
+
+.pin-modal__success-desc {
+  font-size: 13px;
+  color: var(--ink-soft, #a6acb8);
+  line-height: 1.6;
+  margin-bottom: 24px;
+}
+
+.pin-modal__success-desc strong {
+  color: var(--amber-bright, #ffd54a);
+}
+
+.pin-modal__btn--done {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 12px 20px;
+  background: linear-gradient(135deg, #ffb800 0%, #ff9800 100%);
+  color: #0c0d10;
+  font-size: 13.5px;
+  font-weight: 700;
+  border-radius: var(--r-md, 6px);
+  border: none;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  box-shadow: 0 4px 16px rgba(255, 184, 0, 0.35);
+}
+
+.pin-modal__btn--done:hover {
+  background: linear-gradient(135deg, #ffd54a 0%, #ffa726 100%);
+  box-shadow: 0 6px 22px rgba(255, 184, 0, 0.45);
+  transform: translateY(-1px);
+}
+
+/* ==========================================================================
+   RESPONSIVE DESIGN BREAKPOINTS
+   Ensures seamless scaling on mobile phones (320px - 640px) & tablets
+   ========================================================================== */
+
+/* Tablet & intermediate screens (641px to 900px) */
+@media (max-width: 900px) {
+  .completion-banner {
+    padding: 20px 20px;
+    margin-bottom: 16px;
+  }
+}
+
+/* Mobile screens (<= 640px) */
+@media (max-width: 640px) {
+  .completion-banner {
+    padding: 16px 14px;
+    margin-bottom: 14px;
+    border-radius: var(--r-md, 6px);
+  }
+
+  .completion-banner__header {
+    gap: 10px;
+  }
+
+  .completion-banner__emoji {
+    font-size: 24px;
+  }
+
+  .completion-banner__title {
+    font-size: 16px;
+  }
+
+  .completion-banner__body {
+    font-size: 12.5px;
+    margin-bottom: 14px;
+    line-height: 1.5;
+  }
+
+  .completion-banner__progress-section {
+    gap: 14px;
+    margin-bottom: 16px;
+  }
+
+  .completion-progress-info__remaining {
+    font-size: 12px;
+    margin-bottom: 6px;
+  }
+
+  .completion-banner__actions {
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+    gap: 8px;
+  }
+
+  .completion-banner__cta {
+    width: 100%;
+    justify-content: center;
+    padding: 10px 14px;
+    font-size: 12.5px;
+  }
+
+  /* PIN Modal Mobile Adjustments */
+  .pin-modal {
+    padding: 20px 16px 18px;
+    margin: 8px;
+    max-width: calc(100vw - 16px);
+  }
+
+  .pin-modal__close {
+    top: 10px;
+    right: 10px;
+    width: 28px;
+    height: 28px;
+    font-size: 12px;
+  }
+
+  .pin-modal__icon {
+    font-size: 30px;
+    margin-bottom: 8px;
+  }
+
+  .pin-modal__title {
+    font-size: 17px;
+  }
+
+  .pin-modal__desc {
+    font-size: 12px;
+    margin-bottom: 14px;
+  }
+
+  .pin-modal__why {
+    font-size: 11.5px;
+    padding: 9px 11px;
+    margin-bottom: 16px;
+  }
+
+  .pin-modal__pin-helpers {
+    gap: 6px;
+    margin-bottom: 16px;
+  }
+
+  .pin-helper-btn {
+    padding: 5px 10px;
+    font-size: 11px;
+  }
+
+  .pin-modal__input {
+    padding: 10px 10px;
+  }
+
+  .pin-modal__actions {
+    flex-direction: column-reverse;
+    gap: 8px;
+  }
+
+  .pin-modal__btn {
+    width: 100%;
+    justify-content: center;
+    text-align: center;
+    padding: 10px 14px;
+  }
+}
+
+/* Small mobile phones (<= 380px) */
+@media (max-width: 380px) {
+  .completion-banner {
+    padding: 14px 10px;
+  }
+
+  .completion-banner__progress-section {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .completion-progress-info {
+    width: 100%;
+  }
+
+  .pin-modal__pin-display {
+    gap: 2px;
+  }
+}

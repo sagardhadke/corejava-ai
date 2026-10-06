@@ -4,11 +4,24 @@ import './StatsBar.css';
 export default function StatsBar({ stats, targetSec, autoPlan }) {
   const targetRemaining = Math.max(0, targetSec - (stats?.plannedWatchedSec || 0));
   const targetHit = (stats?.plannedWatchedSec || 0) >= targetSec && (stats?.plannedCount || 0) > 0;
+  const isNearComplete = (stats?.pct || 0) >= 90;
 
   return (
     <div className="stats-bar">
       <div className="stat-card stat-card--hero">
-        <div className="stat-card__label">Course progress</div>
+        <div className="stat-card__label-row">
+          <div className="stat-card__label">Course progress</div>
+          {isNearComplete && (
+            <button
+              type="button"
+              className="stat-card__complete-chip"
+              onClick={() => window.dispatchEvent(new CustomEvent('jct:open_completion_modal'))}
+              title="Click to initiate 8-digit PIN completion verification"
+            >
+              ✓ Complete
+            </button>
+          )}
+        </div>
         <div className="stat-card__hero-row">
           <div className="stat-card__value">{stats?.pct || 0}%</div>
           <div className="stat-card__sub">{stats?.watchedCount || 0}/{stats?.totalCount || 0} lectures</div>
