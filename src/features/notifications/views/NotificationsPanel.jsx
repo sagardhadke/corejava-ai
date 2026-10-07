@@ -170,6 +170,10 @@ export default function NotificationsPanel({
                   onChange={(e) => updateSettings({ studyReminderTime: e.target.value })}
                 />
               </div>
+              <div className="notif-system-notice-badge" title="System notices & API alerts remain in-app only">
+                <span className="notif-policy-icon" aria-hidden="true">🛡️</span>
+                <span>System notices &amp; alerts remain strictly in-app (no push notification popups).</span>
+              </div>
             </div>
           )}
         </div>

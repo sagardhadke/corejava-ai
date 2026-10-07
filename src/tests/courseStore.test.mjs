@@ -1150,12 +1150,78 @@ describe('Course Flow & State Management Integration Tests', () => {
       saveNotificationSettings,
       checkAndTriggerScheduledReminder,
       NOTIFICATION_TYPES,
+      DEFAULT_NOTIFICATION_SETTINGS,
+      isSystemNoticeNotification,
+      sendBrowserPushNotification,
     } = await import('../features/notifications/models/notificationModel.js');
 
     // 1. Storage starts clean
     clearAllNotifications();
     assert.equal(getNotifications().length, 0);
     assert.equal(getUnreadNotificationCount(), 0);
+
+    // 1b. Verify system notice push exclusion settings & classification helper
+    assert.equal(DEFAULT_NOTIFICATION_SETTINGS.systemNoticePushEnabled, false);
+    assert.equal(isSystemNoticeNotification(NOTIFICATION_TYPES.SYSTEM, 'System Notice'), true);
+    assert.equal(isSystemNoticeNotification('system', 'OpenAI / ChatGPT Service Alert'), true);
+    assert.equal(isSystemNoticeNotification('reminder', 'System Notice: Service update'), true);
+    assert.equal(isSystemNoticeNotification(NOTIFICATION_TYPES.REMINDER, 'Time to Study Core Java!'), false);
+    assert.equal(isSystemNoticeNotification(NOTIFICATION_TYPES.ACHIEVEMENT, 'Achievement Unlocked'), false);
+    assert.equal(isSystemNoticeNotification(NOTIFICATION_TYPES.STREAK, 'Streak Active 5 Days!'), false);
+
+    // 1c. Verify Push Notification dispatch: System notices are strictly blocked from push notifications
+    const dispatchedPushAlerts = [];
+    class MockPushNotification {
+      static permission = 'granted';
+      static requestPermission = async () => 'granted';
+      constructor(title, options) {
+        this.title = title;
+        this.options = options;
+        dispatchedPushAlerts.push({ title, options });
+      }
+    }
+    const prevNotification = globalThis.Notification;
+    globalThis.Notification = MockPushNotification;
+
+    saveNotificationSettings({ pushEnabled: true });
+
+    // Adding a SYSTEM notice into Notification Center
+    addNotification({
+      type: NOTIFICATION_TYPES.SYSTEM,
+      title: 'System Notice: Service Health Degraded',
+      message: 'Background server latency is high.',
+    });
+
+    // Directly calling sendBrowserPushNotification with a system notice
+    const directResult = sendBrowserPushNotification('System Notice: Maintenance', {
+      type: NOTIFICATION_TYPES.SYSTEM,
+      body: 'Scheduled downtime',
+    });
+    assert.equal(directResult, null, 'Direct sendBrowserPushNotification must return null for system notices');
+
+    // System notices MUST NEVER be pushed to desktop/browser notification tray
+    assert.equal(
+      dispatchedPushAlerts.length,
+      0,
+      'System notices must NEVER be dispatched to native browser push notifications'
+    );
+
+    // Adding a REMINDER or ACHIEVEMENT notification DOES dispatch a push notification
+    addNotification({
+      type: NOTIFICATION_TYPES.REMINDER,
+      title: 'Study Reminder ☕🔥',
+      message: 'Time to learn Java!',
+    });
+    assert.equal(
+      dispatchedPushAlerts.length,
+      1,
+      'Non-system notifications (reminders) must trigger push notification when enabled'
+    );
+    assert.equal(dispatchedPushAlerts[0].title, 'Study Reminder ☕🔥');
+
+    // Clean up mock
+    globalThis.Notification = prevNotification;
+    clearAllNotifications();
 
     // 2. Add notifications of different categories
     const notif1 = addNotification({

@@ -19,8 +19,33 @@ export const DEFAULT_NOTIFICATION_SETTINGS = {
   dailyReminderEnabled: true,
   achievementAlerts: true,
   streakAlerts: true,
+  systemNoticePushEnabled: false, // System notices do NOT show in push notifications
   lastSentReminderDate: null,
 };
+
+/**
+ * Determines whether a notification is classified as a System Notice.
+ * System notices (service alerts, API errors, system info) are kept exclusively
+ * in-app in the Notification Center and are never dispatched as native browser push notifications.
+ */
+export function isSystemNoticeNotification(type, title = '') {
+  if (type === NOTIFICATION_TYPES.SYSTEM || type === 'system') {
+    return true;
+  }
+  if (typeof title === 'string') {
+    const t = title.toLowerCase();
+    if (
+      t.includes('system notice') ||
+      t.includes('service alert') ||
+      t.includes('system alert') ||
+      t.includes('system update') ||
+      t.includes('openai / chatgpt')
+    ) {
+      return true;
+    }
+  }
+  return false;
+}
 
 /**
  * Safely retrieves stored notifications from localStorage.
@@ -54,6 +79,7 @@ export function saveNotifications(notifications) {
 
 /**
  * Adds a new notification to the store and dispatches an update event.
+ * Note: System notices are strictly in-app and never trigger browser push notifications.
  */
 export function addNotification({
   type = NOTIFICATION_TYPES.SYSTEM,
@@ -61,6 +87,8 @@ export function addNotification({
   message,
   actionType = null,
   meta = {},
+  pushOptions = null,
+  skipPush = false,
 }) {
   if (!title) return null;
   const current = getNotifications();
@@ -92,13 +120,18 @@ export function addNotification({
     window.dispatchEvent(new CustomEvent('jct:notifications_updated', { detail: { newNotif, count: updated.length } }));
   }
 
-  // Dispatch native browser push notification if push service is active & permission granted
+  // Dispatch native browser push notification if push service is active & permission granted.
+  // CRITICAL: System notices are strictly kept in-app and NEVER dispatched as push notifications.
   try {
+    const isSystemNotice = isSystemNoticeNotification(type, title);
     const settings = getNotificationSettings();
-    if (settings.pushEnabled && getBrowserPermissionStatus() === 'granted') {
+
+    if (!skipPush && !isSystemNotice && settings.pushEnabled && getBrowserPermissionStatus() === 'granted') {
       sendBrowserPushNotification(title, {
         body: String(message || ''),
-        tag: `jct-${type}-${newNotif.id}`,
+        tag: pushOptions?.tag || `jct-${type}-${newNotif.id}`,
+        type,
+        ...pushOptions,
       });
     }
   } catch {
@@ -214,21 +247,29 @@ export function saveNotificationSettings(settings) {
  * Returns 'granted' | 'denied' | 'default' | 'unsupported'.
  */
 export function getBrowserPermissionStatus() {
-  if (typeof window === 'undefined' || !('Notification' in window)) {
+  const NotificationApi =
+    (typeof window !== 'undefined' && window.Notification) ||
+    (typeof globalThis !== 'undefined' && globalThis.Notification);
+
+  if (!NotificationApi) {
     return 'unsupported';
   }
-  return Notification.permission;
+  return NotificationApi.permission;
 }
 
 /**
  * Requests browser push notification permission from the user.
  */
 export async function requestBrowserNotificationPermission() {
-  if (typeof window === 'undefined' || !('Notification' in window)) {
+  const NotificationApi =
+    (typeof window !== 'undefined' && window.Notification) ||
+    (typeof globalThis !== 'undefined' && globalThis.Notification);
+
+  if (!NotificationApi) {
     return 'unsupported';
   }
   try {
-    const perm = await Notification.requestPermission();
+    const perm = await NotificationApi.requestPermission();
     if (perm === 'granted') {
       saveNotificationSettings({ pushEnabled: true });
     } else {
@@ -242,13 +283,22 @@ export async function requestBrowserNotificationPermission() {
 
 /**
  * Dispatches a native browser push notification if permission is granted.
+ * CRITICAL: System notices are strictly blocked and will never trigger push notifications.
  */
 export function sendBrowserPushNotification(title, options = {}) {
-  if (typeof window === 'undefined' || !('Notification' in window)) return null;
-  if (Notification.permission !== 'granted') return null;
+  // Never dispatch System Notices as browser push notifications
+  if (isSystemNoticeNotification(options.type, title)) {
+    return null;
+  }
+
+  const NotificationApi =
+    (typeof window !== 'undefined' && window.Notification) ||
+    (typeof globalThis !== 'undefined' && globalThis.Notification);
+
+  if (!NotificationApi || NotificationApi.permission !== 'granted') return null;
 
   try {
-    const notif = new Notification(title, {
+    const notif = new NotificationApi(title, {
       icon: '/favicon.ico',
       badge: '/favicon.ico',
       tag: options.tag || 'jct-study-reminder',
@@ -258,11 +308,13 @@ export function sendBrowserPushNotification(title, options = {}) {
     });
 
     notif.onclick = () => {
-      window.focus();
-      if (options.onClickUrl) {
-        window.location.href = options.onClickUrl;
+      if (typeof window !== 'undefined') {
+        window.focus?.();
+        if (options.onClickUrl) {
+          window.location.href = options.onClickUrl;
+        }
       }
-      notif.close();
+      notif.close?.();
     };
 
     return notif;
@@ -300,24 +352,19 @@ export function checkAndTriggerScheduledReminder(context = {}) {
       ? `Protect your ${streak}-day streak! You have ${remaining} lectures remaining in ${courseTitle}.`
       : `Ready for today's progress? Open ${courseTitle} and conquer today's goals!`;
 
-    // 1. Add notification in Notification Center
+    // 1. Add notification in Notification Center (dispatches push automatically if enabled)
     addNotification({
       type: NOTIFICATION_TYPES.REMINDER,
       title,
       message,
       actionType: 'open_today',
       meta: { streak, courseTitle },
+      pushOptions: {
+        tag: 'jct-daily-study-reminder',
+      },
     });
 
-    // 2. Dispatch browser push notification if permission is active
-    if (settings.pushEnabled && getBrowserPermissionStatus() === 'granted') {
-      sendBrowserPushNotification(title, {
-        body: message,
-        tag: 'jct-daily-study-reminder',
-      });
-    }
-
-    // 3. Mark as sent today
+    // 2. Mark as sent today
     saveNotificationSettings({ lastSentReminderDate: todayKey });
     return true;
   }

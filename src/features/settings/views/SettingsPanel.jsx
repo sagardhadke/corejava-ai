@@ -538,6 +538,11 @@ function NotificationSettingsSection({ onClose }) {
           </div>
         )}
 
+        <div style={{ marginTop: '10px', padding: '6px 10px', background: 'rgba(255, 255, 255, 0.03)', border: '1px solid rgba(255, 255, 255, 0.08)', borderRadius: '6px', fontSize: '11px', color: 'var(--ink-soft, #a1a1aa)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <span aria-hidden="true">🛡️</span>
+          <span>System notices &amp; service alerts stay strictly in-app (never sent as push notifications).</span>
+        </div>
+
         <div className="notif-settings-actions">
           <button
             type="button"
