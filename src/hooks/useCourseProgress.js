@@ -18,6 +18,10 @@ import {
   redeemStreakPromoCode,
 } from '../features/streak/models/streakFreezeModel.js';
 import {
+  applyPracticeDay,
+  removePracticeDay,
+} from '../features/streak/models/practiceDayModel.js';
+import {
   addNotification,
   getNotifications,
   NOTIFICATION_TYPES,
@@ -141,15 +145,16 @@ export function useCourseProgress(course) {
 
   const unmarkPracticeDay = useCallback((targetDateKey) => {
     const key = targetDateKey || dateKey();
-    setHistory((h) => {
-      const bucket = h[key];
-      if (!bucket) return h;
-      const rest = { ...bucket };
-      delete rest.isPractice;
-      delete rest.practiceNote;
-      return { ...h, [key]: rest };
+    const result = removePracticeDay({
+      history,
+      targetDateKey: key,
     });
-  }, [setHistory]);
+    if (result.success) {
+      setHistory(result.history);
+      showToast('Practice day removed', 'info', 2500);
+    }
+    return result;
+  }, [history, setHistory]);
 
   const togglePlan = useCallback((lectureId) => {
     setPlanStore((prev) => {
@@ -179,15 +184,29 @@ export function useCourseProgress(course) {
 
   const markPracticeDay = useCallback((note, targetDateKey) => {
     const key = targetDateKey || dateKey();
-    if (startDate && key < startDate) return;
-    setHistory((h) => {
-      const bucket = h[key] || { watchedSec: 0, watchedCount: 0, lectureIds: [] };
-      return {
-        ...h,
-        [key]: { ...bucket, isPractice: true, practiceNote: note },
-      };
+    const result = applyPracticeDay({
+      history,
+      freezeStore,
+      targetDateKey: key,
+      note,
+      startDate,
     });
-  }, [setHistory, startDate]);
+
+    if (!result.success) {
+      showToast(result.error || 'Cannot mark practice day', 'warning', 4500);
+      return result;
+    }
+
+    setHistory(result.history);
+    if (result.shieldRefunded) {
+      setFreezeStore(result.freezeStore);
+      showToast('🎉 Practice day recorded! Auto-applied shield refunded (+1 Shield) 🛡️', 'success', 5000);
+    } else {
+      showToast('🎉 Practice day recorded! Streak updated 🔥', 'success', 4000);
+    }
+
+    return result;
+  }, [history, freezeStore, startDate, setHistory, setFreezeStore]);
 
   // Auto-apply streak freezes to protect missed days
   const lastAutoCheckRef = useRef('');

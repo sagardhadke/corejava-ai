@@ -78,7 +78,7 @@ export function useStreakViewModel({
   }, [weeks]);
 
   const totalActiveDays = useMemo(
-    () => Object.values(aggregatedHistory).filter((b) => b.watchedCount > 0 || b.isPractice).length,
+    () => Object.values(aggregatedHistory).filter((b) => b.watchedCount > 0 || b.isPractice || b.isStreakFreeze).length,
     [aggregatedHistory]
   );
 
@@ -94,7 +94,7 @@ export function useStreakViewModel({
   const selectedDateObj = new Date(selectedDateParts[0], selectedDateParts[1] - 1, selectedDateParts[2]);
   const isSelectedDateFuture = selectedDateObj > new Date();
   const isSelectedDateBeforeStart = !!(startDate && selectedDateKey < startDate);
-  const isSelectedDateMissed = !isSelectedDateFuture && !isSelectedDateBeforeStart && selectedDateKey !== todayKey && !selectedBucket.isPractice && !(selectedBucket.watchedCount > 0);
+  const isSelectedDateMissed = !isSelectedDateFuture && !isSelectedDateBeforeStart && selectedDateKey !== todayKey && !selectedBucket.isPractice && !(selectedBucket.watchedCount > 0) && !selectedBucket.isStreakFreeze;
   const isTodayPracticeDay = !!history[todayKey]?.isPractice && (!startDate || todayKey >= startDate);
   const hasWatchedToday = (history[todayKey]?.watchedCount || 0) > 0;
   const isTodayBeforeStart = !!(startDate && todayKey < startDate);
@@ -114,17 +114,17 @@ export function useStreakViewModel({
     setPracticeModalDate(null);
   }, []);
 
-  const handleConfirmPractice = useCallback((note) => {
+  const handleConfirmPractice = useCallback((note, explicitDateKey) => {
     if (typeof onMarkPracticeDay === 'function') {
-      const targetDateKey = practiceModalDate ? dateKey(practiceModalDate) : undefined;
+      const targetDateKey = explicitDateKey || (practiceModalDate ? dateKey(practiceModalDate) : undefined);
       onMarkPracticeDay(note, targetDateKey);
     }
     setPracticeModalOpen(false);
   }, [onMarkPracticeDay, practiceModalDate]);
 
-  const handleUndoPractice = useCallback(() => {
+  const handleUndoPractice = useCallback((targetDateKey) => {
     if (typeof onUnmarkPracticeDay === 'function') {
-      onUnmarkPracticeDay();
+      onUnmarkPracticeDay(targetDateKey);
     }
   }, [onUnmarkPracticeDay]);
 
