@@ -69,24 +69,32 @@ describe('Production Readiness: Course Completion & PIN Verification E2E Lifecyc
     assert.equal(pendingState.status, COMPLETION_STATUS.VERIFICATION_PENDING);
     assert.match(pendingState.pin, /^\d{8}$/, 'Generated PIN must be exactly 8 digits');
 
-    // System dispatches notification with PIN
+    // System dispatches secure notification WITHOUT plaintext PIN in metadata or body
     addNotification({
       type: NOTIFICATION_TYPES.SYSTEM,
-      title: 'Course Completion PIN Generated 🔐',
-      message: `Your 8-digit verification PIN is: ${pendingState.pin}.`,
+      title: 'Course Completion Verification Initiated 🔐',
+      message: 'A secure 8-digit verification challenge was issued. Please enter the PIN in the verification dialog.',
       actionType: 'open_completion',
-      meta: { courseId, pin: pendingState.pin },
+      meta: { courseId },
     });
 
     const notifs = getNotifications();
     assert.equal(notifs.length, 1);
-    assert.ok(notifs[0].message.includes(pendingState.pin));
+    assert.ok(!notifs[0].message.includes(pendingState.pin), 'Notification must not contain plaintext PIN');
+    assert.equal(notifs[0].meta?.pin, undefined, 'Notification metadata must not contain plaintext PIN');
   });
 
-  it('Scenario 3: Verification gate security rejects invalid PIN attempts', () => {
+  it('Scenario 3: Verification gate security rejects invalid PIN attempts and protects storage', () => {
     const courseId = 'core-java-ai';
     const pendingState = initiateVerification(courseId);
     const validPin = pendingState.pin;
+
+    // Security check: Verify plaintext PIN is NEVER persisted to localStorage
+    const rawStored = JSON.parse(globalThis.localStorage.getItem('jct_completion__' + courseId));
+    assert.equal(rawStored.pin, undefined, 'Plaintext PIN must NEVER exist in localStorage');
+    assert.ok(rawStored.pinHash, 'Salted pinHash must exist in localStorage');
+    assert.equal(rawStored.pinHash.length, 64, 'pinHash must be a 64-character SHA-256 hex string');
+    assert.ok(rawStored.salt, 'Cryptographic salt must exist in localStorage');
 
     // Test: empty / whitespace
     assert.equal(attemptPinVerification(courseId, '').success, false);
@@ -104,9 +112,52 @@ describe('Production Readiness: Course Completion & PIN Verification E2E Lifecyc
     const wrongRes = attemptPinVerification(courseId, wrongPin);
     assert.equal(wrongRes.success, false);
     assert.equal(wrongRes.error, 'Incorrect PIN. Please check and try again.');
+    assert.equal(wrongRes.attemptsRemaining, 4);
 
     // State must remain VERIFICATION_PENDING
     assert.equal(getCompletionState(courseId).status, COMPLETION_STATUS.VERIFICATION_PENDING);
+  });
+
+  it('Scenario 3b: Rate-limiting lockout blocks brute-force attempts after 5 failures', () => {
+    const courseId = 'core-java-ai';
+    const pendingState = initiateVerification(courseId);
+    const validPin = pendingState.pin;
+    const wrongPin = validPin === '88888888' ? '11111111' : '88888888';
+
+    // Fail 4 times
+    for (let i = 1; i <= 4; i++) {
+      const res = attemptPinVerification(courseId, wrongPin);
+      assert.equal(res.success, false);
+      assert.equal(res.attemptsRemaining, 5 - i);
+      assert.equal(res.locked, undefined);
+    }
+
+    // 5th failed attempt triggers lockout
+    const lockRes = attemptPinVerification(courseId, wrongPin);
+    assert.equal(lockRes.success, false);
+    assert.equal(lockRes.locked, true);
+    assert.ok(lockRes.error.includes('Verification locked for 10 minutes'));
+
+    // Even entering the CORRECT pin is now rejected during lockout
+    const blockedValidAttempt = attemptPinVerification(courseId, validPin);
+    assert.equal(blockedValidAttempt.success, false);
+    assert.equal(blockedValidAttempt.locked, true);
+  });
+
+  it('Scenario 3c: Expired PIN challenge TTL triggers rejection', () => {
+    const courseId = 'core-java-ai';
+    const pendingState = initiateVerification(courseId);
+    const validPin = pendingState.pin;
+
+    // Simulate TTL expiration (past 15 minutes)
+    const stored = JSON.parse(globalThis.localStorage.getItem('jct_completion__' + courseId));
+    stored.pinExpiresAt = new Date(Date.now() - 1000).toISOString();
+    globalThis.localStorage.setItem('jct_completion__' + courseId, JSON.stringify(stored));
+
+    const expiredRes = attemptPinVerification(courseId, validPin);
+    assert.equal(expiredRes.success, false);
+    assert.equal(expiredRes.expired, true);
+    assert.ok(expiredRes.error.includes('expired'));
   });
 
   it('Scenario 4: Valid PIN passes gate, unlocks verification, but preserves 100% completion requirement', () => {
@@ -119,8 +170,16 @@ describe('Production Readiness: Course Completion & PIN Verification E2E Lifecyc
     assert.equal(verifyRes.success, true);
     assert.equal(verifyRes.state.status, COMPLETION_STATUS.VERIFICATION_COMPLETED);
     assert.equal(verifyRes.state.pin, null, 'PIN must be destroyed after verification');
+    assert.equal(verifyRes.state.pinHash, null, 'pinHash must be destroyed after verification');
+    assert.equal(verifyRes.state.salt, null, 'salt must be destroyed after verification');
     assert.ok(verifyRes.state.verifiedAt, 'verifiedAt timestamp must be recorded');
     assert.equal(verifyRes.state.completedAt, null, 'Course must NOT be marked complete yet');
+
+    // Verify localStorage also has secrets wiped
+    const postVerifyStored = JSON.parse(globalThis.localStorage.getItem('jct_completion__' + courseId));
+    assert.equal(postVerifyStored.pin, undefined);
+    assert.equal(postVerifyStored.pinHash, null);
+    assert.equal(postVerifyStored.salt, null);
 
     // Milestone progression: 95% -> still pre-verified, not completed
     const banner95 = evaluateCompletionBanner(courseId, 95);

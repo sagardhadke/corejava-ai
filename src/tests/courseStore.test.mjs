@@ -293,15 +293,29 @@ describe('Course Flow & State Management Integration Tests', () => {
     localStorage.setItem('jct_watched__core-java-ai', JSON.stringify({ 'w1': true }));
     localStorage.setItem(`jct_watched__${SAMPLE_COURSE_1.id}`, JSON.stringify({ 'w2': true }));
 
+    // SECURITY TEST: Store sensitive API key and setting with embedded API key
+    localStorage.setItem('jct_openai_api_key_v1', 'sk-proj-live-token-secret-12345');
+    localStorage.setItem('jct_settings__core-java-ai', JSON.stringify({ dailyTargetHours: 2, apiKey: 'sk-legacy-key' }));
+
     const backup = exportAllData();
     assert.equal(backup.backupVersion, 1);
+    assert.equal(backup.sanitized, true, 'Export bundle must be flagged sanitized');
     assert.ok(backup.data['jct_course_registry_v1']);
     assert.ok(backup.data['jct_watched__core-java-ai']);
     assert.ok(backup.data[`jct_watched__${SAMPLE_COURSE_1.id}`]);
 
+    // SECURITY ASSERTIONS: Sensitive OpenAI API key must NEVER be exported in backup JSON!
+    assert.equal(backup.data['jct_openai_api_key_v1'], undefined, 'OpenAI API key must be stripped from backup data');
+    const exportedSettings = JSON.parse(backup.data['jct_settings__core-java-ai']);
+    assert.equal(exportedSettings.apiKey, undefined, 'Embedded API key in settings must be stripped from backup data');
+    assert.equal(exportedSettings.dailyTargetHours, 2, 'Non-sensitive settings must be preserved');
+
     // Clear everything
     localStorage.clear();
     assert.equal(listCourses().length, 1);
+
+    // Set a local API key on the receiving device
+    localStorage.setItem('jct_openai_api_key_v1', 'sk-device-local-key');
 
     // Restore from backup
     importAllData(backup);
@@ -309,6 +323,7 @@ describe('Course Flow & State Management Integration Tests', () => {
     assert.equal(restoredCourses.length, 2);
     assert.equal(localStorage.getItem('jct_watched__core-java-ai'), JSON.stringify({ 'w1': true }));
     assert.equal(localStorage.getItem(`jct_watched__${SAMPLE_COURSE_1.id}`), JSON.stringify({ 'w2': true }));
+    assert.equal(localStorage.getItem('jct_openai_api_key_v1'), 'sk-device-local-key', 'Local API key must be preserved across backup restore');
   });
 
   it('15. Active section opens automatically based on first unwatched lecture', () => {
@@ -1366,6 +1381,14 @@ describe('Course Flow & State Management Integration Tests', () => {
     assert.equal(pendingState.pin.length, 8);
     assert.match(pendingState.pin, /^\d{8}$/, 'PIN must consist of exactly 8 numeric digits');
     assert.ok(pendingState.pinGeneratedAt);
+
+    // SECURITY VERIFICATION: Plaintext PIN must NEVER be saved in localStorage!
+    const storedState = JSON.parse(localStorage.getItem('jct_completion__' + courseId));
+    assert.equal(storedState.pin, undefined, 'Plaintext PIN must NEVER be stored in localStorage');
+    assert.ok(storedState.pinHash, 'Cryptographic PIN hash must be stored in localStorage');
+    assert.equal(storedState.pinHash.length, 64, 'SHA-256 hash must be exactly 64 hex characters');
+    assert.ok(storedState.salt, 'Cryptographic salt must be stored in localStorage');
+    assert.ok(storedState.pinExpiresAt, 'PIN expiration timestamp must be stored');
 
     // 4. PIN verification gate validation
     // Test: empty PIN
