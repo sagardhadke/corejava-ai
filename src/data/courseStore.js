@@ -188,29 +188,84 @@ export function resetEverything() {
 // ---- Backup & Restore ----
 // Exports every piece of this app's data (registry + all courses' progress)
 // into a single JSON-serializable object the user can save as a file.
+// SECURITY GUARANTEE: Sensitive credentials (OpenAI API keys) are strictly
+// stripped from exports to prevent credential leakage when sharing backups.
 
 const APP_KEY_PREFIX = 'jct_';
 
-export function exportAllData() {
+const SENSITIVE_STORAGE_KEYS = new Set([
+  'jct_openai_api_key_v1',
+  'jct_openai_key',
+  'jct_api_key',
+]);
+
+/**
+ * Sanitizes stored values before inclusion in an export bundle.
+ * Strips secret API keys from top-level keys and per-course settings.
+ */
+function sanitizeValueForExport(key, rawValue) {
+  if (SENSITIVE_STORAGE_KEYS.has(key)) {
+    return null; // Exclude top-level API key
+  }
+  if (key && key.startsWith('jct_settings__') && typeof rawValue === 'string') {
+    try {
+      const parsed = JSON.parse(rawValue);
+      if (parsed && typeof parsed === 'object') {
+        let modified = false;
+        if ('apiKey' in parsed) {
+          delete parsed.apiKey;
+          modified = true;
+        }
+        if ('openaiApiKey' in parsed) {
+          delete parsed.openaiApiKey;
+          modified = true;
+        }
+        if (modified) {
+          return JSON.stringify(parsed);
+        }
+      }
+    } catch {
+      // not json, keep as is
+    }
+  }
+  return rawValue;
+}
+
+export function exportAllData({ includeApiKeys = false } = {}) {
   const data = {};
   for (let i = 0; i < localStorage.length; i++) {
     const key = localStorage.key(i);
     if (key && key.startsWith(APP_KEY_PREFIX)) {
-      data[key] = localStorage.getItem(key);
+      if (!includeApiKeys && SENSITIVE_STORAGE_KEYS.has(key)) {
+        continue; // Do not include API key in export
+      }
+      const rawValue = localStorage.getItem(key);
+      const sanitized = includeApiKeys ? rawValue : sanitizeValueForExport(key, rawValue);
+      if (sanitized !== null && sanitized !== undefined) {
+        data[key] = sanitized;
+      }
     }
   }
   return {
     appName: 'Core Java + AI Lecture Tracker',
     backupVersion: 1,
     exportedAt: new Date().toISOString(),
+    sanitized: !includeApiKeys,
     data,
   };
 }
 
-export function importAllData(backup) {
+export function importAllData(backup, { preserveExistingApiKey = true } = {}) {
   if (!backup || typeof backup !== 'object' || !backup.data || backup.backupVersion !== 1) {
     throw new Error('This file doesn\'t look like a valid backup for this app.');
   }
+
+  // Preserve existing local API key so restoring a course backup doesn't wipe credentials
+  let existingApiKey = null;
+  if (preserveExistingApiKey) {
+    existingApiKey = localStorage.getItem('jct_openai_api_key_v1');
+  }
+
   // Clear all existing app keys first, so a restore fully replaces state
   // rather than merging with whatever was already there.
   const existingKeys = [];
@@ -225,6 +280,11 @@ export function importAllData(backup) {
       localStorage.setItem(key, value);
     }
   });
+
+  // Restore preserved local API key if the backup did not provide one
+  if (preserveExistingApiKey && existingApiKey && !backup.data['jct_openai_api_key_v1']) {
+    localStorage.setItem('jct_openai_api_key_v1', existingApiKey);
+  }
 }
 
 // ---- Memory / storage usage ----

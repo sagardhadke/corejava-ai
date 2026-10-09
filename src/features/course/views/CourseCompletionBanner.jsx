@@ -58,7 +58,7 @@ function ProgressRing({ pct }) {
 }
 
 // ── PIN Verification Modal ───────────────────────────────────────────
-function PinVerificationModal({ pin, courseId, courseTitle, onClose, onVerified }) {
+function PinVerificationModal({ pin, courseId, courseTitle, onClose, onVerified, onRegeneratePin }) {
   const [enteredPin, setEnteredPin] = useState('');
   const [error, setError] = useState('');
   const [verified, setVerified] = useState(false);
@@ -228,7 +228,25 @@ function PinVerificationModal({ pin, courseId, courseTitle, onClose, onVerified 
                 placeholder="00000000"
                 autoComplete="off"
               />
-              {error && <div className="pin-modal__error">{error}</div>}
+              {error && (
+                <div className="pin-modal__error">
+                  <div>{error}</div>
+                  {onRegeneratePin && (error.includes('expired') || error.includes('locked')) && (
+                    <button
+                      type="button"
+                      className="pin-modal__regenerate-btn"
+                      onClick={() => {
+                        setError('');
+                        setEnteredPin('');
+                        onRegeneratePin();
+                      }}
+                      style={{ marginTop: '8px', fontSize: '11.5px', background: 'none', border: '1px solid #ef4444', color: '#fca5a5', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer' }}
+                    >
+                      🔄 Generate Fresh PIN
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
 
             <div className="pin-modal__actions">
@@ -272,10 +290,10 @@ export default function CourseCompletionBanner({ courseId, pct, stats, courseTit
     setRefreshKey((k) => k + 1);
     addNotification({
       type: NOTIFICATION_TYPES.SYSTEM,
-      title: 'Course Completion PIN Generated 🔐',
-      message: `Your 8-digit verification PIN is: ${state.pin}. Enter this PIN to verify your completion request for ${courseTitle || 'the course'}.`,
+      title: 'Course Completion Verification Initiated 🔐',
+      message: `A secure 8-digit verification challenge was issued for ${courseTitle || 'the course'}. Please enter the PIN in the verification dialog (expires in 15 minutes).`,
       actionType: 'open_completion',
-      meta: { courseId, pin: state.pin },
+      meta: { courseId },
     });
   }, [courseId, courseTitle]);
 
@@ -425,6 +443,7 @@ export default function CourseCompletionBanner({ courseId, pct, stats, courseTit
           courseTitle={courseTitle || 'Core Java'}
           onClose={handleCloseModal}
           onVerified={handleVerified}
+          onRegeneratePin={handleInitiateVerification}
         />
       )}
     </>

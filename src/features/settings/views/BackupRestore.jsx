@@ -61,6 +61,9 @@ export default function BackupRestore({ onRestored }) {
         </p>
         <button className="br-btn" onClick={handleExport}>Export backup file</button>
         {exportedNote && <div className="br-note">{exportedNote}</div>}
+        <p className="br-privacy-note" style={{ fontSize: '11px', color: '#10b981', marginTop: '8px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+          🔒 Private credentials (OpenAI API key) are strictly excluded from backups for your security.
+        </p>
       </div>
 
       <div className="br-block">
