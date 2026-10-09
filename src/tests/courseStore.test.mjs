@@ -59,6 +59,15 @@ const {
   resetCompletionState,
 } = await import('../features/course/models/courseCompletionModel.js');
 
+const {
+  canMarkPracticeDay,
+  applyPracticeDay,
+  removePracticeDay,
+  getDayDifference,
+  MAX_PRACTICE_DAY_RETROACTIVE_DAYS,
+} = await import('../features/streak/models/practiceDayModel.js');
+const { computeCurrentStreak } = await import('../features/streak/models/streakModel.js');
+
 const SAMPLE_COURSE_1 = {
   id: 'course-python-ai-101',
   title: 'Python for AI & ML',
@@ -1417,6 +1426,147 @@ describe('Course Flow & State Management Integration Tests', () => {
     // 9. Resetting completion state clears everything
     resetCompletionState(courseId);
     assert.equal(getCompletionState(courseId).status, COMPLETION_STATUS.IN_PROGRESS);
+  });
+
+  it('31. Practice Day retroactive 5-day boundary enforcement, auto-applied shield refunding, streak continuation, and invalid date rejection', () => {
+    const fixedToday = new Date('2026-10-09T12:00:00Z');
+    const fixedStartDate = '2026-10-01';
+
+    // 1. Day Difference Calculation
+    assert.equal(getDayDifference('2026-10-09', fixedToday), 0, 'Today should be 0 days diff');
+    assert.equal(getDayDifference('2026-10-08', fixedToday), 1, 'Yesterday should be 1 day diff');
+    assert.equal(getDayDifference('2026-10-04', fixedToday), 5, '5 days ago should be 5 days diff');
+    assert.equal(getDayDifference('2026-10-03', fixedToday), 6, '6 days ago should be 6 days diff');
+    assert.equal(getDayDifference('2026-10-10', fixedToday), -1, 'Tomorrow should be negative diff');
+    assert.ok(isNaN(getDayDifference('invalid-date', fixedToday)), 'Invalid format returns NaN');
+
+    // 2. canMarkPracticeDay boundary checks
+    // Eligible: within last 5 days
+    const checkToday = canMarkPracticeDay({ dateKey: '2026-10-09', referenceDate: fixedToday, startDate: fixedStartDate });
+    assert.equal(checkToday.eligible, true);
+    assert.equal(checkToday.diffDays, 0);
+
+    const checkYesterday = canMarkPracticeDay({ dateKey: '2026-10-08', referenceDate: fixedToday, startDate: fixedStartDate });
+    assert.equal(checkYesterday.eligible, true);
+    assert.equal(checkYesterday.diffDays, 1);
+
+    const check5DaysAgo = canMarkPracticeDay({ dateKey: '2026-10-04', referenceDate: fixedToday, startDate: fixedStartDate });
+    assert.equal(check5DaysAgo.eligible, true);
+    assert.equal(check5DaysAgo.diffDays, 5);
+
+    // Ineligible: 6 days ago (strictly exceeds 5-day limit)
+    const check6DaysAgo = canMarkPracticeDay({ dateKey: '2026-10-03', referenceDate: fixedToday, startDate: fixedStartDate });
+    assert.equal(check6DaysAgo.eligible, false);
+    assert.equal(check6DaysAgo.reason, 'BEYOND_5_DAY_LIMIT');
+
+    // Ineligible: 15 days ago (previously allowed exploit)
+    const check15DaysAgo = canMarkPracticeDay({ dateKey: '2026-09-24', referenceDate: fixedToday, startDate: '2026-09-01' });
+    assert.equal(check15DaysAgo.eligible, false);
+    assert.equal(check15DaysAgo.reason, 'BEYOND_5_DAY_LIMIT');
+
+    // Ineligible: future date
+    const checkFuture = canMarkPracticeDay({ dateKey: '2026-10-10', referenceDate: fixedToday, startDate: fixedStartDate });
+    assert.equal(checkFuture.eligible, false);
+    assert.equal(checkFuture.reason, 'FUTURE_DATE');
+
+    // Ineligible: before course start date (within 5-day window, but prior to start date)
+    const checkBeforeStart = canMarkPracticeDay({ dateKey: '2026-10-06', referenceDate: fixedToday, startDate: '2026-10-07' });
+    assert.equal(checkBeforeStart.eligible, false);
+    assert.equal(checkBeforeStart.reason, 'BEFORE_START_DATE');
+
+    // Ineligible: already watched a lecture on this day
+    const historyWithLecture = {
+      '2026-10-08': { watchedSec: 1200, watchedCount: 1, entries: [] },
+    };
+    const checkWatched = canMarkPracticeDay({ dateKey: '2026-10-08', history: historyWithLecture, referenceDate: fixedToday, startDate: fixedStartDate });
+    assert.equal(checkWatched.eligible, false);
+    assert.equal(checkWatched.reason, 'ALREADY_WATCHED_LECTURE');
+
+    // Ineligible: already marked as practice
+    const historyWithPractice = {
+      '2026-10-08': { watchedSec: 0, watchedCount: 0, isPractice: true, practiceNote: 'Practiced loops and methods' },
+    };
+    const checkAlreadyPractice = canMarkPracticeDay({ dateKey: '2026-10-08', history: historyWithPractice, referenceDate: fixedToday, startDate: fixedStartDate });
+    assert.equal(checkAlreadyPractice.eligible, false);
+    assert.equal(checkAlreadyPractice.reason, 'ALREADY_PRACTICE_DAY');
+
+    // Eligible: auto-applied streak shield on yesterday
+    const historyWithShield = {
+      '2026-10-08': {
+        watchedSec: 0,
+        watchedCount: 0,
+        isStreakFreeze: true,
+        freezeNote: 'Auto-applied streak protection for missed day (2026-10-08)',
+      },
+    };
+    const checkShield = canMarkPracticeDay({ dateKey: '2026-10-08', history: historyWithShield, referenceDate: fixedToday, startDate: fixedStartDate });
+    assert.equal(checkShield.eligible, true);
+    assert.equal(checkShield.hasAutoShield, true);
+
+    // 3. applyPracticeDay note validation
+    const shortNoteRes = applyPracticeDay({
+      history: historyWithShield,
+      targetDateKey: '2026-10-08',
+      note: 'Too short note',
+      referenceDate: fixedToday,
+      startDate: fixedStartDate,
+    });
+    assert.equal(shortNoteRes.success, false);
+    assert.equal(shortNoteRes.reason, 'NOTE_TOO_SHORT');
+
+    // 4. applyPracticeDay auto-applied shield replacement and refund
+    const initialFreezeStore = {
+      availableFreezes: 1,
+      usedFreezes: [
+        {
+          date: '2026-10-08',
+          reason: 'auto_missed_day_protection',
+          usedAt: '2026-10-08T23:59:00.000Z',
+        },
+      ],
+    };
+
+    const validPracticeNote = 'Practiced Object Oriented Programming concepts including polymorphism and encapsulation with sample exercises in IntelliJ';
+    const applyRes = applyPracticeDay({
+      history: historyWithShield,
+      freezeStore: initialFreezeStore,
+      targetDateKey: '2026-10-08',
+      note: validPracticeNote,
+      referenceDate: fixedToday,
+      startDate: fixedStartDate,
+    });
+
+    assert.equal(applyRes.success, true);
+    assert.equal(applyRes.shieldRefunded, true, 'Auto-applied shield must be refunded');
+    assert.equal(applyRes.freezeStore.availableFreezes, 2, 'Available shields must increment by 1');
+    assert.equal(applyRes.freezeStore.usedFreezes.length, 0, 'Used freeze entry must be removed');
+    assert.equal(applyRes.history['2026-10-08'].isPractice, true);
+    assert.equal(applyRes.history['2026-10-08'].practiceNote, validPracticeNote);
+    assert.equal(applyRes.history['2026-10-08'].isStreakFreeze, undefined, 'isStreakFreeze flag must be purged');
+    assert.equal(applyRes.history['2026-10-08'].freezeNote, undefined, 'freezeNote must be purged');
+
+    // 5. Streak credit continuity
+    const fullHistory = {
+      '2026-10-07': { watchedSec: 1800, watchedCount: 2 },
+      '2026-10-08': applyRes.history['2026-10-08'],
+    };
+    assert.equal(fullHistory['2026-10-08'].isPractice, true);
+
+    // 6. removePracticeDay cleanly reverts practice status
+    const unmarkRes = removePracticeDay({
+      history: applyRes.history,
+      targetDateKey: '2026-10-08',
+    });
+    assert.equal(unmarkRes.success, true);
+    assert.equal(unmarkRes.history['2026-10-08'].isPractice, undefined);
+    assert.equal(unmarkRes.history['2026-10-08'].practiceNote, undefined);
+
+    // Attempting to unmark an un-practiced day fails safely
+    const unmarkAgain = removePracticeDay({
+      history: unmarkRes.history,
+      targetDateKey: '2026-10-08',
+    });
+    assert.equal(unmarkAgain.success, false);
   });
 });
 

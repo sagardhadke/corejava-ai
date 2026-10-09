@@ -4,6 +4,11 @@ import { getAggregatedHistory, formatActivityDate } from '../models/activityHist
 import Drawer from '../../../components/Drawer.jsx';
 import { buildWeeksForYear, intensity } from '../models/calendarGridModel.js';
 import { getStreakPromoEmailUrl, SUPPORT_EMAIL } from '../models/streakFreezeModel.js';
+import {
+  canMarkPracticeDay,
+  getDayDifference,
+  MAX_PRACTICE_DAY_RETROACTIVE_DAYS,
+} from '../models/practiceDayModel.js';
 import './CalendarPanel.css';
 
 const GITHUB_WEEKDAYS = ['', 'Mon', '', 'Wed', '', 'Fri', ''];
@@ -112,6 +117,17 @@ export default function CalendarPanel({
   const isSelectedDateBeforeStart = !!(startDate && selectedDateKey < startDate);
   const isSelectedDateMissed = !isSelectedDateFuture && !isSelectedDateBeforeStart && selectedDateKey !== todayKey && !selectedBucket.isPractice && !(selectedBucket.watchedCount > 0) && !selectedBucket.isStreakFreeze;
   const isTodayBeforeStart = !!(startDate && todayKey < startDate);
+
+  const practiceEligibility = useMemo(() => {
+    return canMarkPracticeDay({
+      dateKey: selectedDateKey,
+      history: aggregatedHistory,
+      startDate,
+    });
+  }, [selectedDateKey, aggregatedHistory, startDate]);
+
+  const diffDays = getDayDifference(selectedDateKey);
+  const isBeyond5Days = !isNaN(diffDays) && diffDays > MAX_PRACTICE_DAY_RETROACTIVE_DAYS;
 
   return (
     <Drawer open={open} onClose={onClose} title="Activity & Streak" side="right" className="cal-drawer">
@@ -268,7 +284,7 @@ export default function CalendarPanel({
         {isTodayPracticeDay ? (
           <div className="practice-cta__active">
             <span><PencilIcon /> Today is marked as a practice day</span>
-            <button className="practice-cta__undo" onClick={onUnmarkPracticeDay}>Undo</button>
+            <button className="practice-cta__undo" onClick={() => onUnmarkPracticeDay(todayKey)}>Undo</button>
           </div>
         ) : (
           <button
@@ -491,10 +507,42 @@ export default function CalendarPanel({
                 </p>
               </div>
             </div>
+            {practiceEligibility.eligible ? (
+              <div className="cal-activity__shield-practice-box">
+                <button
+                  type="button"
+                  className="cal-activity__add-practice-btn cal-activity__add-practice-btn--refund"
+                  onClick={() => onOpenPracticeModalForDate(selectedDateObj)}
+                  title="Mark this day as practiced and refund your used Streak Shield"
+                >
+                  <PencilIcon /> Mark as Practice Day (Refunds Shield 🛡️)
+                </button>
+                <p className="cal-activity__shield-replace-hint">
+                  Did you practice offline on this day? Log your practice note to earn direct streak credit and refund 1 Streak Shield back to your reserve.
+                </p>
+              </div>
+            ) : isBeyond5Days ? (
+              <div className="cal-activity__locked-box">
+                <span className="cal-activity__locked-icon">🔒</span>
+                <span>Streak Shield locked (older than {MAX_PRACTICE_DAY_RETROACTIVE_DAYS} days). Cannot be modified retroactively.</span>
+              </div>
+            ) : null}
           </div>
         ) : selectedBucket.isPractice ? (
           <div className="cal-activity__practice-card">
-            <span className="cal-activity__practice-badge">PRACTICE DAY</span>
+            <div className="cal-activity__practice-head">
+              <span className="cal-activity__practice-badge">PRACTICE DAY</span>
+              {onUnmarkPracticeDay && (
+                <button
+                  type="button"
+                  className="practice-cta__undo"
+                  onClick={() => onUnmarkPracticeDay(selectedDateKey)}
+                  title="Remove practice day status for this date"
+                >
+                  Undo Practice Day
+                </button>
+              )}
+            </div>
             <p className="cal-activity__practice-note">
               {selectedBucket.practiceNote || 'No notes entered for this practice day.'}
             </p>
@@ -517,13 +565,25 @@ export default function CalendarPanel({
           <div className="cal-activity__empty">
             <div className="cal-activity__empty-icon">☕</div>
             <p className="cal-activity__empty-text">No lecture activity recorded for this day.</p>
-            {isSelectedDateMissed ? (
+            {practiceEligibility.eligible ? (
               <button
+                type="button"
                 className="cal-activity__add-practice-btn"
-                onClick={() => onOpenPracticeModalForDate(selectedDateObj)}
+                onClick={() => {
+                  if (selectedDateKey === todayKey) {
+                    onOpenPracticeModal();
+                  } else {
+                    onOpenPracticeModalForDate(selectedDateObj);
+                  }
+                }}
               >
-                <PencilIcon /> Mark as practice day retroactively
+                <PencilIcon /> {selectedDateKey === todayKey ? 'Mark today as Practice Day' : 'Mark as Practice Day'}
               </button>
+            ) : isBeyond5Days ? (
+              <div className="cal-activity__locked-box">
+                <span className="cal-activity__locked-icon">🔒</span>
+                <span>Practice days can only be marked within the last {MAX_PRACTICE_DAY_RETROACTIVE_DAYS} days.</span>
+              </div>
             ) : selectedDateKey === todayKey ? (
               <p className="cal-activity__empty-hint">Complete a lecture from today's plan to build your streak!</p>
             ) : null}

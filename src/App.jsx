@@ -248,13 +248,11 @@ export default function App() {
   };
 
   const handleMarkPracticeDay = useCallback((note, targetDate) => {
-    markPracticeDay(note, targetDate);
-    showToast('Practice day recorded! Keep up the momentum! 🔥', 'success');
+    return markPracticeDay(note, targetDate);
   }, [markPracticeDay]);
 
   const handleUnmarkPracticeDay = useCallback((targetDate) => {
-    unmarkPracticeDay(targetDate);
-    showToast('Practice day removed.', 'info');
+    return unmarkPracticeDay(targetDate);
   }, [unmarkPracticeDay]);
 
   const handleDeleteEverything = () => {
@@ -400,7 +398,7 @@ export default function App() {
         isTodayPracticeDay={isTodayPracticeDay}
         hasWatchedToday={hasWatchedToday}
         onOpenPracticeModal={openPracticeModalForToday}
-        onUnmarkPracticeDay={() => handleUnmarkPracticeDay()}
+        onUnmarkPracticeDay={(targetKey) => handleUnmarkPracticeDay(targetKey)}
         onOpenPracticeModalForDate={openPracticeModalForDate}
         startDate={startDate}
         courses={courses}
@@ -414,7 +412,7 @@ export default function App() {
       <PracticeDayModal
         open={practiceModalOpen}
         onClose={() => setPracticeModalOpen(false)}
-        onConfirm={(note) => handleMarkPracticeDay(note, practiceModalDate ? dateKey(practiceModalDate) : undefined)}
+        onConfirm={(note, dateKeyStr) => handleMarkPracticeDay(note, dateKeyStr || (practiceModalDate ? dateKey(practiceModalDate) : undefined))}
         targetDate={practiceModalDate}
         startDate={startDate}
       />

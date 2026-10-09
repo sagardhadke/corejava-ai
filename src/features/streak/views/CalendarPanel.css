@@ -830,6 +830,70 @@
   background: var(--surface-2);
 }
 
+/* Shield Practice Replacement Box */
+.cal-activity__shield-practice-box {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px dashed rgba(56, 189, 248, 0.25);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cal-activity__add-practice-btn--refund {
+  background: rgba(2, 132, 199, 0.18);
+  border-color: rgba(56, 189, 248, 0.4);
+  color: #38bdf8;
+  font-weight: 600;
+  width: 100%;
+  justify-content: center;
+}
+
+.cal-activity__add-practice-btn--refund:hover {
+  background: rgba(2, 132, 199, 0.32);
+  border-color: #38bdf8;
+  color: #ffffff;
+}
+
+.cal-activity__shield-replace-hint {
+  font-size: 11px;
+  color: var(--ink-faint);
+  line-height: 1.45;
+  margin: 0;
+}
+
+.cal-activity__practice-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.cal-activity__locked-box {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--r-sm);
+  font-size: 11.5px;
+  color: var(--ink-faint);
+  margin-top: 6px;
+}
+
+.cal-activity__locked-icon {
+  font-size: 13px;
+  opacity: 0.8;
+}
+
+.cal-activity__locked-hint {
+  font-size: 11px;
+  color: var(--ink-faint);
+  margin: 8px 0 0;
+  font-style: italic;
+}
+
 /* Mobile Responsiveness */
 @media (max-width: 520px) {
   .cal-summary {

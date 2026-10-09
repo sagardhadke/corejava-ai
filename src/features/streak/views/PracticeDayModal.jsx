@@ -1,5 +1,9 @@
 import { useMemo, useState } from 'react';
 import { dateKey } from '../../../utils/time.js';
+import {
+  getDayDifference,
+  MAX_PRACTICE_DAY_RETROACTIVE_DAYS,
+} from '../models/practiceDayModel.js';
 import './PracticeDayModal.css';
 
 function countWords(text) {
@@ -23,11 +27,21 @@ export default function PracticeDayModal({ open, onClose, onConfirm, targetDate,
   if (!open) return null;
 
   const targetDateKey = targetDate ? dateKey(targetDate) : dateKey();
+  const diffDays = getDayDifference(targetDateKey);
   const isBeforeStart = !!(startDate && targetDateKey < startDate);
+  const isOlderThanLimit = !isNaN(diffDays) && diffDays > MAX_PRACTICE_DAY_RETROACTIVE_DAYS;
+  const isFuture = !isNaN(diffDays) && diffDays < 0;
 
-  const dateLabel = targetDate
-    ? targetDate.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })
-    : 'today';
+  let dateLabel = 'today';
+  if (targetDate) {
+    if (diffDays === 0) {
+      dateLabel = 'today';
+    } else if (diffDays === 1) {
+      dateLabel = `yesterday (${targetDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })})`;
+    } else {
+      dateLabel = `${targetDate.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })} (${diffDays} days ago)`;
+    }
+  }
 
   const handleClose = () => {
     setStep('note');
@@ -38,6 +52,14 @@ export default function PracticeDayModal({ open, onClose, onConfirm, targetDate,
   };
 
   const handleContinue = () => {
+    if (isFuture) {
+      setError('Cannot mark future dates as practice days.');
+      return;
+    }
+    if (isOlderThanLimit) {
+      setError(`Practice days can only be marked within the last ${MAX_PRACTICE_DAY_RETROACTIVE_DAYS} days.`);
+      return;
+    }
     if (isBeforeStart) {
       setError(`Cannot mark practice day before the course start date (${startDate}).`);
       return;
@@ -52,10 +74,10 @@ export default function PracticeDayModal({ open, onClose, onConfirm, targetDate,
 
   const handleConfirm = () => {
     if (codeInput.trim() !== code) {
-      setError('That code doesn\'t match. Check the digits and try again.');
+      setError("That code doesn't match. Check the digits and try again.");
       return;
     }
-    onConfirm(note.trim());
+    onConfirm(note.trim(), targetDateKey);
     handleClose();
   };
 
