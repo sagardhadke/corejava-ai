@@ -42,6 +42,9 @@ const {
   importAllData,
   getStorageUsageBytes,
   getPerCourseStorageBytes,
+  COURSE_KEY_PREFIXES,
+  getCourseKeyList,
+  purgeCourseData,
 } = await import('../data/courseStore.js');
 
 const { getActiveSectionId, getActiveSectionIds } = await import('../utils/activeSection.js');
@@ -147,15 +150,22 @@ describe('Course Flow & State Management Integration Tests', () => {
   });
 
   it('4. Multi-course progress data isolation in localStorage', () => {
-    // Store progress for course 1
+    // Store all 9 per-course keys for course 1
     localStorage.setItem('jct_watched__core-java-ai', JSON.stringify({ 'core-java-ai__s01_l0': true }));
     localStorage.setItem('jct_today_plan__core-java-ai', JSON.stringify({ ids: ['core-java-ai__s01_l0'] }));
+    localStorage.setItem('jct_settings__core-java-ai', JSON.stringify({ dailyTargetHours: 2 }));
+    localStorage.setItem('jct_history__core-java-ai', JSON.stringify({ '2026-09-01': { watchedSec: 1800 } }));
     localStorage.setItem('jct_start_date__core-java-ai', '2026-09-01');
+    localStorage.setItem('jct_start_date_manual__core-java-ai', '2026-09-01');
+    localStorage.setItem('jct_badges__core-java-ai', JSON.stringify(['first_blood']));
+    localStorage.setItem('jct_streak_freezes__core-java-ai', JSON.stringify({ availableFreezes: 2 }));
+    localStorage.setItem('jct_completion__core-java-ai', JSON.stringify({ status: 'in_progress' }));
 
     // Add Course 2 and store its progress
     addCourse(SAMPLE_COURSE_1);
     localStorage.setItem(`jct_watched__${SAMPLE_COURSE_1.id}`, JSON.stringify({ 'py_l01': true }));
     localStorage.setItem(`jct_start_date__${SAMPLE_COURSE_1.id}`, '2026-09-09');
+    localStorage.setItem(`jct_badges__${SAMPLE_COURSE_1.id}`, JSON.stringify(['streak_3']));
 
     // Verify isolation
     const course1Watched = JSON.parse(localStorage.getItem('jct_watched__core-java-ai'));
@@ -163,7 +173,7 @@ describe('Course Flow & State Management Integration Tests', () => {
     assert.deepEqual(course1Watched, { 'core-java-ai__s01_l0': true });
     assert.deepEqual(course2Watched, { 'py_l01': true });
 
-    // Verify storage byte calculation
+    // Verify storage byte calculation accounts for all keys (including badges, freezes, completion)
     const course1Bytes = getPerCourseStorageBytes('core-java-ai');
     const course2Bytes = getPerCourseStorageBytes(SAMPLE_COURSE_1.id);
     assert.ok(course1Bytes > 0);
@@ -171,13 +181,17 @@ describe('Course Flow & State Management Integration Tests', () => {
     assert.ok(getStorageUsageBytes() >= course1Bytes + course2Bytes);
   });
 
-  it('5. Replacing the default course removes it completely from listCourses and purges its localStorage data', () => {
-    // Populate progress for default course
+  it('5. Replacing the default course removes it completely from listCourses and purges all 9 localStorage keys', () => {
+    // Populate all 9 per-course keys for default course
     localStorage.setItem('jct_watched__core-java-ai', JSON.stringify({ 'core-java-ai__s01_l0': true }));
     localStorage.setItem('jct_today_plan__core-java-ai', JSON.stringify({ ids: ['core-java-ai__s01_l0'] }));
     localStorage.setItem('jct_settings__core-java-ai', JSON.stringify({ dailyTargetHours: 2 }));
     localStorage.setItem('jct_history__core-java-ai', JSON.stringify({ '2026-09-09': 1 }));
     localStorage.setItem('jct_start_date__core-java-ai', '2026-09-01');
+    localStorage.setItem('jct_start_date_manual__core-java-ai', '2026-09-01');
+    localStorage.setItem('jct_badges__core-java-ai', JSON.stringify(['streak_7']));
+    localStorage.setItem('jct_streak_freezes__core-java-ai', JSON.stringify({ availableFreezes: 2 }));
+    localStorage.setItem('jct_completion__core-java-ai', JSON.stringify({ status: 'completed' }));
 
     // Perform replacement of default course with SAMPLE_COURSE_1
     const newId = replaceCourse('core-java-ai', SAMPLE_COURSE_1);
@@ -190,12 +204,11 @@ describe('Course Flow & State Management Integration Tests', () => {
     assert.equal(courses[0].title, SAMPLE_COURSE_1.title);
     assert.equal(getActiveCourseId(), SAMPLE_COURSE_1.id);
 
-    // Verify default course progress data was COMPLETELY purged from localStorage
-    assert.equal(localStorage.getItem('jct_watched__core-java-ai'), null);
-    assert.equal(localStorage.getItem('jct_today_plan__core-java-ai'), null);
-    assert.equal(localStorage.getItem('jct_settings__core-java-ai'), null);
-    assert.equal(localStorage.getItem('jct_history__core-java-ai'), null);
-    assert.equal(localStorage.getItem('jct_start_date__core-java-ai'), null);
+    // Verify default course progress data was COMPLETELY purged from localStorage — zero orphan keys
+    const allCourse1Keys = getCourseKeyList('core-java-ai');
+    allCourse1Keys.forEach((key) => {
+      assert.equal(localStorage.getItem(key), null, `Key "${key}" must be null after course replacement`);
+    });
   });
 
   it('6. Replaced default course does not resurrect on simulated reload or repeated listCourses calls', () => {
@@ -232,8 +245,11 @@ describe('Course Flow & State Management Integration Tests', () => {
 
   it('9. Course deletion when multiple exist removes course and purges its progress', () => {
     addCourse(SAMPLE_COURSE_1);
-    localStorage.setItem(`jct_watched__${SAMPLE_COURSE_1.id}`, JSON.stringify({ test: true }));
-    localStorage.setItem(`jct_start_date__${SAMPLE_COURSE_1.id}`, '2026-09-09');
+    // Populate all 9 per-course keys for SAMPLE_COURSE_1
+    const sampleKeys = getCourseKeyList(SAMPLE_COURSE_1.id);
+    sampleKeys.forEach((key) => {
+      localStorage.setItem(key, JSON.stringify({ testData: key }));
+    });
 
     const res = deleteCourse(SAMPLE_COURSE_1.id);
     assert.equal(res.ok, true);
@@ -241,8 +257,11 @@ describe('Course Flow & State Management Integration Tests', () => {
     const courses = listCourses();
     assert.equal(courses.length, 1);
     assert.equal(courses[0].id, 'core-java-ai');
-    assert.equal(localStorage.getItem(`jct_watched__${SAMPLE_COURSE_1.id}`), null);
-    assert.equal(localStorage.getItem(`jct_start_date__${SAMPLE_COURSE_1.id}`), null);
+
+    // Verify zero orphan keys remain
+    sampleKeys.forEach((key) => {
+      assert.equal(localStorage.getItem(key), null, `Key "${key}" must be cleanly purged upon course deletion`);
+    });
   });
 
   it('10. Deleting the currently active course automatically falls back to remaining course', () => {
@@ -256,12 +275,19 @@ describe('Course Flow & State Management Integration Tests', () => {
   it('11. Resetting everything purges all course keys and restores fresh default install', () => {
     addCourse(SAMPLE_COURSE_1);
     localStorage.setItem('jct_watched__core-java-ai', JSON.stringify({ a: 1 }));
+    localStorage.setItem('jct_completion__core-java-ai', JSON.stringify({ status: 'verified' }));
     localStorage.setItem(`jct_watched__${SAMPLE_COURSE_1.id}`, JSON.stringify({ b: 2 }));
+    localStorage.setItem(`jct_streak_freezes__${SAMPLE_COURSE_1.id}`, JSON.stringify({ available: 1 }));
+    // Lingering orphan key from an unregistered/ghost course ID
+    localStorage.setItem('jct_badges__ghost-course-999', JSON.stringify(['ghost_badge']));
 
     resetEverything();
 
     assert.equal(localStorage.getItem('jct_watched__core-java-ai'), null);
+    assert.equal(localStorage.getItem('jct_completion__core-java-ai'), null);
     assert.equal(localStorage.getItem(`jct_watched__${SAMPLE_COURSE_1.id}`), null);
+    assert.equal(localStorage.getItem(`jct_streak_freezes__${SAMPLE_COURSE_1.id}`), null);
+    assert.equal(localStorage.getItem('jct_badges__ghost-course-999'), null);
     assert.equal(listCourses().length, 1);
     assert.equal(getActiveCourseId(), 'core-java-ai');
   });
@@ -1590,6 +1616,42 @@ describe('Course Flow & State Management Integration Tests', () => {
       targetDateKey: '2026-10-08',
     });
     assert.equal(unmarkAgain.success, false);
+  });
+
+  it('32. BUG-DAT-02: COURSE_KEY_PREFIXES exhaustively covers all 9 per-course keys and purgeCourseData leaves 0 orphaned keys', () => {
+    const testCourseId = 'audit-test-course-42';
+    assert.equal(COURSE_KEY_PREFIXES.length, 9, 'Must define all 9 per-course key prefixes');
+    assert.ok(COURSE_KEY_PREFIXES.includes('jct_watched__'));
+    assert.ok(COURSE_KEY_PREFIXES.includes('jct_today_plan__'));
+    assert.ok(COURSE_KEY_PREFIXES.includes('jct_settings__'));
+    assert.ok(COURSE_KEY_PREFIXES.includes('jct_history__'));
+    assert.ok(COURSE_KEY_PREFIXES.includes('jct_start_date__'));
+    assert.ok(COURSE_KEY_PREFIXES.includes('jct_start_date_manual__'));
+    assert.ok(COURSE_KEY_PREFIXES.includes('jct_badges__'));
+    assert.ok(COURSE_KEY_PREFIXES.includes('jct_streak_freezes__'));
+    assert.ok(COURSE_KEY_PREFIXES.includes('jct_completion__'));
+
+    const keyList = getCourseKeyList(testCourseId);
+    assert.equal(keyList.length, 9);
+
+    // Populate every single key in localStorage
+    keyList.forEach((k) => {
+      localStorage.setItem(k, JSON.stringify({ sample: 'data_value_for_' + k }));
+      assert.ok(localStorage.getItem(k) !== null);
+    });
+
+    // Ensure per-course byte count measures all 9 keys accurately
+    const totalBytes = getPerCourseStorageBytes(testCourseId);
+    assert.ok(totalBytes > 0, 'Total storage bytes should be greater than zero');
+
+    // Execute purge
+    purgeCourseData(testCourseId);
+
+    // Assert zero keys remain
+    keyList.forEach((k) => {
+      assert.equal(localStorage.getItem(k), null, `Key "${k}" must be purged completely`);
+    });
+    assert.equal(getPerCourseStorageBytes(testCourseId), 0, 'Purged course must have 0 storage bytes');
   });
 });
 

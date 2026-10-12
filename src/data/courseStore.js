@@ -61,17 +61,32 @@ function saveRegistry(registry) {
   localStorage.setItem(REGISTRY_KEY, JSON.stringify(registry));
 }
 
+// Exhaustive list of all localStorage key prefixes owned by a specific course.
+// Includes progress, plan, settings, history, start dates, badges, streak freezes, and completion states.
+export const COURSE_KEY_PREFIXES = [
+  'jct_watched__',
+  'jct_today_plan__',
+  'jct_settings__',
+  'jct_history__',
+  'jct_start_date__',
+  'jct_start_date_manual__',
+  'jct_badges__',
+  'jct_streak_freezes__',
+  'jct_completion__',
+];
+
+// Returns all exact keys belonging to a specific course.
+export function getCourseKeyList(courseId) {
+  if (!courseId) return [];
+  return COURSE_KEY_PREFIXES.map((prefix) => `${prefix}${courseId}`);
+}
+
 // Removes every localStorage key that belongs to a specific course (progress,
-// plan, settings, history, start date) — used when a course is deleted or replaced.
-function purgeCourseData(courseId) {
-  const prefixes = [
-    `jct_watched__${courseId}`,
-    `jct_today_plan__${courseId}`,
-    `jct_settings__${courseId}`,
-    `jct_history__${courseId}`,
-    `jct_start_date__${courseId}`,
-    `jct_badges__${courseId}`,
-  ];
+// plan, settings, history, start date, badges, streak freezes, completion verification)
+// — used when a course is deleted or replaced.
+export function purgeCourseData(courseId) {
+  if (!courseId) return;
+  const prefixes = getCourseKeyList(courseId);
   const keysToRemove = [];
   for (let i = 0; i < localStorage.length; i++) {
     const key = localStorage.key(i);
@@ -179,6 +194,17 @@ export function resetEverything() {
   const registry = loadRegistry();
   const allIds = new Set([...registry.courseIds, ...Object.keys(registry.customCourses)]);
   allIds.forEach((id) => purgeCourseData(id));
+
+  // Purge any orphan course keys that might have been left over from corrupt/removed courses
+  const orphanKeysToRemove = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key && COURSE_KEY_PREFIXES.some((prefix) => key.startsWith(prefix))) {
+      orphanKeysToRemove.push(key);
+    }
+  }
+  orphanKeysToRemove.forEach((k) => localStorage.removeItem(k));
+
   localStorage.removeItem(REGISTRY_KEY);
   // Also clear any legacy/global keys from earlier single-course versions of the app.
   ['jct_watched_v1', 'jct_today_plan_v1', 'jct_settings_v1', 'jct_history_v1',
@@ -300,17 +326,12 @@ export function getStorageUsageBytes() {
 }
 
 export function getPerCourseStorageBytes(courseId) {
-  const prefixes = [
-    `jct_watched__${courseId}`,
-    `jct_today_plan__${courseId}`,
-    `jct_settings__${courseId}`,
-    `jct_history__${courseId}`,
-    `jct_start_date__${courseId}`,
-  ];
+  if (!courseId) return 0;
+  const prefixes = getCourseKeyList(courseId);
   let total = 0;
   for (let i = 0; i < localStorage.length; i++) {
     const key = localStorage.key(i);
-    if (prefixes.includes(key)) {
+    if (prefixes.some((p) => key === p || (key && key.startsWith(p)))) {
       total += (key.length + (localStorage.getItem(key) || '').length) * 2;
     }
   }
