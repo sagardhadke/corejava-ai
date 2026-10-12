@@ -60,7 +60,10 @@ export function parseCourseXml(xmlText, { idHint } = {}) {
   const courseId = idHint || `course-${slugify(title)}-${Date.now().toString(36)}`;
 
   const sections = sectionEls.map((sectionEl, sIdx) => {
-    const number = sectionEl.getAttribute('number') || String(sIdx + 1).padStart(2, '0');
+    const rawNumber = sectionEl.getAttribute('number');
+    // Unique sequential key for stable, collision-free section and lecture IDs
+    const sectionIndexKey = String(sIdx + 1).padStart(2, '0');
+    const number = rawNumber || sectionIndexKey;
     const sectionTitle = sectionEl.getAttribute('title') || `Section ${number}`;
     const isProject = sectionEl.getAttribute('project') === 'true'
       || /project/i.test(sectionTitle);
@@ -74,7 +77,7 @@ export function parseCourseXml(xmlText, { idHint } = {}) {
       const durationLabel = itemEl.getAttribute('duration') || '';
       if (!durationLabel) return;
       lectures.push({
-        id: `${courseId}__s${number}_l${iIdx}`,
+        id: `${courseId}__s${sectionIndexKey}_l${iIdx}`,
         title: itemTitle,
         durationSec: parseDurationLabelToSeconds(durationLabel),
         durationLabel,
@@ -84,7 +87,7 @@ export function parseCourseXml(xmlText, { idHint } = {}) {
     if (lectures.length === 0) return null;
 
     return {
-      id: `${courseId}__s${number}`,
+      id: `${courseId}__s${sectionIndexKey}`,
       number,
       title: sectionTitle,
       isProject,
