@@ -1,11 +1,14 @@
 # Development & Engineering Rules
 
-## 1. Feature-Wise & Bug-Wise Atomic Commits
+## 1. Feature-Wise & Bug-Wise Atomic Commits (Immediate Local Commits)
 - **Never bundle multiple distinct changes into a single commit.**
 - Every bug fix, feature, or enhancement must have its own dedicated, atomic commit.
+- **Commit locally immediately:** As soon as an important bug fix or feature is completed and verified, immediately create a focused local git commit (`git commit`). Do not accumulate multiple bug fixes in the working tree before committing.
 - Keep commits focused: only stage the specific source files and unit tests directly related to that single feature or bug fix.
 - Use standard Conventional Commits naming:
   - `fix(security): ...`
+  - `fix(storage): ...`
+  - `fix(parser): ...`
   - `fix(streak): ...`
   - `feat(badges): ...`
   - `feat(course): ...`
@@ -25,6 +28,6 @@
   2. Step-by-step browser testing instructions (what to click, what to verify, DevTools storage checks).
   3. Terminal verification commands (`npm test`, `npm run build`).
 
-## 5. Absolute Prohibition on Autonomous Git Pushes
+## 5. Absolute Prohibition on Autonomous Git Pushes (Prompt Before Push Every Time)
 - **NEVER execute `git push` without explicit user sign-off.**
-- Always stop, show the exact commit message, summarize the diff, and ask for user confirmation before pushing to production.
+- Always show the exact commit message, summarize the diff, and ask for explicit user confirmation before pushing to production.
