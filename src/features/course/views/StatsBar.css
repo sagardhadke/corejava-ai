@@ -118,6 +118,24 @@
   }
 }
 
+@media (max-width: 400px) {
+  .stat-card {
+    padding: 7px 8px;
+  }
+  .stat-card__value {
+    font-size: 21px;
+  }
+  .stat-card__value--sm {
+    font-size: 14.5px;
+  }
+  .stat-card__label {
+    font-size: 9px;
+  }
+  .stat-card__sub {
+    font-size: 9.5px;
+  }
+}
+
 .stat-card--amber {
   border-color: var(--amber-dim);
   background: linear-gradient(180deg, var(--amber-wash), var(--surface) 70%);
