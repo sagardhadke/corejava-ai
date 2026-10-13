@@ -100,6 +100,24 @@
   word-break: break-word;
 }
 
+@media (max-width: 540px) {
+  .cal-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  .cal-stat {
+    padding: 12px 10px;
+  }
+  .cal-stat__value {
+    font-size: 20px;
+  }
+  .cal-stat__label {
+    font-size: 10px;
+    line-height: 1.25;
+  }
+}
+
 /* ---- Badges Banner inside Calendar ---- */
 .cal-badges-banner {
   width: 100%;
