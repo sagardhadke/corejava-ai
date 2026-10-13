@@ -20,15 +20,21 @@
   }
 }
 
+@media (max-width: 768px) {
+  .cs-root--header {
+    max-width: min(300px, 58vw);
+  }
+}
+
 @media (max-width: 640px) {
   .cs-root--header {
-    max-width: min(190px, 42vw);
+    max-width: min(280px, 58vw);
   }
 }
 
 @media (max-width: 380px) {
   .cs-root--header {
-    max-width: min(130px, 36vw);
+    max-width: min(190px, 50vw);
   }
 }
 
