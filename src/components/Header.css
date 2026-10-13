@@ -390,6 +390,15 @@
   }
 }
 
+/* Tablet & Mobile (< 768px): Hide actions that are pinned to MobileBottomNav */
+@media (max-width: 768px) {
+  .header-actions .badges-btn,
+  .header-actions .streak-btn,
+  .header-actions .header-settings-btn {
+    display: none !important;
+  }
+}
+
 /* Mobile (< 640px) */
 @media (max-width: 640px) {
   .header-mid {
@@ -406,22 +415,36 @@
     gap: 8px;
     min-width: 0;
     flex: 1 1 auto;
+    overflow: hidden;
   }
   .brand__mark {
     width: 34px;
     height: 34px;
     font-size: 11.5px;
     border-radius: var(--r-sm);
+    flex-shrink: 0;
+  }
+  .mobile-hamburger-btn {
+    flex-shrink: 0;
   }
   .brand__sub {
     display: none;
   }
+  .brand__text {
+    min-width: 0;
+    flex: 1 1 auto;
+    overflow: hidden;
+  }
   .brand__text h1 {
     font-size: 13.5px;
-    max-width: min(190px, 42vw);
+    max-width: min(280px, 58vw);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
   .header-actions {
     gap: 6px;
+    flex-shrink: 0;
   }
   .icon-btn {
     height: 34px;
@@ -442,7 +465,7 @@
   }
   .brand__text h1 {
     font-size: 12.5px;
-    max-width: min(130px, 36vw);
+    max-width: min(190px, 50vw);
   }
   .icon-btn {
     height: 32px;

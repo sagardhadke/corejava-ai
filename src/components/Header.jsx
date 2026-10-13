@@ -95,15 +95,26 @@ export default function Header({
             className="icon-btn badges-btn"
             onClick={onOpenBadges}
             title={`Achievements & Badges (${unlockedBadgesCount}/12 unlocked)`}
+            aria-label="Open achievements and badges"
           >
             <TrophyIcon />
             <span className="badges-count">{unlockedBadgesCount}</span>
           </button>
-          <button className="icon-btn streak-btn" onClick={onOpenCalendar} title="Streak calendar">
+          <button
+            className="icon-btn streak-btn"
+            onClick={onOpenCalendar}
+            title="Streak calendar"
+            aria-label="Open streak calendar"
+          >
             <FireIcon />
             <span className="streak-count">{streak}</span>
           </button>
-          <button className="icon-btn" onClick={onOpenSettings} title="Settings">
+          <button
+            className="icon-btn header-settings-btn"
+            onClick={onOpenSettings}
+            title="Settings"
+            aria-label="Open settings"
+          >
             <GearIcon />
           </button>
         </div>
