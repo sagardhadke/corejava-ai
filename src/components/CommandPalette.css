@@ -202,7 +202,14 @@
 
 @media (max-width: 640px) {
   .cp-backdrop {
-    padding: 24px 12px;
+    padding: 12px 8px;
+    align-items: flex-start;
+  }
+  .cp-dialog {
+    max-height: calc(100dvh - 24px);
+  }
+  .cp-body {
+    max-height: min(300px, calc(100dvh - 120px));
   }
   .cp-footer {
     display: none;
