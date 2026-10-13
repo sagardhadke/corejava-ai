@@ -159,3 +159,20 @@
     padding: 4px 6px 8px;
   }
 }
+
+@media (max-width: 380px) {
+  .section-card__head {
+    gap: 6px;
+    padding: 8px 8px;
+  }
+  .section-card__number {
+    font-size: 9.5px;
+    padding: 1px 4px;
+  }
+  .section-card__title {
+    font-size: 12px;
+  }
+  .section-card__meta {
+    font-size: 9.5px;
+  }
+}
