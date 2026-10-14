@@ -199,6 +199,7 @@ function PinVerificationModal({ pin, courseId, courseTitle, onClose, onVerified,
                 className="pin-helper-btn"
                 onClick={handleCopyPin}
                 title="Copy PIN to clipboard"
+                aria-label="Copy 8-digit verification PIN to clipboard"
               >
                 {copied ? '✓ Copied' : '📋 Copy PIN'}
               </button>
@@ -207,6 +208,7 @@ function PinVerificationModal({ pin, courseId, courseTitle, onClose, onVerified,
                 className="pin-helper-btn"
                 onClick={handleQuickFill}
                 title="Auto-fill PIN into the input below"
+                aria-label="Auto-fill 8-digit verification PIN"
               >
                 ⚡ Quick Fill
               </button>
@@ -240,6 +242,7 @@ function PinVerificationModal({ pin, courseId, courseTitle, onClose, onVerified,
                         setEnteredPin('');
                         onRegeneratePin();
                       }}
+                      aria-label="Generate fresh verification PIN"
                       style={{ marginTop: '8px', fontSize: '11.5px', background: 'none', border: '1px solid #ef4444', color: '#fca5a5', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer' }}
                     >
                       🔄 Generate Fresh PIN

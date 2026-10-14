@@ -95,6 +95,7 @@ export default function NotificationsPanel({
                     className="notif-header-action-btn"
                     onClick={markAllRead}
                     title="Mark all as read"
+                    aria-label="Mark all notifications as read"
                   >
                     <CheckCheckIcon />
                     <span>Read all</span>
@@ -105,6 +106,7 @@ export default function NotificationsPanel({
                   className="notif-header-action-btn notif-header-action-btn--danger"
                   onClick={clearAll}
                   title="Clear all notifications"
+                  aria-label="Clear all notifications"
                 >
                   <TrashIcon />
                   <span>Clear</span>
@@ -138,6 +140,7 @@ export default function NotificationsPanel({
               className="notif-test-btn"
               onClick={sendTestNotification}
               title="Test push notification right now"
+              aria-label="Send test push notification"
             >
               Test Alert 🔔
             </button>
