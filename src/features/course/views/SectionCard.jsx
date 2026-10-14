@@ -14,7 +14,12 @@ export default function SectionCard({ section, isOpen, onToggleOpen, watchedSet,
 
   return (
     <div className={`section-card ${isOpen ? 'section-card--open' : ''} ${isComplete ? 'section-card--complete' : ''}`}>
-      <button className="section-card__head" onClick={onToggleOpen}>
+      <button
+        className="section-card__head"
+        onClick={onToggleOpen}
+        aria-expanded={isOpen}
+        aria-label={`${isOpen ? 'Collapse' : 'Expand'} Section ${section.number}: ${section.title}`}
+      >
         <span className="section-card__chevron"><ChevronIcon /></span>
         <span className="section-card__number">{section.number}</span>
         <span className="section-card__title">

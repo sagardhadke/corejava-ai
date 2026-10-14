@@ -15,6 +15,7 @@ export default function LectureRow({ lecture, number, watched, inPlan, onToggleW
             type="checkbox"
             checked={inPlan}
             onChange={() => onTogglePlan(lecture.id)}
+            aria-label={`Add lecture ${number || ''} to today's plan`}
           />
           <span className="plan-check__box">
             {inPlan && <CheckIcon />}
@@ -26,6 +27,8 @@ export default function LectureRow({ lecture, number, watched, inPlan, onToggleW
         className="watched-toggle"
         onClick={() => onToggleWatched(lecture.id, lecture)}
         title={watched ? 'Mark as not watched' : 'Mark as watched'}
+        aria-label={watched ? `Mark lecture ${number || ''} as not watched` : `Mark lecture ${number || ''} as watched`}
+        aria-pressed={watched}
       >
         <span className={`watched-toggle__ring ${watched ? 'watched-toggle__ring--on' : ''}`}>
           {watched && <CheckIcon small />}

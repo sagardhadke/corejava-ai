@@ -39,7 +39,12 @@ export default function TodayPlanCard({
             const done = watchedSet.has(l.id);
             return (
               <li key={l.id} className={done ? 'today-card__item--done' : ''}>
-                <button className="today-card__check" onClick={() => onToggleWatched(l.id, l)} title={done ? 'Mark not watched' : 'Mark watched'}>
+                <button
+                  className="today-card__check"
+                  onClick={() => onToggleWatched(l.id, l)}
+                  title={done ? 'Mark not watched' : 'Mark watched'}
+                  aria-label={done ? `Mark lecture ${lectureNumbers.get(l.id)} as unwatched` : `Mark lecture ${lectureNumbers.get(l.id)} as watched`}
+                >
                   {done && <CheckIcon />}
                 </button>
                 <span className="today-card__item-number">{lectureNumbers.get(l.id)}</span>
