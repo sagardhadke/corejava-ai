@@ -1489,6 +1489,14 @@ describe('Course Flow & State Management Integration Tests', () => {
     assert.equal(getDayDifference('2026-10-10', fixedToday), -1, 'Tomorrow should be negative diff');
     assert.ok(isNaN(getDayDifference('invalid-date', fixedToday)), 'Invalid format returns NaN');
 
+    // BUG-STK-04: Test string referenceDate ('YYYY-MM-DD') timezone immunity
+    assert.equal(getDayDifference('2026-10-09', '2026-10-09'), 0, 'String referenceDate: today is 0 days diff');
+    assert.equal(getDayDifference('2026-10-08', '2026-10-09'), 1, 'String referenceDate: yesterday is 1 day diff');
+    assert.equal(getDayDifference('2026-10-04', '2026-10-09'), 5, 'String referenceDate: 5 days ago is 5 days diff');
+    assert.equal(getDayDifference('2026-10-03', '2026-10-09'), 6, 'String referenceDate: 6 days ago is 6 days diff');
+    assert.equal(getDayDifference('2026-10-10', '2026-10-09'), -1, 'String referenceDate: tomorrow is -1 day diff');
+    assert.ok(isNaN(getDayDifference('2026-10-09', 'bad-ref')), 'Invalid reference string returns NaN');
+
     // 2. canMarkPracticeDay boundary checks
     // Eligible: within last 5 days
     const checkToday = canMarkPracticeDay({ dateKey: '2026-10-09', referenceDate: fixedToday, startDate: fixedStartDate });
