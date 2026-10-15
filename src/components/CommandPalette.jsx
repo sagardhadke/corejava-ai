@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { exportAllData } from '../data/courseStore.js';
 import { showToast } from '../utils/toast.js';
+import { normalizeStr } from '../utils/search.js';
 import './CommandPalette.css';
 
 /**
@@ -48,7 +49,7 @@ export default function CommandPalette({
 
   // Compute command palette items
   const items = useMemo(() => {
-    const q = query.trim().toLowerCase();
+    const q = normalizeStr(query.trim());
     const result = [];
 
     // 1. App actions
@@ -168,7 +169,7 @@ export default function CommandPalette({
     ];
 
     actions.forEach((a) => {
-      if (!q || a.title.toLowerCase().includes(q)) {
+      if (!q || normalizeStr(a.title).includes(q)) {
         result.push(a);
       }
     });
@@ -176,7 +177,7 @@ export default function CommandPalette({
     // 2. Course switching
     if (courses.length > 1) {
       courses.forEach((c) => {
-        if (!q || c.title.toLowerCase().includes(q) || 'switch course'.includes(q)) {
+        if (!q || normalizeStr(c.title).includes(q) || normalizeStr('switch course').includes(q)) {
           result.push({
             id: `course-${c.id}`,
             category: 'Courses',
@@ -196,7 +197,7 @@ export default function CommandPalette({
     // 3. Sections in active course
     if (course?.sections) {
       course.sections.forEach((s) => {
-        if (!q || s.title.toLowerCase().includes(q) || `section ${s.number}`.includes(q)) {
+        if (!q || normalizeStr(s.title).includes(q) || normalizeStr(`section ${s.number}`).includes(q)) {
           result.push({
             id: `sec-${s.id}`,
             category: 'Sections',
@@ -217,7 +218,7 @@ export default function CommandPalette({
       let lectureCount = 0;
       course.allLectures.forEach((l, idx) => {
         if (lectureCount >= 15) return; // Limit to top 15 matches to keep palette swift
-        if (l.title.toLowerCase().includes(q) || `lecture ${idx + 1}`.includes(q)) {
+        if (normalizeStr(l.title).includes(q) || normalizeStr(`lecture ${idx + 1}`).includes(q)) {
           lectureCount++;
           result.push({
             id: `lec-${l.id}`,
