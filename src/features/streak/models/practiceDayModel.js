@@ -36,8 +36,16 @@ export function getDayDifference(targetDateKey, referenceDate = new Date()) {
 
   const targetMidnight = new Date(parts[0], parts[1] - 1, parts[2], 0, 0, 0, 0);
 
-  const ref = referenceDate instanceof Date ? referenceDate : new Date(referenceDate);
-  const refMidnight = new Date(ref.getFullYear(), ref.getMonth(), ref.getDate(), 0, 0, 0, 0);
+  let refMidnight;
+  if (typeof referenceDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(referenceDate)) {
+    const rParts = referenceDate.split('-').map(Number);
+    if (rParts.length !== 3 || rParts.some(isNaN)) return NaN;
+    refMidnight = new Date(rParts[0], rParts[1] - 1, rParts[2], 0, 0, 0, 0);
+  } else {
+    const ref = referenceDate instanceof Date ? referenceDate : new Date(referenceDate);
+    if (isNaN(ref.getTime())) return NaN;
+    refMidnight = new Date(ref.getFullYear(), ref.getMonth(), ref.getDate(), 0, 0, 0, 0);
+  }
 
   return Math.round((refMidnight.getTime() - targetMidnight.getTime()) / (1000 * 60 * 60 * 24));
 }
