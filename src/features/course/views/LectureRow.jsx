@@ -1,9 +1,11 @@
 import { spaceDurationLabel } from '../../../utils/time.js';
 import './LectureRow.css';
 
-export default function LectureRow({ lecture, number, watched, inPlan, onToggleWatched, onTogglePlan }) {
+export default function LectureRow({ lecture, number, watched, inPlan, onToggleWatched, onTogglePlan, isDailyLimitReached }) {
+  const isLocked = !watched && isDailyLimitReached;
+
   return (
-    <div className={`lecture-row ${watched ? 'lecture-row--watched' : ''} ${inPlan && !watched ? 'lecture-row--today' : ''}`}>
+    <div className={`lecture-row ${watched ? 'lecture-row--watched' : ''} ${inPlan && !watched ? 'lecture-row--today' : ''} ${isLocked ? 'lecture-row--locked' : ''}`}>
       <span className="lecture-row__number" title={`Lecture ${number} of the course`}>{number}</span>
 
       {/* Once a lecture is marked watched, there's nothing left to "plan" for it —
@@ -24,14 +26,15 @@ export default function LectureRow({ lecture, number, watched, inPlan, onToggleW
       )}
 
       <button
-        className="watched-toggle"
+        className={`watched-toggle ${isLocked ? 'watched-toggle--locked' : ''}`}
         onClick={() => onToggleWatched(lecture.id, lecture)}
-        title={watched ? 'Mark as not watched' : 'Mark as watched'}
-        aria-label={watched ? `Mark lecture ${number || ''} as not watched` : `Mark lecture ${number || ''} as watched`}
+        title={watched ? 'Mark as not watched' : isLocked ? 'Daily 5-hour limit reached — locked for today (click for details)' : 'Mark as watched'}
+        aria-label={watched ? `Mark lecture ${number || ''} as not watched` : isLocked ? `Lecture ${number || ''} locked — daily 5-hour limit reached` : `Mark lecture ${number || ''} as watched`}
         aria-pressed={watched}
       >
-        <span className={`watched-toggle__ring ${watched ? 'watched-toggle__ring--on' : ''}`}>
+        <span className={`watched-toggle__ring ${watched ? 'watched-toggle__ring--on' : ''} ${isLocked ? 'watched-toggle__ring--locked' : ''}`}>
           {watched && <CheckIcon small />}
+          {isLocked && <LockIconSmall />}
         </span>
       </button>
 
@@ -39,9 +42,19 @@ export default function LectureRow({ lecture, number, watched, inPlan, onToggleW
 
       {watched && <span className="completed-pill">COMPLETED</span>}
       {inPlan && !watched && <span className="today-pill">TODAY</span>}
+      {isLocked && <span className="locked-pill" title="5h daily limit reached — content locked until tomorrow"><LockIconSmall /> LOCKED</span>}
 
       <span className="lecture-row__dur">{spaceDurationLabel(lecture.durationLabel)}</span>
     </div>
+  );
+}
+
+function LockIconSmall() {
+  return (
+    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <rect x="3" y="11" width="18" height="11" rx="2" ry="2" stroke="currentColor" strokeWidth="2.2"/>
+      <path d="M7 11V7a5 5 0 0 1 10 0v4" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"/>
+    </svg>
   );
 }
 
