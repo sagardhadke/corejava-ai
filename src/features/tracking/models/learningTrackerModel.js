@@ -1,3 +1,7 @@
+function toLocalDateKey(d) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
 /**
  * Learning Tracker Domain Model (Pure Business Logic)
  * 100% local — no external AI calls. All calculations use localStorage data.
@@ -214,7 +218,7 @@ export function computeSmartETA({
   return {
     etaDays,
     etaDaysExact: etaDaysExact.toFixed(1),
-    etaDate: etaDateObj.toISOString().slice(0, 10),
+    etaDate: toLocalDateKey(etaDateObj),
     etaDateStr,
     confidence,
     velocitySec: effectiveVelocity,
@@ -267,7 +271,7 @@ export function getLast7DaysStats(dailyLog = {}, today) {
   for (let i = 6; i >= 0; i--) {
     const d = new Date(base);
     d.setDate(d.getDate() - i);
-    const key = d.toISOString().slice(0, 10);
+    const key = toLocalDateKey(d);
     const bucket = dailyLog[key] || {};
     result.push({
       date: key,

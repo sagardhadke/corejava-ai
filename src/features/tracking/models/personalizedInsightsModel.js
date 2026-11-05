@@ -199,6 +199,6 @@ function getYesterdayKey(today) {
   if (!today) return '';
   const d = new Date(today + 'T00:00:00');
   d.setDate(d.getDate() - 1);
-  return d.toISOString().slice(0, 10);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
