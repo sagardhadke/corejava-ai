@@ -21,7 +21,7 @@ import { showToast } from '../../../utils/toast.js';
  * Headless Notifications ViewModel Hook
  * Connects UI views to persistent notifications, system events, and Web Push services.
  */
-export function useNotificationsViewModel({ streak = 0, courseTitle = 'Core Java + AI', remainingLectures = 0 } = {}) {
+export function useNotificationsViewModel({ streak = 0, courseTitle = 'Core Java + AI', remainingLectures = 0, pct = 0, etaDateStr = null } = {}) {
   const [allNotifications, setAllNotifications] = useState(() => getNotifications());
   const [unreadCount, setUnreadCount] = useState(() => getUnreadNotificationCount());
   const [filter, setFilter] = useState('all');
@@ -77,6 +77,8 @@ export function useNotificationsViewModel({ streak = 0, courseTitle = 'Core Java
         streak,
         courseTitle,
         remainingLectures,
+        pct,
+        etaDateStr,
       });
     };
 
@@ -85,7 +87,7 @@ export function useNotificationsViewModel({ streak = 0, courseTitle = 'Core Java
 
     const interval = setInterval(checkReminder, 30000);
     return () => clearInterval(interval);
-  }, [streak, courseTitle, remainingLectures]);
+  }, [streak, courseTitle, remainingLectures, pct, etaDateStr]);
 
   // Filtered notifications list
   const filteredNotifications = useMemo(() => {
@@ -161,7 +163,7 @@ export function useNotificationsViewModel({ streak = 0, courseTitle = 'Core Java
     } else {
       showToast('Added test reminder to Notification Center (enable Browser Push for system popups)', 'info', 4000);
     }
-  }, [streak]);
+  }, [streak, courseTitle, etaDateStr]);
 
   return {
     notifications: filteredNotifications,
