@@ -184,9 +184,40 @@
     min-width: 44px;
   }
   .today-pill,
-  .completed-pill {
+  .completed-pill,
+  .locked-pill {
     font-size: 8.5px;
     padding: 1px 4px;
     margin-left: 4px;
   }
+}
+
+/* Locked state when daily 5-hour limit is reached */
+.lecture-row--locked {
+  opacity: 0.8;
+}
+.lecture-row--locked:hover {
+  opacity: 1;
+}
+.watched-toggle--locked .watched-toggle__ring--locked {
+  border-color: rgba(245, 158, 11, 0.45);
+  background: rgba(245, 158, 11, 0.08);
+  color: #fbbf24;
+}
+.locked-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  vertical-align: middle;
+  flex-shrink: 0;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: #fbbf24;
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  padding: 2px 6px;
+  border-radius: 3px;
+  margin-left: 6px;
 }

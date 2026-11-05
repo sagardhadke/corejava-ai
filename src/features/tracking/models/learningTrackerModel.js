@@ -82,14 +82,15 @@ export function recordLectureView(courseId, dateKey, lecture, isWatched) {
   };
 
   const durationSec = lecture?.durationSec || 0;
+  const lectureId = lecture?.id;
 
   if (isWatched) {
     // Add entry if not already present
-    const alreadyLogged = bucket.entries.some((e) => e.lectureId === lecture.id);
+    const alreadyLogged = bucket.entries.some((e) => e.lectureId === lectureId);
     if (!alreadyLogged) {
       const entry = {
-        lectureId: lecture.id,
-        lectureTitle: lecture.title || `Lecture`,
+        lectureId,
+        lectureTitle: lecture?.title || lecture?.lectureTitle || `Lecture`,
         durationSec,
         viewedAt: new Date().toISOString(),
       };
@@ -99,7 +100,7 @@ export function recordLectureView(courseId, dateKey, lecture, isWatched) {
     }
   } else {
     // Remove entry
-    bucket.entries = (bucket.entries || []).filter((e) => e.lectureId !== lecture.id);
+    bucket.entries = (bucket.entries || []).filter((e) => e.lectureId !== lectureId);
     bucket.totalSec = Math.max(0, (bucket.totalSec || 0) - durationSec);
     bucket.lectureCount = Math.max(0, (bucket.lectureCount || 0) - 1);
   }
@@ -121,10 +122,24 @@ export function recordLectureView(courseId, dateKey, lecture, isWatched) {
 
 /**
  * Returns today's accumulated learning seconds for a course.
+ * Inspects both the tracking store and course history to guarantee accuracy.
  */
 export function getTodayLearnedSec(courseId, dateKey) {
   const store = loadTrackingStore(courseId);
-  return store.dailyLog[dateKey]?.totalSec || 0;
+  const trackingSec = store.dailyLog[dateKey]?.totalSec || 0;
+  let historySec = 0;
+  if (typeof localStorage !== 'undefined') {
+    try {
+      const raw = localStorage.getItem(`jct_history__${courseId}`);
+      if (raw) {
+        const h = JSON.parse(raw);
+        historySec = h?.[dateKey]?.watchedSec || 0;
+      }
+    } catch {
+      // ignore
+    }
+  }
+  return Math.max(trackingSec, historySec);
 }
 
 /**

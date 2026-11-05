@@ -4,7 +4,7 @@ import './TodayPlanCard.css';
 export default function TodayPlanCard({
   plannedLectures, watchedSet, targetSec, autoPlan, onToggleWatched, lectureNumbers,
   isTodayPracticeDay, hasWatchedToday, onOpenPracticeModal, onUnmarkPracticeDay,
-  todayWatchedSec = 0, startDate,
+  todayWatchedSec = 0, startDate, isDailyLimitReached,
 }) {
   const plannedSec = plannedLectures.reduce((a, l) => a + l.durationSec, 0);
   const pct = targetSec > 0 ? Math.min(100, Math.round((todayWatchedSec / targetSec) * 100)) : 0;
@@ -37,18 +37,21 @@ export default function TodayPlanCard({
         <ul className="today-card__list">
           {plannedLectures.map((l) => {
             const done = watchedSet.has(l.id);
+            const isLocked = !done && isDailyLimitReached;
             return (
-              <li key={l.id} className={done ? 'today-card__item--done' : ''}>
+              <li key={l.id} className={`${done ? 'today-card__item--done' : ''} ${isLocked ? 'today-card__item--locked' : ''}`}>
                 <button
-                  className="today-card__check"
+                  className={`today-card__check ${isLocked ? 'today-card__check--locked' : ''}`}
                   onClick={() => onToggleWatched(l.id, l)}
-                  title={done ? 'Mark not watched' : 'Mark watched'}
-                  aria-label={done ? `Mark lecture ${lectureNumbers.get(l.id)} as unwatched` : `Mark lecture ${lectureNumbers.get(l.id)} as watched`}
+                  title={done ? 'Mark not watched' : isLocked ? 'Daily 5-hour limit reached — locked for today (click for details)' : 'Mark watched'}
+                  aria-label={done ? `Mark lecture ${lectureNumbers.get(l.id)} as unwatched` : isLocked ? `Lecture ${lectureNumbers.get(l.id)} locked — daily 5-hour limit reached` : `Mark lecture ${lectureNumbers.get(l.id)} as watched`}
                 >
                   {done && <CheckIcon />}
+                  {isLocked && <LockIconSmall />}
                 </button>
                 <span className="today-card__item-number">{lectureNumbers.get(l.id)}</span>
                 <span className="today-card__item-title">{l.title}</span>
+                {isLocked && <span className="locked-pill locked-pill--tiny" title="Daily 5h limit reached"><LockIconSmall /></span>}
                 <span className="today-card__item-dur">{spaceDurationLabel(l.durationLabel)}</span>
               </li>
             );
@@ -87,6 +90,15 @@ function CheckIcon() {
   return (
     <svg width="10" height="10" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
       <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function LockIconSmall() {
+  return (
+    <svg width="9" height="9" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <rect x="3" y="11" width="18" height="11" rx="2" ry="2" stroke="currentColor" strokeWidth="2.2"/>
+      <path d="M7 11V7a5 5 0 0 1 10 0v4" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"/>
     </svg>
   );
 }

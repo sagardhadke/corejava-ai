@@ -31,6 +31,7 @@ import {
   recordLectureView,
   loadTrackingStore,
   getTodayLearnedSec,
+  isTodayLimitReached,
   clearTrackingStore,
 } from '../features/tracking/models/learningTrackerModel.js';
 import { checkDailyLimitGate } from '../features/tracking/models/dailyLimitModel.js';
@@ -108,51 +109,96 @@ export function useCourseProgress(course) {
     return () => clearInterval(interval);
   }, [today]);
 
+  const isDailyLimitReached = useMemo(() => {
+    if (settings.dailyLimitEnabled === false || settings.trackingEnabled === false) return false;
+    return isTodayLimitReached(courseId, today);
+  }, [courseId, today, settings.dailyLimitEnabled, settings.trackingEnabled, trackingStore, history]);
+
   const toggleWatched = useCallback((lectureId, lecture) => {
-    setWatched((prev) => {
-      const isNowWatched = !prev[lectureId];
-      const next = { ...prev, [lectureId]: isNowWatched };
+    const isCurrentlyWatched = !!watched[lectureId];
+    const isNowWatched = !isCurrentlyWatched;
+    const targetLecture = lecture || allLectures.find((l) => l.id === lectureId) || {
+      id: lectureId,
+      durationSec: 0,
+      title: 'Lecture',
+    };
+    const key = dateKey();
+    const limitEnabled = settings.dailyLimitEnabled !== false && settings.trackingEnabled !== false;
 
-      setHistory((h) => {
-        const key = dateKey();
-        const bucket = h[key] || { watchedSec: 0, watchedCount: 0, lectureIds: [] };
-        const already = bucket.lectureIds.includes(lectureId);
-        let nextBucket;
-        if (isNowWatched && !already) {
-          const lecIndex = allLectures.findIndex((l) => l.id === lectureId);
-          const lectureNumber = lecIndex >= 0 ? lecIndex + 1 : (lecture?.number || null);
-          const entry = {
-            courseId: course?.id || 'core-java-ai',
-            courseTitle: course?.title || 'Core Java + AI',
-            lectureId,
-            lectureNumber,
-            lectureTitle: lecture?.title || `Lecture ${lectureNumber || ''}`,
-            durationSec: lecture?.durationSec || 0,
-            durationLabel: lecture?.durationLabel || formatDuration(lecture?.durationSec || 0),
-            watchedAt: new Date().toISOString(),
-          };
-          nextBucket = {
-            watchedSec: bucket.watchedSec + (lecture?.durationSec || 0),
-            watchedCount: bucket.watchedCount + 1,
-            lectureIds: [...bucket.lectureIds, lectureId],
-            entries: [...(bucket.entries || []).filter((e) => e.lectureId !== lectureId), entry],
-          };
-        } else if (!isNowWatched && already) {
-          nextBucket = {
-            watchedSec: Math.max(0, bucket.watchedSec - (lecture?.durationSec || 0)),
-            watchedCount: Math.max(0, bucket.watchedCount - 1),
-            lectureIds: bucket.lectureIds.filter((id) => id !== lectureId),
-            entries: (bucket.entries || []).filter((e) => e.lectureId !== lectureId),
-          };
-        } else {
-          nextBucket = bucket;
-        }
-        return { ...h, [key]: nextBucket };
-      });
+    // Daily 5-hour limit gate check when attempting to mark as watched
+    if (isNowWatched && limitEnabled) {
+      const gate = checkDailyLimitGate(courseId, key, targetLecture, true);
+      if (gate.blocked) {
+        setDailyLimitGate({
+          gate,
+          courseTitle: course?.title || 'Core Java + AI',
+        });
+        showToast(
+          `Daily 5-hour limit reached (${gate.todayLearned} today). Focus on practical exercises!`,
+          'warning',
+          4500
+        );
+        return; // BLOCK: Do not mark watched, do not update history or tracking
+      }
+    }
 
-      return next;
+    // 1. Update watched state
+    setWatched((prev) => ({ ...prev, [lectureId]: isNowWatched }));
+
+    // 2. Update history
+    setHistory((h) => {
+      const bucket = h[key] || { watchedSec: 0, watchedCount: 0, lectureIds: [] };
+      const already = bucket.lectureIds.includes(lectureId);
+      let nextBucket;
+      if (isNowWatched && !already) {
+        const lecIndex = allLectures.findIndex((l) => l.id === lectureId);
+        const lectureNumber = lecIndex >= 0 ? lecIndex + 1 : (targetLecture?.number || null);
+        const entry = {
+          courseId: course?.id || 'core-java-ai',
+          courseTitle: course?.title || 'Core Java + AI',
+          lectureId,
+          lectureNumber,
+          lectureTitle: targetLecture?.title || `Lecture ${lectureNumber || ''}`,
+          durationSec: targetLecture?.durationSec || 0,
+          durationLabel: targetLecture?.durationLabel || formatDuration(targetLecture?.durationSec || 0),
+          watchedAt: new Date().toISOString(),
+        };
+        nextBucket = {
+          watchedSec: bucket.watchedSec + (targetLecture?.durationSec || 0),
+          watchedCount: bucket.watchedCount + 1,
+          lectureIds: [...bucket.lectureIds, lectureId],
+          entries: [...(bucket.entries || []).filter((e) => e.lectureId !== lectureId), entry],
+        };
+      } else if (!isNowWatched && already) {
+        nextBucket = {
+          watchedSec: Math.max(0, bucket.watchedSec - (targetLecture?.durationSec || 0)),
+          watchedCount: Math.max(0, bucket.watchedCount - 1),
+          lectureIds: bucket.lectureIds.filter((id) => id !== lectureId),
+          entries: (bucket.entries || []).filter((e) => e.lectureId !== lectureId),
+        };
+      } else {
+        nextBucket = bucket;
+      }
+      return { ...h, [key]: nextBucket };
     });
-  }, [setWatched, setHistory, allLectures, course]);
+
+    // 3. Record in tracking store
+    if (settings.trackingEnabled !== false) {
+      const updatedStore = recordLectureView(courseId, key, targetLecture, isNowWatched);
+      setTrackingStore(updatedStore);
+    }
+  }, [
+    watched,
+    settings.dailyLimitEnabled,
+    settings.trackingEnabled,
+    courseId,
+    allLectures,
+    course,
+    setWatched,
+    setHistory,
+    setTrackingStore,
+    setDailyLimitGate,
+  ]);
 
   const unmarkPracticeDay = useCallback((targetDateKey) => {
     const key = targetDateKey || dateKey();
@@ -491,5 +537,6 @@ export function useCourseProgress(course) {
     dailyLimitGate,
     setDailyLimitGate,
     todayTrackingLog: trackingStore?.dailyLog?.[today] || null,
+    isDailyLimitReached,
   };
 }

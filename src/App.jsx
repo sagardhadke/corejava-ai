@@ -66,7 +66,7 @@ export default function App() {
     toggleWatched, togglePlan, clearPlan, resetAll, updateSettings, updateStartDate, resetStartDateToAuto,
     markPracticeDay, unmarkPracticeDay,
     availableFreezes, usedFreezes, redeemStreakCode,
-    trackingStore, dailyLimitGate, setDailyLimitGate, todayTrackingLog,
+    trackingStore, dailyLimitGate, setDailyLimitGate, todayTrackingLog, isDailyLimitReached,
   } = useCourseProgress(course);
 
   // Headless Course ViewModel (accordion state, filtering, import actions)
@@ -360,6 +360,7 @@ export default function App() {
                     onToggleWatched={toggleWatched}
                     onTogglePlan={togglePlan}
                     lectureNumbers={courseVM.lectureNumbers}
+                    isDailyLimitReached={isDailyLimitReached}
                   />
                 </div>
               ))
@@ -382,6 +383,7 @@ export default function App() {
                 onUnmarkPracticeDay={() => handleUnmarkPracticeDay()}
                 todayWatchedSec={todayWatchedSec}
                 startDate={startDate}
+                isDailyLimitReached={isDailyLimitReached}
               />
               <PerSectionProgress
                 sectionProgress={sectionProgress}
