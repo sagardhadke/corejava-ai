@@ -18,8 +18,7 @@ import {
 } from '../../notifications/models/notificationModel.js';
 import { showToast } from '../../../utils/toast.js';
 import './SettingsPanel.css';
-import ProgressDashboard from '../../tracking/views/ProgressDashboard.jsx';
-import ProgressReportDialog from '../../tracking/views/ProgressReportDialog.jsx';
+import { ProgressDashboard, ProgressReportDialog } from '../../tracking/index.js';
 
 export default function SettingsPanel({
   open, onClose, settings, onUpdate, onResetAll,
