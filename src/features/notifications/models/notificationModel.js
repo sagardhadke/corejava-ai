@@ -347,10 +347,20 @@ export function checkAndTriggerScheduledReminder(context = {}) {
     const courseTitle = context.courseTitle || 'Core Java + AI';
     const remaining = context.remainingLectures ?? 'some';
 
-    const title = `Time to Study Core Java! ☕🔥`;
-    const message = streak > 0
-      ? `Protect your ${streak}-day streak! You have ${remaining} lectures remaining in ${courseTitle}.`
-      : `Ready for today's progress? Open ${courseTitle} and conquer today's goals!`;
+    let title = `Time to Study ${courseTitle}! ☕🔥`;
+    let message;
+    if (context.pct >= 100) {
+      title = `Practice & Project Day: ${courseTitle} 🎓`;
+      message = `You've completed 100% of the lectures! Today is a great day to practice and build projects.`;
+    } else if (context.etaDateStr) {
+      message = streak > 0
+        ? `🔥 ${streak}-day streak! On track to complete by ${context.etaDateStr}. Keep up the momentum today!`
+        : `🎯 Target completion: ${context.etaDateStr}. Open today's plan to stay on schedule!`;
+    } else {
+      message = streak > 0
+        ? `Protect your ${streak}-day streak! You have ${remaining} lectures remaining in ${courseTitle}.`
+        : `Ready for today's progress? Open ${courseTitle} and conquer today's goals!`;
+    }
 
     // 1. Add notification in Notification Center (dispatches push automatically if enabled)
     addNotification({
