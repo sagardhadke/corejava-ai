@@ -33,7 +33,7 @@ import { BadgesPanel, BadgeToast } from './features/badges/index.js';
 import { SettingsPanel } from './features/settings/index.js';
 import { MotivationPopup } from './features/motivation/index.js';
 import { NotificationsPanel, useNotificationsViewModel } from './features/notifications/index.js';
-import DailyLimitDialog from './features/tracking/views/DailyLimitDialog.jsx';
+import { DailyLimitDialog } from './features/tracking/index.js';
 import './App.css';
 
 export default function App() {

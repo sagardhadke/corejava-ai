@@ -103,3 +103,4 @@ export function buildLimitDialogContent(gateResult, courseTitle = 'your course')
     ctaSecondary: 'View my progress',
   };
 }
+

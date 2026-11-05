@@ -298,3 +298,4 @@ export function clearTrackingStore(courseId) {
     // ignore
   }
 }
+
