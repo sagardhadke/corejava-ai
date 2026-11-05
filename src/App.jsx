@@ -33,6 +33,7 @@ import { BadgesPanel, BadgeToast } from './features/badges/index.js';
 import { SettingsPanel } from './features/settings/index.js';
 import { MotivationPopup } from './features/motivation/index.js';
 import { NotificationsPanel, useNotificationsViewModel } from './features/notifications/index.js';
+import DailyLimitDialog from './features/tracking/views/DailyLimitDialog.jsx';
 import './App.css';
 
 export default function App() {
@@ -65,6 +66,7 @@ export default function App() {
     toggleWatched, togglePlan, clearPlan, resetAll, updateSettings, updateStartDate, resetStartDateToAuto,
     markPracticeDay, unmarkPracticeDay,
     availableFreezes, usedFreezes, redeemStreakCode,
+    trackingStore, dailyLimitGate, setDailyLimitGate, todayTrackingLog,
   } = useCourseProgress(course);
 
   // Headless Course ViewModel (accordion state, filtering, import actions)
@@ -232,6 +234,15 @@ export default function App() {
     window.addEventListener('jct:storage_quota_exceeded', handleQuota);
     return () => window.removeEventListener('jct:storage_quota_exceeded', handleQuota);
   }, []);
+
+  // Daily 5h limit blocked event listener
+  useEffect(() => {
+    const handleLimitBlocked = (e) => {
+      setDailyLimitGate(e.detail || null);
+    };
+    window.addEventListener('jct:daily_limit_blocked', handleLimitBlocked);
+    return () => window.removeEventListener('jct:daily_limit_blocked', handleLimitBlocked);
+  }, [setDailyLimitGate]);
 
   const plannedLectures = useMemo(() => {
     if (!course?.allLectures) return [];
@@ -542,7 +553,13 @@ export default function App() {
         onOpenSettings={toggleSettingsDrawer}
       />
 
-      <ToastContainer />
+      <DailyLimitDialog
+        gate={dailyLimitGate?.gate || null}
+        courseTitle={dailyLimitGate?.courseTitle || course?.title}
+        onClose={() => setDailyLimitGate(null)}
+        onViewProgress={() => { setDailyLimitGate(null); openSettingsDrawer(); }}
+      />
+            <ToastContainer />
       <DeveloperBadge />
     </div>
   );

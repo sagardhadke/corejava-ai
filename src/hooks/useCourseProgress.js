@@ -27,6 +27,13 @@ import {
   NOTIFICATION_TYPES,
 } from '../features/notifications/models/notificationModel.js';
 import { showToast } from '../utils/toast.js';
+import {
+  recordLectureView,
+  loadTrackingStore,
+  getTodayLearnedSec,
+  clearTrackingStore,
+} from '../features/tracking/models/learningTrackerModel.js';
+import { checkDailyLimitGate } from '../features/tracking/models/dailyLimitModel.js';
 
 /**
  * All progress state for ONE course, namespaced by courseId so switching the
@@ -58,6 +65,10 @@ export function useCourseProgress(course) {
   const [freezeStore, setFreezeStore] = useLocalStorage(FREEZES_KEY, createInitialStreakFreezeState());
   const [newlyUnlockedBadge, setNewlyUnlockedBadge] = useState(null);
   const [today, setToday] = useState(() => dateKey());
+
+  // Learning tracker state: live tracking store & daily limit dialog
+  const [trackingStore, setTrackingStore] = useState(() => loadTrackingStore(courseId));
+  const [dailyLimitGate, setDailyLimitGate] = useState(null); // null | gate result object
 
   const watchedSet = useMemo(() => new Set(Object.keys(watched).filter((id) => watched[id])), [watched]);
 
@@ -270,6 +281,8 @@ export function useCourseProgress(course) {
     setNewlyUnlockedBadge(null);
     setFreezeStore(createInitialStreakFreezeState());
     resetCompletionState(courseId);
+    clearTrackingStore(courseId);
+    setTrackingStore(loadTrackingStore(courseId));
   }, [setWatched, setPlanStore, setHistory, settings.autoPlan, targetSec, allLectures, setIsStartDateManual, setStoredStartDate, setUnlockedBadges, setFreezeStore, courseId]);
 
   const updateSettings = useCallback((patch) => {
@@ -473,5 +486,10 @@ export function useCourseProgress(course) {
     availableFreezes: typeof freezeStore?.availableFreezes === 'number' ? freezeStore.availableFreezes : 2,
     usedFreezes: freezeStore?.usedFreezes || [],
     redeemStreakCode,
+    // Learning tracker
+    trackingStore,
+    dailyLimitGate,
+    setDailyLimitGate,
+    todayTrackingLog: trackingStore?.dailyLog?.[today] || null,
   };
 }

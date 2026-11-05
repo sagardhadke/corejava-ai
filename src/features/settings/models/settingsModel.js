@@ -8,6 +8,10 @@ export const DEFAULT_SETTINGS = {
   autoPlan: true,
   streakMode: 'any',
   perSectionVisibleCount: 7,
+  // Learning Tracker settings (all enabled by default, user can disable)
+  trackingEnabled: true,          // Master toggle: track daily time + activity logs
+  dailyLimitEnabled: true,        // Enforce 5-hour daily learning cap
+  aiPersonalization: true,        // Local AI personalization in popups & reports
 };
 
 export const TARGET_PRESETS = [
