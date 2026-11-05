@@ -455,6 +455,10 @@ export default function App() {
         onUpdateStartDate={updateStartDate}
         isStartDateManual={isStartDateManual}
         onResetStartDateToAuto={resetStartDateToAuto}
+        trackingStore={trackingStore}
+        today={today}
+        history={history}
+        streak={streak}
       />
 
       <BadgesPanel
