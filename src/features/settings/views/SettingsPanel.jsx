@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, useEffect } from 'react';
+﻿import { useState, useMemo, useRef, useEffect } from 'react';
 import Drawer from '../../../components/Drawer.jsx';
 import MemoryManagement from './MemoryManagement.jsx';
 import BackupRestore from './BackupRestore.jsx';
@@ -18,7 +18,11 @@ import {
 } from '../../notifications/models/notificationModel.js';
 import { showToast } from '../../../utils/toast.js';
 import './SettingsPanel.css';
-import { ProgressDashboard, ProgressReportDialog } from '../../tracking/index.js';
+import {
+  ProgressDashboard,
+  ProgressReportDialog,
+  CourseProgressLogModal,
+} from '../../tracking/index.js';
 
 export default function SettingsPanel({
   open, onClose, settings, onUpdate, onResetAll,
@@ -26,6 +30,7 @@ export default function SettingsPanel({
   onCoursesChanged, onRestoredBackup, onDeleteEverything,
   course, stats, startDate, onUpdateStartDate,
   isStartDateManual, onResetStartDateToAuto,
+  trackingStore, today, history, streak,
 }) {
   const [apiKey, setApiKey] = useState(() => getStoredApiKey());
   const [showKey, setShowKey] = useState(false);
@@ -33,6 +38,8 @@ export default function SettingsPanel({
   const [saved, setSaved] = useState(false);
   const [deleteEverythingOpen, setDeleteEverythingOpen] = useState(false);
   const [resetProgressOpen, setResetProgressOpen] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
+  const [progressLogOpen, setProgressLogOpen] = useState(false);
 
   const [prevOpen, setPrevOpen] = useState(open);
   if (open !== prevOpen) {
@@ -212,6 +219,58 @@ export default function SettingsPanel({
               </span>
             </div>
           </div>
+        )}
+      </section>
+
+      {/* Real-Time Course Progress Tracker & Break Log */}
+      <section className="settings-section">
+        <div className="settings-section__head">
+          <h3>Course Progress &amp; Break Tracker</h3>
+          <span className="api-status-badge api-status-badge--active">
+            <span className="api-status-badge__dot" /> Real-Time Local
+          </span>
+        </div>
+        <p className="settings-help">
+          Live monitoring of your course progress, learning velocity, and breaks — calculated 100% locally on your device.
+        </p>
+
+        {trackingStore ? (
+          <>
+            <ProgressDashboard
+              trackingStore={trackingStore}
+              stats={stats}
+              settings={settings}
+              today={today}
+              courseTitle={course?.title}
+              startDate={startDate}
+              onViewReport={() => setReportOpen(true)}
+              onOpenLog={() => setProgressLogOpen(true)}
+            />
+            <div style={{ marginTop: '12px', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                className="api-btn api-btn--preview"
+                style={{ flex: 1, minWidth: '170px' }}
+                onClick={() => setProgressLogOpen(true)}
+                title="Open popup to view course progress log, viewed lectures with timestamps, and break tracker"
+              >
+                📋 Open Course Progress &amp; Break Log
+              </button>
+              <button
+                type="button"
+                className="api-btn api-btn--test"
+                style={{ flex: 1, minWidth: '150px' }}
+                onClick={() => setReportOpen(true)}
+                title="Open full personalized progress report"
+              >
+                📄 Full Progress Report
+              </button>
+            </div>
+          </>
+        ) : (
+          <p className="settings-help" style={{ textAlign: 'center', padding: '12px 0' }}>
+            Start watching lectures to see your progress analysis here.
+          </p>
         )}
       </section>
 
@@ -398,6 +457,37 @@ export default function SettingsPanel({
       <NotificationSettingsSection onClose={onClose} />
 
       <section className="settings-section">
+        <h3>AI Tracking &amp; Personalization</h3>
+        <p className="settings-help">
+          Control how the app tracks and personalizes your learning experience. All analysis runs locally — no data leaves your device.
+        </p>
+        <ToggleRow
+          label="Enable learning tracker"
+          checked={settings.trackingEnabled !== false}
+          onChange={(v) => onUpdate({ trackingEnabled: v })}
+        />
+        <p className="settings-help settings-help--small" style={{ marginTop: 4 }}>
+          Tracks daily learning duration, lecture views with timestamps, and velocity metrics.
+        </p>
+        <ToggleRow
+          label="Enforce 5-hour daily limit"
+          checked={settings.dailyLimitEnabled !== false}
+          onChange={(v) => onUpdate({ dailyLimitEnabled: v })}
+        />
+        <p className="settings-help settings-help--small" style={{ marginTop: 4 }}>
+          Prevents marking more than 5 hours of content per day. Encourages spaced learning and practice.
+        </p>
+        <ToggleRow
+          label="Local AI personalization"
+          checked={settings.aiPersonalization !== false}
+          onChange={(v) => onUpdate({ aiPersonalization: v })}
+        />
+        <p className="settings-help settings-help--small" style={{ marginTop: 4 }}>
+          Uses your learning history to generate personalized recommendations, focus areas, and progress insights in popups and reports.
+        </p>
+      </section>
+
+      <section className="settings-section">
         <h3>Memory management</h3>
         <p className="settings-help">All courses currently stored on this device, and how much space each uses.</p>
         <MemoryManagement onCoursesChanged={onCoursesChanged} onRequestSetActive={onSwitchCourse} />
@@ -439,6 +529,30 @@ export default function SettingsPanel({
         onConfirm={handleDeleteEverything}
         title="Delete everything & reset"
         warningMessage="This will delete ALL courses, ALL progress data, ALL settings, and reset the app to its initial state. This action cannot be undone."
+      />
+      <ProgressReportDialog
+        open={reportOpen}
+        onClose={() => setReportOpen(false)}
+        trackingStore={trackingStore}
+        stats={stats}
+        settings={settings}
+        history={history}
+        today={today}
+        courseTitle={course?.title}
+        startDate={startDate}
+        streak={streak}
+      />
+
+      <CourseProgressLogModal
+        open={progressLogOpen}
+        onClose={() => setProgressLogOpen(false)}
+        trackingStore={trackingStore}
+        stats={stats}
+        settings={settings}
+        history={history}
+        today={today}
+        courseTitle={course?.title}
+        startDate={startDate}
       />
     </Drawer>
   );

@@ -432,3 +432,12 @@
   border-color: rgba(245, 158, 11, 0.4);
 }
 
+.pd-report-btn--secondary {
+  border-color: rgba(99, 102, 241, 0.25);
+  color: #a5b4fc;
+}
+.pd-report-btn--secondary:hover {
+  background: rgba(99, 102, 241, 0.08);
+  border-color: rgba(99, 102, 241, 0.45);
+}
+

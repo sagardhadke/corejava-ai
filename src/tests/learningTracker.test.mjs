@@ -43,6 +43,12 @@ import {
   generatePersonalizedInsights,
 } from '../features/tracking/models/personalizedInsightsModel.js';
 
+import {
+  analyzeCourseBreaks,
+  computeBreakAdjustedETA,
+  getDetailedContentLog,
+} from '../features/tracking/models/breakTrackerModel.js';
+
 import { DEFAULT_SETTINGS } from '../features/settings/models/settingsModel.js';
 
 describe('Real-Time Learning Tracker & 5-Hour Limit Test Suite', () => {
@@ -278,6 +284,81 @@ describe('Real-Time Learning Tracker & 5-Hour Limit Test Suite', () => {
       assert.equal(DEFAULT_SETTINGS.dailyLimitEnabled, true);
       assert.equal(DEFAULT_SETTINGS.aiPersonalization, true);
       assert.equal(DEFAULT_SETTINGS.dailyTargetHours, 1.5);
+    });
+  });
+
+  describe('6. Break Tracker & Course Progress Log Modal Data Layer', () => {
+    it('analyzes break intervals and consistency ratio across calendar days', () => {
+      const dailyLog = {
+        '2026-11-01': { totalSec: 3600 },
+        '2026-11-02': { totalSec: 5400 },
+        // 2026-11-03: BREAK DAY
+        // 2026-11-04: BREAK DAY
+        '2026-11-05': { totalSec: 7200 },
+      };
+
+      const analysis = analyzeCourseBreaks({
+        dailyLog,
+        history: {},
+        startDate: '2026-11-01',
+        today: '2026-11-05',
+      });
+
+      assert.equal(analysis.totalCalendarDays, 5);
+      assert.equal(analysis.totalStudyDays, 3);
+      assert.equal(analysis.totalBreakDays, 2);
+      assert.equal(analysis.consistencyRatio, 0.6); // 3 / 5
+      assert.equal(analysis.consistencyPct, 60);
+      assert.equal(analysis.isActiveToday, true);
+
+      // Verify break interval
+      assert.equal(analysis.breakIntervals.length, 1);
+      const b = analysis.breakIntervals[0];
+      assert.equal(b.startDate, '2026-11-03');
+      assert.equal(b.endDate, '2026-11-04');
+      assert.equal(b.durationDays, 2);
+      assert.equal(b.resumedOn, '2026-11-05');
+    });
+
+    it('computes fast-track vs realistic break-adjusted completion dates and days saved', () => {
+      const eta = computeBreakAdjustedETA({
+        remainingSec: 72000, // 20 hours
+        effectiveVelocity: 7200, // 2 hours/day -> 10 active study days needed
+        consistencyRatio: 0.5, // Studies 1 day out of every 2 -> realistic = 20 days
+        today: '2026-11-05',
+      });
+
+      assert.equal(eta.fastTrackDays, 10);
+      assert.equal(eta.realisticDays, 20);
+      assert.equal(eta.daysSaved, 10);
+      assert.ok(eta.fastTrackDateStr);
+      assert.ok(eta.realisticDateStr);
+      assert.ok(eta.accelerationAdvice.includes('Fast-Track Opportunity'));
+      assert.ok(eta.accelerationAdvice.includes('10 calendar days'));
+    });
+
+    it('extracts detailed content log with formatted times and reverse-chronological ordering', () => {
+      const dailyLog = {
+        '2026-11-04': {
+          entries: [
+            { lectureId: 'l1', lectureTitle: 'Introduction', durationSec: 600, viewedAt: '2026-11-04T09:15:00.000Z' },
+          ],
+        },
+        '2026-11-05': {
+          entries: [
+            { lectureId: 'l2', lectureTitle: 'Variables', durationSec: 1200, viewedAt: '2026-11-05T14:30:00.000Z' },
+          ],
+        },
+      };
+
+      const log = getDetailedContentLog(dailyLog);
+      assert.equal(log.length, 2);
+      // Newest date first
+      assert.equal(log[0].lectureId, 'l2');
+      assert.equal(log[0].dateKey, '2026-11-05');
+      assert.ok(log[0].formattedTime);
+      assert.equal(log[1].lectureId, 'l1');
+      assert.equal(log[1].dateKey, '2026-11-04');
     });
   });
 });

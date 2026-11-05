@@ -21,6 +21,7 @@ export default function ProgressDashboard({
   courseTitle,
   startDate,
   onViewReport,
+  onOpenLog,
 }) {
   const dailyLog = trackingStore?.dailyLog || {};
   const dailyTargetSec = (settings?.dailyTargetHours || 1.5) * 3600;
@@ -210,14 +211,31 @@ export default function ProgressDashboard({
         </div>
       )}
 
-      {/* View full report button */}
-      {onViewReport && (
-        <button className="pd-report-btn" onClick={onViewReport} type="button">
-          <ReportIcon />
-          View Full Progress Report →
-        </button>
-      )}
+      {/* Action buttons: Progress & Break Log + Full Report */}
+      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '6px' }}>
+        {onOpenLog && (
+          <button className="pd-report-btn" onClick={onOpenLog} type="button" style={{ flex: 1, minWidth: '150px' }}>
+            <AuditIcon />
+            Course &amp; Break Log →
+          </button>
+        )}
+        {onViewReport && (
+          <button className="pd-report-btn pd-report-btn--secondary" onClick={onViewReport} type="button" style={{ flex: 1, minWidth: '150px' }}>
+            <ReportIcon />
+            Progress Report →
+          </button>
+        )}
+      </div>
     </div>
+  );
+}
+
+function AuditIcon() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M9 11l3 3L22 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+      <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
   );
 }
 
