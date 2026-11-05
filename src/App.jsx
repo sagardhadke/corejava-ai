@@ -84,7 +84,8 @@ export default function App() {
   const notificationsVM = useNotificationsViewModel({
     streak,
     courseTitle: course?.title,
-    remainingLectures: Math.max(0, (stats?.totalCount || 0) - (stats?.completedCount || 0)),
+    remainingLectures: Math.max(0, (stats?.totalCount || 0) - (stats?.watchedCount || 0)),
+    pct: stats?.pct,
   });
 
   // Drawer and Modal visibility
@@ -396,7 +397,7 @@ export default function App() {
         {course.title} · {stats.totalCount} lectures across {course.sections.length} sections · enterprise progress tracking
       </footer>
 
-      <MotivationPopup today={today} stats={stats} streak={streak} courseTitle={course.title} />
+      <MotivationPopup today={today} stats={stats} streak={streak} courseTitle={course.title} trackingStore={trackingStore} settings={settings} history={history} />
 
       <CalendarPanel
         open={calendarOpen}

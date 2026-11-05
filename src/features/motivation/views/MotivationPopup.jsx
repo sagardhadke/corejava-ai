@@ -1,5 +1,6 @@
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useMotivationViewModel } from '../viewmodels/useMotivationViewModel.js';
+import { generatePersonalizedInsights } from '../../tracking/models/personalizedInsightsModel.js';
 import './MotivationPopup.css';
 
 export default function MotivationPopup({
@@ -7,10 +8,31 @@ export default function MotivationPopup({
   stats,
   streak,
   courseTitle,
+  trackingStore,
+  settings,
+  history,
   viewModel,
 }) {
   const internalVm = useMotivationViewModel({ today, stats, streak, courseTitle });
   const vm = viewModel || internalVm;
+
+  const aiPersonalization = settings?.aiPersonalization !== false;
+
+  const insights = useMemo(() => {
+    if (!aiPersonalization) return null;
+    return generatePersonalizedInsights({
+      dailyLog: trackingStore?.dailyLog || {},
+      history: history || {},
+      pct: stats?.pct || 0,
+      watchedCount: stats?.watchedCount || 0,
+      totalCount: stats?.totalCount || 0,
+      streak: streak || 0,
+      remainingSec: stats?.remainingSec || 0,
+      today,
+      courseTitle: courseTitle || 'Core Java + AI',
+      aiPersonalization: true,
+    });
+  }, [trackingStore, history, stats, streak, today, courseTitle, aiPersonalization]);
 
   // Close on Escape key
   useEffect(() => {
@@ -45,7 +67,11 @@ export default function MotivationPopup({
         <div className="motivation-card__badge">
           <SparkleIcon />
           <span>Daily Motivation</span>
-          {vm.isAiGenerated && <span className="motivation-card__ai-tag">AI Powered</span>}
+          {vm.isAiGenerated ? (
+            <span className="motivation-card__ai-tag">AI Powered</span>
+          ) : aiPersonalization ? (
+            <span className="motivation-card__ai-tag motivation-card__ai-tag--local">Local AI</span>
+          ) : null}
         </div>
 
         <h3 className="motivation-card__greeting">Welcome back!</h3>
@@ -80,6 +106,54 @@ export default function MotivationPopup({
             <p className="motivation-card__text">"{vm.message}"</p>
           )}
         </div>
+
+        {/* Personalized Local Guidance (What to do next, What to avoid, Focus on) */}
+        {insights && insights.enabled && (
+          <div className="motivation-card__insights">
+            <div className="motivation-card__insights-head">
+              <span className="motivation-card__insights-pill">AI Coach Guidance</span>
+              <span className="motivation-card__insights-sub">Analyzed from your local progress</span>
+            </div>
+
+            <div className="motivation-card__guidance-list">
+              {insights.whatNext && (
+                <div className="motivation-card__guidance-item motivation-card__guidance-item--next">
+                  <div className="motivation-card__guidance-head">
+                    <span className="motivation-card__guidance-badge motivation-card__guidance-badge--next">Next Step</span>
+                  </div>
+                  <p className="motivation-card__guidance-body">{insights.whatNext}</p>
+                </div>
+              )}
+
+              {insights.whatToAvoid && (
+                <div className="motivation-card__guidance-item motivation-card__guidance-item--avoid">
+                  <div className="motivation-card__guidance-head">
+                    <span className="motivation-card__guidance-badge motivation-card__guidance-badge--avoid">What to Avoid</span>
+                  </div>
+                  <p className="motivation-card__guidance-body">{insights.whatToAvoid}</p>
+                </div>
+              )}
+
+              {insights.focusOn && (
+                <div className="motivation-card__guidance-item motivation-card__guidance-item--focus">
+                  <div className="motivation-card__guidance-head">
+                    <span className="motivation-card__guidance-badge motivation-card__guidance-badge--focus">Focus On</span>
+                  </div>
+                  <p className="motivation-card__guidance-body">{insights.focusOn}</p>
+                </div>
+              )}
+            </div>
+
+            {insights.recommendations && insights.recommendations.length > 0 && (
+              <div className="motivation-card__tip">
+                <span className="motivation-card__tip-icon">💡</span>
+                <span className="motivation-card__tip-text">
+                  <strong>Recommendation:</strong> {insights.recommendations[0].text}
+                </span>
+              </div>
+            )}
+          </div>
+        )}
 
         <button
           type="button"
