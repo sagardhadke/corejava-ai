@@ -19,12 +19,15 @@ test.describe('Flow 7 — Multi-Course Management & XML Import', () => {
     await page.waitForSelector('.section-card--open');
   });
 
-  test('imports a course via XML and allows switching between courses', async ({ page }) => {
+  test('imports a course via XML and allows switching between courses', async ({ page, isMobile }) => {
     const errors: Error[] = [];
     page.on('pageerror', (err) => errors.push(err));
 
     // Open settings drawer
-    await page.locator('.header-settings-btn').click();
+    const settingsBtn = isMobile
+      ? page.locator('.mobile-bottom-nav').getByRole('button', { name: /settings/i })
+      : page.locator('.header-settings-btn');
+    await settingsBtn.click();
     await page.waitForTimeout(300);
 
     // Click Import course from XML
