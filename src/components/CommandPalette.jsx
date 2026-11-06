@@ -298,7 +298,7 @@ export default function CommandPalette({
           <kbd className="cp-esc-badge" onClick={onClose}>ESC</kbd>
         </div>
 
-        <div className="cp-body" ref={listRef}>
+        <div className="cp-body" ref={listRef} tabIndex={0} role="listbox" aria-label="Command search results">
           {items.length === 0 ? (
             <div className="cp-empty">
               <span>No matching commands or lectures found for "{query}".</span>

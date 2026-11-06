@@ -9,7 +9,6 @@ export default function DeveloperBadge() {
         rel="noopener noreferrer"
         className="dev-badge"
         title="Visit Sagar Dhadke on GitHub"
-        aria-label="Sagar Dhadke - GitHub profile (opens in new tab)"
       >
         <span className="dev-badge__dot" aria-hidden="true" />
         <span className="dev-badge__content">

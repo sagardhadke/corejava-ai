@@ -12,7 +12,7 @@ export default function PerSectionProgress({ sectionProgress = [], onJumpToSecti
   return (
     <div className="psp-card" style={{ '--psp-visible-items': count }}>
       <div className="psp-card__head" onClick={() => setMobileExpanded((v) => !v)}>
-        <h3>Per-section progress</h3>
+        <h2>Per-section progress</h2>
         <div className="psp-card__head-actions">
           <span className="psp-card__summary">
             {sectionProgress.filter((s) => s.isComplete).length}/{totalSections} done
@@ -25,7 +25,11 @@ export default function PerSectionProgress({ sectionProgress = [], onJumpToSecti
       {totalSections === 0 ? (
         <div className="psp-empty">No sections available for this course.</div>
       ) : (
-        <ul className={`psp-list ${!mobileExpanded ? 'psp-list--mobile-collapsed' : ''}`}>
+        <ul
+          className={`psp-list ${!mobileExpanded ? 'psp-list--mobile-collapsed' : ''}`}
+          tabIndex={0}
+          aria-label="Section progress list"
+        >
           {sectionProgress.map((s) => {
             const pct = s.total ? Math.round((s.watchedCount / s.total) * 100) : 0;
             return (

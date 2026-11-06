@@ -71,7 +71,6 @@ export default function Header({
             className="header-cmd-trigger"
             onClick={onOpenCommandPalette}
             title="Quick search & actions (Ctrl+K or ⌘K)"
-            aria-label="Open command palette"
           >
             <SearchIcon />
             <span className="header-cmd-trigger__text">Search & Actions</span>
@@ -84,7 +83,7 @@ export default function Header({
             className={`icon-btn notif-btn ${unreadNotificationsCount > 0 ? 'notif-btn--has-unread' : ''}`}
             onClick={onOpenNotifications}
             title={unreadNotificationsCount > 0 ? `Notifications (${unreadNotificationsCount} unread)` : 'Notifications'}
-            aria-label="Open notifications"
+            aria-label={unreadNotificationsCount > 0 ? `Notifications (${unreadNotificationsCount} unread)` : 'Notifications'}
           >
             <BellIcon />
             {unreadNotificationsCount > 0 && (
@@ -95,18 +94,22 @@ export default function Header({
             className="icon-btn badges-btn"
             onClick={onOpenBadges}
             title={`Achievements & Badges (${unlockedBadgesCount}/12 unlocked)`}
-            aria-label="Open achievements and badges"
           >
             <TrophyIcon />
+            <span style={{ position: 'absolute', width: 1, height: 1, padding: 0, margin: -1, overflow: 'hidden', clip: 'rect(0,0,0,0)', border: 0 }}>
+              Achievements and Badges:
+            </span>
             <span className="badges-count">{unlockedBadgesCount}</span>
           </button>
           <button
             className="icon-btn streak-btn"
             onClick={onOpenCalendar}
             title="Streak calendar"
-            aria-label="Open streak calendar"
           >
             <FireIcon />
+            <span style={{ position: 'absolute', width: 1, height: 1, padding: 0, margin: -1, overflow: 'hidden', clip: 'rect(0,0,0,0)', border: 0 }}>
+              Streak calendar:
+            </span>
             <span className="streak-count">{streak}</span>
           </button>
           <button
