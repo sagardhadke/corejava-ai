@@ -19,11 +19,13 @@ test.describe('Flow 8 — Settings Panel', () => {
     await page.waitForSelector('.section-card--open');
   });
 
-  test('clicking settings button opens SettingsPanel drawer', async ({ page }) => {
+  test('clicking settings button opens SettingsPanel drawer', async ({ page, isMobile }) => {
     const errors: Error[] = [];
     page.on('pageerror', (err) => errors.push(err));
 
-    const settingsBtn = page.locator('.header-settings-btn');
+    const settingsBtn = isMobile
+      ? page.locator('.mobile-bottom-nav').getByRole('button', { name: /settings/i })
+      : page.locator('.header-settings-btn');
     await settingsBtn.click();
     await page.waitForTimeout(300);
 
@@ -36,11 +38,14 @@ test.describe('Flow 8 — Settings Panel', () => {
     expect(errors).toHaveLength(0);
   });
 
-  test('selecting daily target preset chip updates target hours', async ({ page }) => {
+  test('selecting daily target preset chip updates target hours', async ({ page, isMobile }) => {
     const errors: Error[] = [];
     page.on('pageerror', (err) => errors.push(err));
 
-    await page.locator('.header-settings-btn').click();
+    const settingsBtn = isMobile
+      ? page.locator('.mobile-bottom-nav').getByRole('button', { name: /settings/i })
+      : page.locator('.header-settings-btn');
+    await settingsBtn.click();
     await page.waitForTimeout(300);
 
     const drawer = page.locator('.drawer');

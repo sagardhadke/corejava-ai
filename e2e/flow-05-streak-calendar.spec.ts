@@ -19,11 +19,13 @@ test.describe('Flow 5 — Streak Calendar & Practice Days', () => {
     await page.waitForSelector('.section-card--open');
   });
 
-  test('clicking streak button opens CalendarPanel drawer', async ({ page }) => {
+  test('clicking streak button opens CalendarPanel drawer', async ({ page, isMobile }) => {
     const errors: Error[] = [];
     page.on('pageerror', (err) => errors.push(err));
 
-    const streakBtn = page.locator('.streak-btn');
+    const streakBtn = isMobile
+      ? page.locator('.mobile-bottom-nav').getByRole('button', { name: /streak/i })
+      : page.locator('.streak-btn');
     await streakBtn.click();
     await page.waitForTimeout(300);
 

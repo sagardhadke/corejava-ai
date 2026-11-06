@@ -18,11 +18,13 @@ test.describe('Flow 6 — Badges & Achievements', () => {
     await page.waitForSelector('.section-card--open');
   });
 
-  test('clicking badges button opens BadgesPanel drawer', async ({ page }) => {
+  test('clicking badges button opens BadgesPanel drawer', async ({ page, isMobile }) => {
     const errors: Error[] = [];
     page.on('pageerror', (err) => errors.push(err));
 
-    const badgesBtn = page.locator('.badges-btn');
+    const badgesBtn = isMobile
+      ? page.locator('.mobile-bottom-nav').getByRole('button', { name: /badges|achievements/i })
+      : page.locator('.badges-btn');
     await badgesBtn.click();
     await page.waitForTimeout(300);
 
