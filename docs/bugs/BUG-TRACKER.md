@@ -15,6 +15,8 @@
 | **BUG-4** | Sidebar Card Headings Oversized (`TodayPlanCard` & `PerSectionProgress`) | UI / Layout | High | **Fixed** | Working Tree |
 | **BUG-5** | 5-Hour Daily Learning Cap & Locking System Bypassed | Security / Business Logic | Critical | **Fixed** | `3851327` & `3c3ac39` |
 | **BUG-6** | Proactive Remaining Daily Cap Locking on Syllabus Lectures | UX / Real-Time Tracking | High | **Fixed** | `3c3ac39` |
+| **BUG-7** | Unwatch/Un-mark Fails to Restore Daily Budget and Unlock Lectures | Business Logic / State Sync | High | **Fixed** | `37e6773` |
+| **BUG-8** | Command Palette ARIA Violation & Keyboard Activation | Accessibility / A11y | Medium | **Fixed** | `50a0df8` |
 
 ---
 
@@ -77,13 +79,33 @@
 
 ---
 
+### 7. BUG-7: Unwatch Fails to Restore Daily Budget and Unlock Lectures
+- **Category**: Business Logic / State Sync
+- **Symptoms**: If a user reached the 5-hour cap (or high daily total) and unmarked/unwatched a lecture, previously locked lectures remained locked and daily learned time did not decrement in real-time due to a stale read from asynchronous React state.
+- **Root Cause**: `getTodayLearnedSec` evaluated `Math.max(trackingSec, historySec)`. When unwatching, `setHistory` is asynchronous; `localStorage.getItem('jct_history__...')` still held the pre-unwatch value, pinning the daily total at the higher number.
+- **Resolution**:
+  - Made `trackingStore.dailyLog[dateKey].totalSec` authoritative in `learningTrackerModel.js`.
+  - Added synchronous `localStorage.setItem('jct_history__...', ...)` in `useCourseProgress.js` on unwatch.
+  - Forwarded `inMemoryHistory` into `checkDailyLimitGate`, `isTodayLimitReached`, and `getTodayRemainingCapSec`.
+- **Verification**: Verified via `local-testing/live-browser-agent.mjs` (Step 5b) in live Chrome desktop and unit test in `learningTracker.test.mjs`.
+
+---
+
+### 8. BUG-8: Command Palette ARIA Violation & Keyboard Activation
+- **Category**: Accessibility
+- **Symptoms**: Axe reported `aria-required-children` for `.cp-body` container with `role="listbox"`. Empty query state violated listbox specs.
+- **Resolution**: Changed `.cp-body` to `role="region"`, added `role="button"`, `tabIndex={0}`, and Enter key activation on items, and `role="status"` on empty state.
+- **Verification**: Axe automated audit passes with 0 violations.
+
+---
+
 ## 🛡️ Verification Evidence
 
 | Test Suite | Pass Count | Failure Count | Status |
 | :--- | :--- | :--- | :--- |
-| **Live Chrome Desktop Agent** | 7 | 0 | **PASS** |
-| **Vitest Component Tests** | 84 | 0 | **PASS** |
-| **Legacy Integration Tests** | 66 | 0 | **PASS** |
+| **Live Chrome Desktop Agent** | 8 | 0 | **PASS** |
+| **Vitest Component Tests** | 85 | 0 | **PASS** |
+| **Legacy Integration Tests** | 67 | 0 | **PASS** |
 | **Deep Tracker Verification** | 29 | 0 | **PASS** |
 | **Stress Test Suite (580 Scenarios)** | 580 | 0 | **PASS** |
 | **Production Build** | 0 warnings | 0 errors | **PASS** |
