@@ -38,3 +38,4 @@ Because the HTML elements were `h2`, the CSS rules did not match. The elements i
    - Added global fallback typography rules for `h2` (`15px, 700`), `h3` (`13.5px, 600`), and `h4` (`12px, 600`) so any component heading tag transitions in the future never inherit browser default sizes.
 4. **Verified via live visible Chrome browser agent**:
    - Both cards verified with crisp 13–13.5px headings, single-line alignment, and proper vertical spacing.
+
