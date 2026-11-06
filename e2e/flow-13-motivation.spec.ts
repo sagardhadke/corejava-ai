@@ -27,18 +27,11 @@ test.describe('Flow 13 — Daily Motivation Modal', () => {
     await expect(modal).toBeVisible();
     await expect(page.getByText('Daily Motivation')).toBeVisible();
 
-    // Verify quote text is displayed
-    const quoteEl = modal.locator('.motivation-card__quote');
+    // Verify motivation text is displayed
+    const quoteEl = modal.locator('.motivation-card__text');
     await expect(quoteEl).toBeVisible();
     const initialQuote = await quoteEl.innerText();
     expect(initialQuote.length).toBeGreaterThan(5);
-
-    // Click refresh button to cycle quote
-    const refreshBtn = modal.locator('.motivation-card__refresh');
-    if (await refreshBtn.isVisible()) {
-      await refreshBtn.click();
-      await page.waitForTimeout(200);
-    }
 
     // Dismiss modal via primary CTA
     const dismissBtn = modal.locator('.motivation-card__cta');

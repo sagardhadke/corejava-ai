@@ -39,16 +39,18 @@ test.describe('Flow 7 — Multi-Course Management & XML Import', () => {
 
     // Upload XML content
     const sampleXml = `<?xml version="1.0" encoding="UTF-8"?>
-<course title="Advanced Spring Boot 3">
-  <section number="01" title="Spring Core Essentials">
-    <lecture title="Dependency Injection and IoC" duration="30m"/>
-  </section>
+<course>
+  <title>Advanced Spring Boot 3</title>
+  <sections>
+    <section number="01" title="Spring Core Essentials">
+      <items>
+        <item type="video" title="Dependency Injection and IoC" duration="30m"/>
+      </items>
+    </section>
+  </sections>
 </course>`;
 
-    const fileChooserPromise = page.waitForEvent('filechooser');
-    await page.locator('.ci-dropzone').click();
-    const fileChooser = await fileChooserPromise;
-    await fileChooser.setFiles({
+    await page.locator('input[type="file"]').setInputFiles({
       name: 'spring-boot.xml',
       mimeType: 'application/xml',
       buffer: Buffer.from(sampleXml),
@@ -67,7 +69,7 @@ test.describe('Flow 7 — Multi-Course Management & XML Import', () => {
     await expect(selectorTrigger).toContainText('Advanced Spring Boot 3');
 
     // Section from new course should be rendered
-    await expect(page.getByText('Spring Core Essentials')).toBeVisible();
+    await expect(page.locator('.section-card__title').getByText('Spring Core Essentials')).toBeVisible();
 
     // Switch back to original course via selector
     await selectorTrigger.click();
@@ -77,7 +79,7 @@ test.describe('Flow 7 — Multi-Course Management & XML Import', () => {
     await page.waitForTimeout(300);
 
     // Original course sections should be visible again
-    await expect(page.getByText('Java Fundamentals')).toBeVisible();
+    await expect(page.locator('.section-card__title').getByText('Java Fundamentals')).toBeVisible();
 
     // Reload page to test persistence
     await page.reload();
