@@ -57,7 +57,23 @@
   cursor: pointer;
   flex-shrink: 0;
 }
-.plan-check input { display: none; }
+.plan-check {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+}
+.plan-check input {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+  z-index: 1;
+}
 .plan-check__box {
   width: 18px;
   height: 18px;
@@ -75,6 +91,10 @@
   border-color: var(--amber);
 }
 .plan-check:hover .plan-check__box { border-color: var(--amber); }
+.plan-check input:focus-visible + .plan-check__box {
+  outline: 2px solid var(--amber);
+  outline-offset: 2px;
+}
 
 /* Watched toggle circle */
 .watched-toggle {

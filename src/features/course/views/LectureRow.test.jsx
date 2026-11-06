@@ -165,6 +165,28 @@ describe('LectureRow', () => {
     expect(consoleErrors).toHaveLength(0);
   });
 
+  it('allows toggling plan checkbox via keyboard Space', async () => {
+    const user = userEvent.setup();
+    const onTogglePlan = vi.fn();
+    render(
+      <LectureRow
+        lecture={MOCK_LECTURE}
+        number={1}
+        watched={false}
+        inPlan={false}
+        onToggleWatched={vi.fn()}
+        onTogglePlan={onTogglePlan}
+        isDailyLimitReached={false}
+        todayRemainingCapSec={Infinity}
+      />
+    );
+    const checkbox = screen.getByRole('checkbox', { name: /add lecture 1 to today's plan/i });
+    checkbox.focus();
+    await user.keyboard(' ');
+    expect(onTogglePlan).toHaveBeenCalledWith('l1');
+    expect(consoleErrors).toHaveLength(0);
+  });
+
   it('renders correctly when lecture has no durationLabel', () => {
     const noLabel = { ...MOCK_LECTURE, durationLabel: undefined };
     render(
