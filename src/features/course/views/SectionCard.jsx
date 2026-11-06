@@ -2,7 +2,7 @@ import { formatDuration } from '../../../utils/time.js';
 import LectureRow from './LectureRow.jsx';
 import './SectionCard.css';
 
-export default function SectionCard({ section, isOpen, onToggleOpen, watchedSet, planSet, onToggleWatched, onTogglePlan, lectureNumbers, isDailyLimitReached }) {
+export default function SectionCard({ section, isOpen, onToggleOpen, watchedSet, planSet, onToggleWatched, onTogglePlan, lectureNumbers, isDailyLimitReached, todayRemainingCapSec }) {
   const total = section.lectures?.length || 0;
   const doneCount = (section.lectures || []).filter((l) => watchedSet.has(l.id)).length;
   const totalSec = (section.lectures || []).reduce((a, l) => a + (l.durationSec || 0), 0);
@@ -45,6 +45,7 @@ export default function SectionCard({ section, isOpen, onToggleOpen, watchedSet,
               onToggleWatched={onToggleWatched}
               onTogglePlan={onTogglePlan}
               isDailyLimitReached={isDailyLimitReached}
+              todayRemainingCapSec={todayRemainingCapSec}
             />
           ))}
         </div>

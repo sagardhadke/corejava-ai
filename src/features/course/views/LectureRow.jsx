@@ -1,17 +1,23 @@
 import { spaceDurationLabel } from '../../../utils/time.js';
 import './LectureRow.css';
 
-export default function LectureRow({ lecture, number, watched, inPlan, onToggleWatched, onTogglePlan, isDailyLimitReached }) {
-  const isLocked = !watched && isDailyLimitReached;
+export default function LectureRow({ lecture, number, watched, inPlan, onToggleWatched, onTogglePlan, isDailyLimitReached, todayRemainingCapSec }) {
+  const lectureSec = lecture?.durationSec || 0;
+  const wouldExceedRemainingCap = typeof todayRemainingCapSec === 'number' && todayRemainingCapSec < lectureSec && lectureSec > 0;
+  const isLocked = !watched && (isDailyLimitReached || wouldExceedRemainingCap);
+
+  const lockTooltip = isDailyLimitReached
+    ? 'Daily 5-hour limit reached — locked for today (click for details & exercises)'
+    : isLocked
+    ? `Locked: ${spaceDurationLabel(lecture.durationLabel)} lecture exceeds remaining 5h daily cap (${Math.round(todayRemainingCapSec / 60)}m left today)`
+    : 'Mark as watched';
 
   return (
     <div className={`lecture-row ${watched ? 'lecture-row--watched' : ''} ${inPlan && !watched ? 'lecture-row--today' : ''} ${isLocked ? 'lecture-row--locked' : ''}`}>
       <span className="lecture-row__number" title={`Lecture ${number} of the course`}>{number}</span>
 
-      {/* Once a lecture is marked watched, there's nothing left to "plan" for it —
-          hide the today's-plan checkbox entirely with no spacer, since the watched
-          state has its own visual treatment (completed badge) that fills the space. */}
-      {!watched && (
+      {/* Plan checkbox: hidden once watched OR if lecture is locked for today */}
+      {!watched && !isLocked && (
         <label className="plan-check" title="Add to today's plan" onClick={(e) => e.stopPropagation()}>
           <input
             type="checkbox"
@@ -28,7 +34,7 @@ export default function LectureRow({ lecture, number, watched, inPlan, onToggleW
       <button
         className={`watched-toggle ${isLocked ? 'watched-toggle--locked' : ''}`}
         onClick={() => onToggleWatched(lecture.id, lecture)}
-        title={watched ? 'Mark as not watched' : isLocked ? 'Daily 5-hour limit reached — locked for today (click for details)' : 'Mark as watched'}
+        title={watched ? 'Mark as not watched' : lockTooltip}
         aria-label={watched ? `Mark lecture ${number || ''} as not watched` : isLocked ? `Lecture ${number || ''} locked — daily 5-hour limit reached` : `Mark lecture ${number || ''} as watched`}
         aria-pressed={watched}
       >
@@ -42,7 +48,14 @@ export default function LectureRow({ lecture, number, watched, inPlan, onToggleW
 
       {watched && <span className="completed-pill">COMPLETED</span>}
       {inPlan && !watched && <span className="today-pill">TODAY</span>}
-      {isLocked && <span className="locked-pill" title="5h daily limit reached — content locked until tomorrow"><LockIconSmall /> LOCKED</span>}
+      {isLocked && (
+        <span
+          className="locked-pill"
+          title={isDailyLimitReached ? '5h daily limit reached — content locked until tomorrow' : `Exceeds remaining daily limit (${Math.round(todayRemainingCapSec / 60)}m left today)`}
+        >
+          <LockIconSmall /> LOCKED
+        </span>
+      )}
 
       <span className="lecture-row__dur">{spaceDurationLabel(lecture.durationLabel)}</span>
     </div>

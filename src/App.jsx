@@ -66,7 +66,7 @@ export default function App() {
     toggleWatched, togglePlan, clearPlan, resetAll, updateSettings, updateStartDate, resetStartDateToAuto,
     markPracticeDay, unmarkPracticeDay,
     availableFreezes, usedFreezes, redeemStreakCode,
-    trackingStore, dailyLimitGate, setDailyLimitGate, todayTrackingLog, isDailyLimitReached,
+    trackingStore, dailyLimitGate, setDailyLimitGate, todayTrackingLog, isDailyLimitReached, todayRemainingCapSec,
   } = useCourseProgress(course);
 
   // Headless Course ViewModel (accordion state, filtering, import actions)
@@ -340,6 +340,35 @@ export default function App() {
               plannedCount={planSet.size}
             />
 
+            {/* Daily 5-Hour Learning Limit Banner */}
+            {isDailyLimitReached && (
+              <div className="daily-limit-banner">
+                <div className="daily-limit-banner__icon">🔒</div>
+                <div className="daily-limit-banner__body">
+                  <div className="daily-limit-banner__title">Daily 5-Hour Learning Limit Reached</div>
+                  <div className="daily-limit-banner__desc">
+                    You've reached your maximum 5 hours of learning for today. Remaining course content is locked until tomorrow to encourage spaced repetition and practice.
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  className="daily-limit-banner__action"
+                  onClick={() => setDailyLimitGate({
+                    gate: {
+                      reason: 'limit_reached',
+                      todayLearned: '5h',
+                      limitLabel: '5h',
+                      todayLearnedSec: 18000,
+                      limitSec: 18000,
+                    },
+                    courseTitle: course?.title || 'Core Java + AI',
+                  })}
+                >
+                  Practical Exercises →
+                </button>
+              </div>
+            )}
+
             {courseVM.filteredSections.length === 0 ? (
               <div className="empty-state">
                 <span className="empty-state__icon">🔍</span>
@@ -361,6 +390,7 @@ export default function App() {
                     onTogglePlan={togglePlan}
                     lectureNumbers={courseVM.lectureNumbers}
                     isDailyLimitReached={isDailyLimitReached}
+                    todayRemainingCapSec={todayRemainingCapSec}
                   />
                 </div>
               ))
@@ -384,6 +414,7 @@ export default function App() {
                 todayWatchedSec={todayWatchedSec}
                 startDate={startDate}
                 isDailyLimitReached={isDailyLimitReached}
+                todayRemainingCapSec={todayRemainingCapSec}
               />
               <PerSectionProgress
                 sectionProgress={sectionProgress}

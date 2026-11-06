@@ -4,7 +4,7 @@ import './TodayPlanCard.css';
 export default function TodayPlanCard({
   plannedLectures, watchedSet, targetSec, autoPlan, onToggleWatched, lectureNumbers,
   isTodayPracticeDay, hasWatchedToday, onOpenPracticeModal, onUnmarkPracticeDay,
-  todayWatchedSec = 0, startDate, isDailyLimitReached,
+  todayWatchedSec = 0, startDate, isDailyLimitReached, todayRemainingCapSec,
 }) {
   const plannedSec = plannedLectures.reduce((a, l) => a + l.durationSec, 0);
   const pct = targetSec > 0 ? Math.min(100, Math.round((todayWatchedSec / targetSec) * 100)) : 0;
@@ -16,6 +16,12 @@ export default function TodayPlanCard({
         <h3>Today's plan {autoPlan && <span className="auto-tag">AUTO</span>}</h3>
         <span className="today-card__total">{formatDuration(plannedSec)}</span>
       </div>
+
+      {isDailyLimitReached && (
+        <div className="today-card__limit-badge" title="Daily 5h limit reached for today">
+          <LockIconSmall /> 5h Daily Limit Reached — Practice Time!
+        </div>
+      )}
 
       <div className="today-card__watched-today">
         <span className="today-card__watched-today-label">Watched today</span>
@@ -37,7 +43,9 @@ export default function TodayPlanCard({
         <ul className="today-card__list">
           {plannedLectures.map((l) => {
             const done = watchedSet.has(l.id);
-            const isLocked = !done && isDailyLimitReached;
+            const lSec = l.durationSec || 0;
+            const wouldExceed = typeof todayRemainingCapSec === 'number' && todayRemainingCapSec < lSec && lSec > 0;
+            const isLocked = !done && (isDailyLimitReached || wouldExceed);
             return (
               <li key={l.id} className={`${done ? 'today-card__item--done' : ''} ${isLocked ? 'today-card__item--locked' : ''}`}>
                 <button
