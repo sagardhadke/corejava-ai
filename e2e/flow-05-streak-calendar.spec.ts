@@ -57,7 +57,7 @@ test.describe('Flow 5 — Streak Calendar & Practice Days', () => {
     await page.getByRole('button', { name: 'Continue' }).click();
 
     // Step 2: Read the 6-digit confirmation code and type it
-    await page.waitForSelector('.pd-code-digit');
+    await expect(page.locator('.pd-code-digit')).toHaveCount(6);
     const digits = await page.locator('.pd-code-digit').allInnerTexts();
     const code = digits.join('').trim();
     await page.locator('.pd-code-input').fill(code);

@@ -15,25 +15,17 @@ test.describe('Flow 12 — 5-Hour Daily Limit & Content Locking', () => {
 
     // Seed 5 hours (18000 seconds) of learning in tracking store for today
     await page.evaluate(() => {
-      const today = new Date().toISOString().slice(0, 10);
+      const d = new Date();
+      const today = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
       localStorage.setItem('jct_motivation_shown_v1', JSON.stringify({ date: today }));
-      localStorage.setItem('jct_tracking_v1', JSON.stringify({
-        sessions: [
-          {
-            id: 'mock-session-1',
-            date: today,
-            courseId: 'core-java-ai',
-            lectureId: 'core-java-ai__s01_l0',
-            durationSec: 18000,
-            type: 'lecture',
-            timestamp: new Date().toISOString(),
-          },
-        ],
+      localStorage.setItem('jct_tracking__core-java-ai_v2', JSON.stringify({
+        version: 'v2',
         dailyLog: {
           [today]: {
-            learnedSec: 18000,
+            totalSec: 18000,
             lectureCount: 5,
-            sessions: [],
+            limitReached: true,
+            entries: [],
           },
         },
       }));
@@ -58,7 +50,7 @@ test.describe('Flow 12 — 5-Hour Daily Limit & Content Locking', () => {
 
     const dialog = page.locator('.dlimit-card');
     await expect(dialog).toBeVisible();
-    await expect(page.getByText('Daily Learning Limit')).toBeVisible();
+    await expect(dialog.getByRole('heading', { level: 2 })).toBeVisible();
 
     // Close dialog
     await page.locator('.dlimit-card__close').click();
