@@ -32,6 +32,7 @@ import {
   loadTrackingStore,
   getTodayLearnedSec,
   isTodayLimitReached,
+  getTodayRemainingCapSec,
   clearTrackingStore,
 } from '../features/tracking/models/learningTrackerModel.js';
 import { checkDailyLimitGate } from '../features/tracking/models/dailyLimitModel.js';
@@ -44,7 +45,7 @@ import { checkDailyLimitGate } from '../features/tracking/models/dailyLimitModel
  * to pure Domain Models in features/.
  */
 export function useCourseProgress(course) {
-  const courseId = course?.id || 'none';
+  const courseId = course?.id || 'core-java-ai';
   const allLectures = useMemo(() => course?.allLectures || [], [course]);
 
   const WATCHED_KEY = `jct_watched__${courseId}`;
@@ -108,6 +109,11 @@ export function useCourseProgress(course) {
     const interval = setInterval(check, 15000);
     return () => clearInterval(interval);
   }, [today]);
+
+  const todayRemainingCapSec = useMemo(() => {
+    if (settings.dailyLimitEnabled === false || settings.trackingEnabled === false) return Infinity;
+    return getTodayRemainingCapSec(courseId, today);
+  }, [courseId, today, settings.dailyLimitEnabled, settings.trackingEnabled, trackingStore, history]);
 
   const isDailyLimitReached = useMemo(() => {
     if (settings.dailyLimitEnabled === false || settings.trackingEnabled === false) return false;
@@ -538,5 +544,6 @@ export function useCourseProgress(course) {
     setDailyLimitGate,
     todayTrackingLog: trackingStore?.dailyLog?.[today] || null,
     isDailyLimitReached,
+    todayRemainingCapSec,
   };
 }
