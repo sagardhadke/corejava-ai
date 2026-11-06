@@ -27,6 +27,7 @@ export function computeCourseStats(allLectures = [], watchedSet = new Set(), pla
     plannedCount: planned.length,
     plannedSec,
     plannedWatchedCount: planned.filter((l) => watchedSet.has(l.id)).length,
+    plannedWatchedSec, // BUG-1 fix: was computed but never returned
     plannedRemainingSec,
     todaySelectedSec: plannedSec,
   };

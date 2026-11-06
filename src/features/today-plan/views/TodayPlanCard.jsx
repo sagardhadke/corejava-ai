@@ -13,7 +13,7 @@ export default function TodayPlanCard({
   return (
     <div className="today-card" id="today-plan-card">
       <div className="today-card__head">
-        <h3>Today's plan {autoPlan && <span className="auto-tag">AUTO</span>}</h3>
+        <h2>Today's plan {autoPlan && <span className="auto-tag">AUTO</span>}</h2>
         <span className="today-card__total">{formatDuration(plannedSec)}</span>
       </div>
 
