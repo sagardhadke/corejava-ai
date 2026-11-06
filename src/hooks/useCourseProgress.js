@@ -112,12 +112,12 @@ export function useCourseProgress(course) {
 
   const todayRemainingCapSec = useMemo(() => {
     if (settings.dailyLimitEnabled === false || settings.trackingEnabled === false) return Infinity;
-    return getTodayRemainingCapSec(courseId, today);
+    return getTodayRemainingCapSec(courseId, today, history);
   }, [courseId, today, settings.dailyLimitEnabled, settings.trackingEnabled, trackingStore, history]);
 
   const isDailyLimitReached = useMemo(() => {
     if (settings.dailyLimitEnabled === false || settings.trackingEnabled === false) return false;
-    return isTodayLimitReached(courseId, today);
+    return isTodayLimitReached(courseId, today, history);
   }, [courseId, today, settings.dailyLimitEnabled, settings.trackingEnabled, trackingStore, history]);
 
   const toggleWatched = useCallback((lectureId, lecture) => {
@@ -133,7 +133,7 @@ export function useCourseProgress(course) {
 
     // Daily 5-hour limit gate check when attempting to mark as watched
     if (isNowWatched && limitEnabled) {
-      const gate = checkDailyLimitGate(courseId, key, targetLecture, true);
+      const gate = checkDailyLimitGate(courseId, key, targetLecture, true, history);
       if (gate.blocked) {
         setDailyLimitGate({
           gate,
@@ -185,7 +185,11 @@ export function useCourseProgress(course) {
       } else {
         nextBucket = bucket;
       }
-      return { ...h, [key]: nextBucket };
+      const nextHistory = { ...h, [key]: nextBucket };
+      try {
+        localStorage.setItem(`jct_history__${courseId}`, JSON.stringify(nextHistory));
+      } catch {}
+      return nextHistory;
     });
 
     // 3. Record in tracking store
@@ -195,6 +199,7 @@ export function useCourseProgress(course) {
     }
   }, [
     watched,
+    history,
     settings.dailyLimitEnabled,
     settings.trackingEnabled,
     courseId,

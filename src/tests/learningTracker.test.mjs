@@ -149,6 +149,43 @@ describe('Real-Time Learning Tracker & 5-Hour Limit Test Suite', () => {
       assert.equal(gateDisabled.blocked, false);
     });
 
+    it('un-watching a lecture restores remaining daily budget and allows marking previously blocked lectures', () => {
+      // 1. User watches 4h 45m (17,100s) with 2 lectures: lec_A (3600s) and lec_B (13,500s)
+      const store = loadTrackingStore(courseId);
+      store.dailyLog[todayKey] = {
+        totalSec: 17100,
+        lectureCount: 2,
+        limitReached: false,
+        entries: [
+          { lectureId: 'lec_A', durationSec: 3600 },
+          { lectureId: 'lec_B', durationSec: 13500 },
+        ],
+      };
+      saveTrackingStore(courseId, store);
+
+      // Remaining budget is 900s (15m). A 30m (1800s) lecture is blocked.
+      const gateBlocked = checkDailyLimitGate(courseId, todayKey, { id: 'lec_C', durationSec: 1800 }, true);
+      assert.equal(gateBlocked.blocked, true);
+      assert.equal(gateBlocked.reason, 'would_exceed');
+
+      // 2. User un-watches lec_A (3600s)
+      recordLectureView(courseId, todayKey, { id: 'lec_A', durationSec: 3600 }, false);
+
+      // Total learned is now 13,500s (3h 45m). Remaining budget is 4,500s (1h 15m).
+      assert.equal(getTodayLearnedSec(courseId, todayKey), 13500);
+      assert.equal(getTodayRemainingCapSec(courseId, todayKey), 4500);
+      assert.equal(isTodayLimitReached(courseId, todayKey), false);
+
+      // 3. User can now mark lec_C (1800s) successfully!
+      const gateAfterUnwatch = checkDailyLimitGate(courseId, todayKey, { id: 'lec_C', durationSec: 1800 }, true);
+      assert.equal(gateAfterUnwatch.blocked, false);
+
+      // 4. Mark lec_C
+      recordLectureView(courseId, todayKey, { id: 'lec_C', durationSec: 1800 }, true);
+      assert.equal(getTodayLearnedSec(courseId, todayKey), 15300); // 4h 15m
+      assert.equal(getTodayRemainingCapSec(courseId, todayKey), 2700); // 45m remaining
+    });
+
     it('builds clear and encouraging dialog content for both limit states', () => {
       const wouldExceedGate = {
         reason: 'would_exceed',

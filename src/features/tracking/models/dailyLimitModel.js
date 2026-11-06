@@ -17,13 +17,13 @@ export const DAILY_LIMIT_HOURS = 5;
  *   { blocked: false } — allow
  *   { blocked: true, reason, todayLearned, lectureDuration, limitSec, remainingCap } — deny with dialog info
  */
-export function checkDailyLimitGate(courseId, dateKey, lecture, trackingEnabled) {
+export function checkDailyLimitGate(courseId, dateKey, lecture, trackingEnabled, inMemoryHistory) {
   // If tracking is disabled, never block
   if (!trackingEnabled) return { blocked: false };
 
   const lectureSec = lecture?.durationSec || 0;
-  const todayLearnedSec = getTodayLearnedSec(courseId, dateKey);
-  const remainingCapSec = getTodayRemainingCapSec(courseId, dateKey);
+  const todayLearnedSec = getTodayLearnedSec(courseId, dateKey, inMemoryHistory);
+  const remainingCapSec = getTodayRemainingCapSec(courseId, dateKey, inMemoryHistory);
 
   // If user is UN-marking a lecture, never block
   // (the caller only calls this when isWatched is about to become true)
