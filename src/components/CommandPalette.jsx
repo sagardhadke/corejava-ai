@@ -298,9 +298,9 @@ export default function CommandPalette({
           <kbd className="cp-esc-badge" onClick={onClose}>ESC</kbd>
         </div>
 
-        <div className="cp-body" ref={listRef} tabIndex={0} role="listbox" aria-label="Command search results">
+        <div className="cp-body" ref={listRef} tabIndex={0} role="region" aria-label="Command search results">
           {items.length === 0 ? (
-            <div className="cp-empty">
+            <div className="cp-empty" role="status">
               <span>No matching commands or lectures found for "{query}".</span>
             </div>
           ) : (
@@ -312,6 +312,9 @@ export default function CommandPalette({
                   className={`cp-item ${isSelected ? 'cp-item--active' : ''}`}
                   onClick={() => item.run()}
                   onMouseEnter={() => setActiveIndex(idx)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => { if (e.key === 'Enter') item.run(); }}
                 >
                   <span className="cp-item__icon" aria-hidden="true">{item.icon}</span>
                   <div className="cp-item__text">
