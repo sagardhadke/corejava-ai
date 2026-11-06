@@ -124,11 +124,26 @@ export function recordLectureView(courseId, dateKey, lecture, isWatched) {
  * Returns today's accumulated learning seconds for a course.
  * Inspects both the tracking store and course history to guarantee accuracy.
  */
-export function getTodayLearnedSec(courseId, dateKey) {
+/**
+ * Returns today's accumulated learning seconds for a course.
+ * Authoritatively uses trackingStore dailyLog, with seamless fallback to history.
+ *
+ * @param {string} courseId
+ * @param {string} dateKey - "YYYY-MM-DD"
+ * @param {object} [inMemoryHistory] - optional current React state history
+ */
+export function getTodayLearnedSec(courseId, dateKey, inMemoryHistory) {
   const store = loadTrackingStore(courseId);
-  const trackingSec = store.dailyLog[dateKey]?.totalSec || 0;
+  const dailyBucket = store.dailyLog[dateKey];
+
+  if (dailyBucket && typeof dailyBucket.totalSec === 'number') {
+    return dailyBucket.totalSec;
+  }
+
   let historySec = 0;
-  if (typeof localStorage !== 'undefined') {
+  if (inMemoryHistory && inMemoryHistory[dateKey]?.watchedSec) {
+    historySec = inMemoryHistory[dateKey].watchedSec;
+  } else if (typeof localStorage !== 'undefined') {
     try {
       const raw = localStorage.getItem(`jct_history__${courseId}`);
       if (raw) {
@@ -139,22 +154,22 @@ export function getTodayLearnedSec(courseId, dateKey) {
       // ignore
     }
   }
-  return Math.max(trackingSec, historySec);
+  return historySec;
 }
 
 /**
  * Returns whether today's daily limit has been reached.
  */
-export function isTodayLimitReached(courseId, dateKey) {
-  const todaySec = getTodayLearnedSec(courseId, dateKey);
+export function isTodayLimitReached(courseId, dateKey, inMemoryHistory) {
+  const todaySec = getTodayLearnedSec(courseId, dateKey, inMemoryHistory);
   return todaySec >= DAILY_LIMIT_SEC;
 }
 
 /**
  * Returns remaining seconds available today before the 5h cap.
  */
-export function getTodayRemainingCapSec(courseId, dateKey) {
-  return Math.max(0, DAILY_LIMIT_SEC - getTodayLearnedSec(courseId, dateKey));
+export function getTodayRemainingCapSec(courseId, dateKey, inMemoryHistory) {
+  return Math.max(0, DAILY_LIMIT_SEC - getTodayLearnedSec(courseId, dateKey, inMemoryHistory));
 }
 
 /**
