@@ -29,4 +29,6 @@ PRIVATE_DEV_HANDOFF.md
 *_HANDOFF*.md
 report-temp/
 local-testing/
+playwright-report/
+test-results/
 
