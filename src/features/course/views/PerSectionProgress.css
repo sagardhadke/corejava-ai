@@ -36,8 +36,11 @@
     margin-bottom: 0;
     cursor: pointer;
   }
+  .psp-card__head h2,
   .psp-card__head h3 {
     font-size: 12.5px;
+    margin: 0;
+    font-weight: 700;
   }
   .psp-mobile-toggle {
     display: inline-flex;
@@ -67,7 +70,15 @@
   justify-content: space-between;
   margin-bottom: 12px;
 }
-.psp-card__head h3 { font-size: 13px; color: var(--ink); }
+.psp-card__head h2,
+.psp-card__head h3 {
+  font-size: 13px;
+  font-weight: 700;
+  margin: 0;
+  line-height: 1.2;
+  color: var(--ink);
+  white-space: nowrap;
+}
 
 .psp-card__summary {
   font-family: var(--font-mono);
