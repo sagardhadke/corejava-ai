@@ -26,15 +26,15 @@ test.describe('Flow 6 — Badges & Achievements', () => {
     await badgesBtn.click();
     await page.waitForTimeout(300);
 
-    const drawer = page.locator('.drawer--open');
+    const drawer = page.locator('.drawer');
     await expect(drawer).toBeVisible();
-    await expect(page.getByText('Milestone Badges')).toBeVisible();
+    await expect(drawer.getByText('Achievements & Badges')).toBeVisible();
 
     // Verify all 12 badges are displayed
     const badges = drawer.locator('.badge-card');
     await expect(badges).toHaveCount(12);
 
-    await page.locator('.drawer__close').click();
+    await drawer.locator('.drawer__close').click();
     expect(errors).toHaveLength(0);
   });
 });

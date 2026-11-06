@@ -44,7 +44,7 @@ test.describe('Flow 11 — Mobile Navigation', () => {
     await bottomNav.getByRole('button', { name: /settings/i }).click();
     await page.waitForTimeout(300);
 
-    const drawer = page.locator('.drawer--open');
+    const drawer = page.locator('.drawer');
     await expect(drawer).toBeVisible();
     expect(errors).toHaveLength(0);
   });

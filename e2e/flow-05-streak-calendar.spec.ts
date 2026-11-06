@@ -28,12 +28,12 @@ test.describe('Flow 5 — Streak Calendar & Practice Days', () => {
     await page.waitForTimeout(300);
 
     // Drawer should open
-    const drawer = page.locator('.drawer--open');
+    const drawer = page.locator('.drawer');
     await expect(drawer).toBeVisible();
-    await expect(page.getByText('Streak & Consistency')).toBeVisible();
+    await expect(drawer.getByText('Activity & Streak')).toBeVisible();
 
     // Close drawer
-    await page.locator('.drawer__close').click();
+    await drawer.locator('.drawer__close').click();
     await expect(drawer).not.toBeVisible();
     expect(errors).toHaveLength(0);
   });
@@ -51,15 +51,22 @@ test.describe('Flow 5 — Streak Calendar & Practice Days', () => {
     const modal = page.locator('.pd-modal');
     await expect(modal).toBeVisible();
 
-    // Fill note and confirm
-    const noteInput = page.locator('.pd-modal__textarea');
-    if (await noteInput.isVisible()) {
-      await noteInput.fill('Solved 5 LeetCode problems in Java');
-    }
+    // Step 1: Fill note with at least 10 words
+    const textarea = page.locator('.pd-textarea');
+    await textarea.fill('I spent forty minutes solving binary search algorithm problems in Java today');
+    await page.getByRole('button', { name: 'Continue' }).click();
+
+    // Step 2: Read the 6-digit confirmation code and type it
+    await page.waitForSelector('.pd-code-digit');
+    const digits = await page.locator('.pd-code-digit').allInnerTexts();
+    const code = digits.join('').trim();
+    await page.locator('.pd-code-input').fill(code);
+
     await page.getByRole('button', { name: /confirm practice day/i }).click();
     await page.waitForTimeout(500);
 
-    // Toast should appear and today card should show "Marked as a practice day"
+    // Modal should close and today card should show "Marked as a practice day"
+    await expect(modal).not.toBeVisible();
     await expect(page.getByText('Marked as a practice day')).toBeVisible();
     expect(errors).toHaveLength(0);
   });
