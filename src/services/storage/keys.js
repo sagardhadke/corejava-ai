@@ -84,6 +84,22 @@ export const STORAGE_KEYS = Object.freeze({
    * In Backup: Yes
    */
   MOTIVATION_SHOWN: 'jct_motivation_shown_v1',
+
+  /**
+   * Owner: storage
+   * Shape: number (schema version integer, e.g. 1)
+   * Sensitive: No
+   * In Backup: Yes
+   */
+  SCHEMA_VERSION: 'jct_schema_version',
+
+  /**
+   * Owner: storage
+   * Shape: { timestamp: string, fromVersion: number, data: Record<string, string> }
+   * Sensitive: No
+   * In Backup: NO (Rolling pre-migration safety snapshot)
+   */
+  MIGRATION_BACKUP: 'jct_migration_backup_latest',
 });
 
 /**
@@ -193,6 +209,26 @@ export const SENSITIVE_STORAGE_KEYS = Object.freeze([
 ]);
 
 /**
+ * Checks whether a storage key is sensitive (contains API credentials,
+ * secrets, or cryptographic PIN verification hashes).
+ *
+ * Sensitive keys:
+ * - Top-level API keys (OpenAI, Gemini, Anthropic, AI Tutor multi-provider keys)
+ * - Completion verification state keys (contain PIN hashes and cryptographic salt)
+ * - Keys matching API key naming conventions
+ *
+ * @param {string} key
+ * @returns {boolean}
+ */
+export function isSensitiveKey(key) {
+  if (!key || typeof key !== 'string') return false;
+  if (SENSITIVE_STORAGE_KEYS.includes(key)) return true;
+  if (key.startsWith(COURSE_KEY_PREFIXES.COMPLETION)) return true;
+  if (/^jct_.*(?:api_key|secret|token)/i.test(key)) return true;
+  return false;
+}
+
+/**
  * Structured metadata registry for all active keys and builders
  */
 export const STORAGE_KEY_REGISTRY = Object.freeze({
@@ -258,6 +294,20 @@ export const STORAGE_KEY_REGISTRY = Object.freeze({
     dataShape: '{ date: string }',
     isSensitive: false,
     isInBackup: true,
+  },
+  [STORAGE_KEYS.SCHEMA_VERSION]: {
+    key: STORAGE_KEYS.SCHEMA_VERSION,
+    ownerFeature: 'storage',
+    dataShape: 'number (schema version integer, e.g. 1)',
+    isSensitive: false,
+    isInBackup: true,
+  },
+  [STORAGE_KEYS.MIGRATION_BACKUP]: {
+    key: STORAGE_KEYS.MIGRATION_BACKUP,
+    ownerFeature: 'storage',
+    dataShape: '{ timestamp: string, fromVersion: number, data: Record<string, string> }',
+    isSensitive: false,
+    isInBackup: false,
   },
   'watched': {
     builder: getWatchedKey,
