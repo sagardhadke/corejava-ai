@@ -12,7 +12,7 @@ describe('AiTutorFloatingButton Component', () => {
   it('renders floating action button with accessible name', () => {
     render(<AiTutorFloatingButton onClick={vi.fn()} />);
 
-    const btn = screen.getByRole('button', { name: /open ai tutor dialog/i });
+    const btn = screen.getByRole('button', { name: /ask ai tutor/i });
     expect(btn).toBeInTheDocument();
     expect(screen.getByText('Ask AI Tutor')).toBeInTheDocument();
   });
@@ -29,7 +29,7 @@ describe('AiTutorFloatingButton Component', () => {
 
     render(<AiTutorFloatingButton onClick={handleClick} />);
 
-    const btn = screen.getByRole('button', { name: /open ai tutor dialog/i });
+    const btn = screen.getByRole('button', { name: /ask ai tutor/i });
     await user.click(btn);
 
     expect(handleClick).toHaveBeenCalledTimes(1);
@@ -43,7 +43,7 @@ describe('AiTutorFloatingButton Component', () => {
     await user.click(dismissBtn);
 
     expect(localStorage.getItem('jct_ai_fab_hidden')).toBe('true');
-    expect(screen.queryByRole('button', { name: /open ai tutor dialog/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /ask ai tutor/i })).not.toBeInTheDocument();
   });
 
   it('does not render if previously dismissed in localStorage', () => {

@@ -82,8 +82,8 @@ export default function Header({
           <button
             className={`icon-btn notif-btn ${unreadNotificationsCount > 0 ? 'notif-btn--has-unread' : ''}`}
             onClick={onOpenNotifications}
-            title={unreadNotificationsCount > 0 ? `Notifications (${unreadNotificationsCount} unread)` : 'Notifications'}
-            aria-label={unreadNotificationsCount > 0 ? `Notifications (${unreadNotificationsCount} unread)` : 'Notifications'}
+            title={unreadNotificationsCount > 0 ? `${unreadNotificationsCount > 9 ? '9+' : unreadNotificationsCount} unread notifications` : 'Notifications'}
+            aria-label={unreadNotificationsCount > 0 ? `${unreadNotificationsCount > 9 ? '9+' : unreadNotificationsCount} unread notifications` : 'Notifications'}
           >
             <BellIcon />
             {unreadNotificationsCount > 0 && (

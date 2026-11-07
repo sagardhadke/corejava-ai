@@ -39,7 +39,7 @@ export default function AiTutorFloatingButton({ onClick, badgeCount = 0 }) {
           className="ai-fab-btn"
           onClick={onClick}
           title="Ask AI Tutor (ChatGPT & Claude) about lectures or sections (Ctrl+K -> A)"
-          aria-label="Open AI Tutor dialog to ask questions about selected lectures or sections"
+          aria-label={badgeCount > 0 ? `Ask AI Tutor (${badgeCount} selected)` : 'Ask AI Tutor'}
         >
           <span className="ai-fab-sparkle" aria-hidden="true">✨</span>
           <span className="ai-fab-label">Ask AI Tutor</span>
