@@ -74,6 +74,18 @@
 .tb-btn--danger { color: var(--danger); }
 .tb-btn--danger:hover { border-color: var(--danger); color: var(--danger); background: rgba(240,101,79,0.08); }
 
+.tb-btn--ai {
+  border-color: rgba(255, 184, 0, 0.4);
+  color: var(--amber);
+  background: rgba(255, 184, 0, 0.08);
+  font-weight: 600;
+}
+.tb-btn--ai:hover {
+  border-color: var(--amber);
+  color: var(--amber-bright, #ffd54a);
+  background: rgba(255, 184, 0, 0.16);
+}
+
 @media (max-width: 600px) {
   .toolbar {
     gap: 6px;

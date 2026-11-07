@@ -34,6 +34,7 @@ import { SettingsPanel } from './features/settings/index.js';
 import { MotivationPopup } from './features/motivation/index.js';
 import { NotificationsPanel, useNotificationsViewModel } from './features/notifications/index.js';
 import { DailyLimitDialog } from './features/tracking/index.js';
+import { AiTutorModal } from './features/ai-tutor/index.js';
 import './App.css';
 
 export default function App() {
@@ -98,6 +99,21 @@ export default function App() {
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeNavTab, setActiveNavTab] = useState('home');
+  const [aiTutorOpen, setAiTutorOpen] = useState(false);
+  const [aiTutorInitialScope, setAiTutorInitialScope] = useState({
+    scopeType: 'topic',
+    sectionId: null,
+    lectureId: null,
+  });
+
+  const handleOpenAiTutor = useCallback((scope = {}) => {
+    setAiTutorInitialScope({
+      scopeType: scope.scopeType || 'topic',
+      sectionId: scope.sectionId || null,
+      lectureId: scope.lectureId || null,
+    });
+    setAiTutorOpen(true);
+  }, []);
 
   // Centralized Drawer & Navigation Managers
   const closeAllDrawers = useCallback(() => {
@@ -107,6 +123,7 @@ export default function App() {
     setNotificationsOpen(false);
     setMobileMenuOpen(false);
     setCommandPaletteOpen(false);
+    setAiTutorOpen(false);
     setActiveNavTab('home');
   }, []);
 
@@ -338,6 +355,7 @@ export default function App() {
               onCollapseAll={courseVM.collapseAll}
               onClearPlan={clearPlan}
               plannedCount={planSet.size}
+              onOpenAiTutor={() => handleOpenAiTutor()}
             />
 
             {/* Daily 5-Hour Learning Limit Banner */}
@@ -391,6 +409,7 @@ export default function App() {
                     lectureNumbers={courseVM.lectureNumbers}
                     isDailyLimitReached={isDailyLimitReached}
                     todayRemainingCapSec={todayRemainingCapSec}
+                    onOpenAiTutor={handleOpenAiTutor}
                   />
                 </div>
               ))
@@ -527,6 +546,10 @@ export default function App() {
           courseVM.setImportOpen(true);
         }}
         onClearPlan={clearPlan}
+        onOpenAiTutor={() => {
+          closeAllDrawers();
+          handleOpenAiTutor();
+        }}
       />
 
       <MobileMenuDrawer
@@ -567,6 +590,10 @@ export default function App() {
           URL.revokeObjectURL(url);
           showToast('Backup exported successfully!', 'success', 3000);
         }}
+        onOpenAiTutor={() => {
+          closeAllDrawers();
+          handleOpenAiTutor();
+        }}
       />
 
       <NotificationsPanel
@@ -597,7 +624,17 @@ export default function App() {
         onClose={() => setDailyLimitGate(null)}
         onViewProgress={() => { setDailyLimitGate(null); openSettingsDrawer(); }}
       />
-            <ToastContainer />
+
+      <AiTutorModal
+        open={aiTutorOpen}
+        onClose={() => setAiTutorOpen(false)}
+        course={course}
+        initialScopeType={aiTutorInitialScope.scopeType}
+        initialSectionId={aiTutorInitialScope.sectionId}
+        initialLectureId={aiTutorInitialScope.lectureId}
+      />
+
+      <ToastContainer />
       <DeveloperBadge />
     </div>
   );

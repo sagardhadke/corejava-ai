@@ -31,6 +31,7 @@ export default function MobileMenuDrawer({
   onOpenPracticeModal,
   onOpenImport,
   onExportBackup,
+  onOpenAiTutor,
 }) {
   // Close on Escape key press
   useEffect(() => {
@@ -226,6 +227,22 @@ export default function MobileMenuDrawer({
               </button>
             </li>
 
+            {onOpenAiTutor && (
+              <li>
+                <button
+                  type="button"
+                  className="mobile-menu-item"
+                  onClick={() => handleNav(onOpenAiTutor)}
+                  style={{ color: 'var(--amber)' }}
+                >
+                  <span className="mobile-menu-icon" style={{ color: 'var(--amber)' }}>
+                    <SparkleMenuIcon />
+                  </span>
+                  <span className="mobile-menu-label" style={{ fontWeight: 600 }}>Ask AI Tutor</span>
+                </button>
+              </li>
+            )}
+
             <li>
               <button
                 type="button"
@@ -400,6 +417,14 @@ function DownloadIcon() {
       <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
       <polyline points="17 21 17 13 7 13 7 21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
       <polyline points="7 3 7 8 15 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function SparkleMenuIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M12 2L14.4 8.6L21 11L14.4 13.4L12 20L9.6 13.4L3 11L9.6 8.6L12 2Z" />
     </svg>
   );
 }

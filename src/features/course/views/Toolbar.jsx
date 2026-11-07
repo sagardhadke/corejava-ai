@@ -1,6 +1,6 @@
 import './Toolbar.css';
 
-export default function Toolbar({ query, onQueryChange, onExpandAll, onCollapseAll, onClearPlan, plannedCount }) {
+export default function Toolbar({ query, onQueryChange, onExpandAll, onCollapseAll, onClearPlan, plannedCount, onOpenAiTutor }) {
   return (
     <div className="toolbar">
       <div className="search-box">
@@ -16,6 +16,17 @@ export default function Toolbar({ query, onQueryChange, onExpandAll, onCollapseA
         )}
       </div>
       <div className="toolbar__actions">
+        {onOpenAiTutor && (
+          <button
+            type="button"
+            className="tb-btn tb-btn--ai"
+            onClick={onOpenAiTutor}
+            title="Ask AI Tutor (ChatGPT / Claude) about any topic or section"
+            aria-label="Ask AI Tutor"
+          >
+            ✨ Ask AI Tutor
+          </button>
+        )}
         <button className="tb-btn" onClick={onExpandAll}>Expand all</button>
         <button className="tb-btn" onClick={onCollapseAll}>Collapse all</button>
         {plannedCount > 0 && (
