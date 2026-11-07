@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { formatClock } from '../utils/time';
-import CourseSelector from './CourseSelector';
+import CourseSelector from '../features/course/views/CourseSelector.jsx';
 import './Header.css';
 
 export default function Header({
