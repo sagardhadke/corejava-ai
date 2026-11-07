@@ -19,7 +19,7 @@ export const PROMO_CODES = {
   DAILYGRIND: { code: 'DAILYGRIND', shields: 1, label: 'Daily Grind Protector (+1 Shield)' },
 };
 
-export const SUPPORT_EMAIL = 'support@javacoursetracker.dev';
+export const SUPPORT_EMAIL = 'support@example.com';
 
 /**
  * Creates the initial streak freeze store state for a course.

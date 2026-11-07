@@ -49,4 +49,14 @@ credentials.json
 client_secrets.json
 service-account*.json
 
+# AI tooling, agent configuration, and internal documentation
+AGENTS.md
+.agents/
+docs/bugs/
+
+# Sample test and course XML files
+sample-course-python.xml
+sample-test-course.xml
+
+
 
