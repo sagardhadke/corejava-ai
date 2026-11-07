@@ -1,11 +1,12 @@
 import { describe, it, expect } from 'vitest';
 import {
   sanitizeText,
-  sanitizeXmlForPrompt,
+  sanitizeXml,
   buildFullPrompt,
   buildShortPrompt,
   calculateUrlLength,
   preparePlatformUrl,
+  buildFocusedRoadmap,
 } from './promptBuilder.js';
 import { AI_PLATFORMS, DEFAULT_MAX_URL_LENGTH } from './aiPlatforms.js';
 
@@ -55,140 +56,140 @@ describe('promptBuilder', () => {
     });
   });
 
-  describe('sanitizeXmlForPrompt', () => {
+  describe('sanitizeXml', () => {
     it('escapes triple backticks inside XML so it cannot break markdown code blocks', () => {
       const xml = '<course><title>```break```</title></course>';
-      expect(sanitizeXmlForPrompt(xml)).toBe("<course><title>'''break'''</title></course>");
+      expect(sanitizeXml(xml)).not.toContain('```');
+      expect(sanitizeXml(xml)).toContain("'''break'''");
+    });
+  });
+
+  describe('buildFocusedRoadmap', () => {
+    it('builds a concise outline of course sections with selected lecture flags', () => {
+      const outline = buildFocusedRoadmap(sampleCourse, [sampleCourse.sections[0].lectures[0]]);
+      expect(outline).toContain('Sec 01: Java Fundamentals (2 lectures) [HAS SELECTED TOPICS]');
+      expect(outline).toContain('Sec 02: OOP Concepts (1 lectures)');
     });
   });
 
   describe('buildFullPrompt', () => {
-    it('builds a topic-scoped prompt with tutor role, topic details, and XML context block', () => {
+    it('builds a focused prompt for a single topic', () => {
       const prompt = buildFullPrompt({
         course: sampleCourse,
         scopeType: 'topic',
         section: sampleCourse.sections[0],
         lecture: sampleCourse.sections[0].lectures[0],
+        contextMode: 'focused',
       });
 
-      expect(prompt).toContain('You are an expert AI tutor for the course "Core Java with AI".');
-      expect(prompt).toContain('Scope: Single Topic / Lecture — "JVM Architecture"');
-      expect(prompt).toContain('- Belongs to Section: 01 — "Java Fundamentals"');
-      expect(prompt).toContain('- Lecture Duration: 25m');
-      expect(prompt).toContain('```xml');
-      expect(prompt).toContain('<title>Core Java with AI</title>');
-      expect(prompt).toContain('```');
-      expect(prompt).toContain('Instructions for the tutor:');
-      expect(prompt).toContain('Provide a clear, comprehensive, and intuitive explanation of "JVM Architecture".');
+      expect(prompt).toContain('You are an expert AI tutor for the course "Core Java with AI"');
+      expect(prompt).toContain('Scope: 1 Selected Course Lecture(s)');
+      expect(prompt).toContain('"JVM Architecture"');
+      expect(prompt).toContain('Course Curriculum Roadmap');
+      // Focused mode should be compact (< 2,000 characters)
+      expect(prompt.length).toBeLessThan(2000);
     });
 
-    it('builds a section-scoped prompt listing section topics and full XML', () => {
+    it('builds a prompt for multiple selected lectures', () => {
+      const selected = [
+        sampleCourse.sections[0].lectures[0],
+        sampleCourse.sections[0].lectures[1],
+      ];
       const prompt = buildFullPrompt({
         course: sampleCourse,
-        scopeType: 'section',
-        section: sampleCourse.sections[0],
+        scopeType: 'multi-lecture',
+        selectedLectures: selected,
+        contextMode: 'focused',
       });
 
-      expect(prompt).toContain('Scope: Entire Section — Section 01: Java Fundamentals');
-      expect(prompt).toContain('Total Lectures in Section: 2');
-      expect(prompt).toContain('1. JVM Architecture (25m)');
-      expect(prompt).toContain('2. Memory Management (30m)');
-      expect(prompt).toContain('```xml');
+      expect(prompt).toContain('Scope: 2 Selected Course Lecture(s)');
+      expect(prompt).toContain('1. "JVM Architecture"');
+      expect(prompt).toContain('2. "Memory Management"');
     });
 
-    it('handles empty or missing parameters safely', () => {
-      const prompt = buildFullPrompt();
-      expect(prompt).toContain('You are an expert AI tutor for the course "Course".');
+    it('builds a prompt for multiple selected sections', () => {
+      const prompt = buildFullPrompt({
+        course: sampleCourse,
+        scopeType: 'multi-section',
+        selectedSections: sampleCourse.sections,
+        contextMode: 'focused',
+      });
+
+      expect(prompt).toContain('Scope: 2 Course Section(s)');
+      expect(prompt).toContain('Section 01: "Java Fundamentals"');
+      expect(prompt).toContain('Section 02: "OOP Concepts"');
+    });
+
+    it('includes full XML structure when contextMode is full', () => {
+      const prompt = buildFullPrompt({
+        course: sampleCourse,
+        scopeType: 'full-course',
+        contextMode: 'full',
+      });
+
+      expect(prompt).toContain('Complete Course XML Structure:');
       expect(prompt).toContain('```xml');
+      expect(prompt).toContain('<course>');
     });
   });
 
   describe('buildShortPrompt', () => {
-    it('builds concise fallback prompt referencing clipboard and specific topic', () => {
+    it('builds prefilled message for ChatGPT and Claude', () => {
       const shortPrompt = buildShortPrompt({
         platform: AI_PLATFORMS.chatgpt,
         course: sampleCourse,
         scopeType: 'topic',
-        section: sampleCourse.sections[0],
         lecture: sampleCourse.sections[0].lectures[0],
       });
 
-      expect(shortPrompt).toContain('I copied my course context');
       expect(shortPrompt).toContain('JVM Architecture');
       expect(shortPrompt).toContain('Core Java with AI');
     });
 
-    it('builds concise fallback prompt for an entire section', () => {
+    it('handles multiple selected lectures in short prompt', () => {
       const shortPrompt = buildShortPrompt({
-        platform: AI_PLATFORMS.claude,
         course: sampleCourse,
-        scopeType: 'section',
-        section: sampleCourse.sections[0],
+        selectedLectures: [
+          sampleCourse.sections[0].lectures[0],
+          sampleCourse.sections[0].lectures[1],
+        ],
       });
 
-      expect(shortPrompt).toContain('Section 01 (Java Fundamentals)');
+      expect(shortPrompt).toContain('2 selected lectures');
     });
   });
 
-  describe('calculateUrlLength', () => {
-    it('calculates the exact encoded length', () => {
-      const baseUrl = 'https://chatgpt.com/';
-      const param = 'q';
-      const prompt = 'Hello World';
-      const len = calculateUrlLength(baseUrl, param, prompt);
-      // https://chatgpt.com/?q=Hello%20World -> 34 chars
-      expect(len).toBe('https://chatgpt.com/?q=Hello%20World'.length);
+  describe('calculateUrlLength and preparePlatformUrl', () => {
+    it('calculates the exact URL length with encoding', () => {
+      const len = calculateUrlLength('https://chatgpt.com', 'q', 'Hello World & AI');
+      expect(len).toBe('https://chatgpt.com?q=Hello%20World%20%26%20AI'.length);
     });
-  });
 
-  describe('preparePlatformUrl & threshold logic', () => {
-    it('uses full prompt when URL length is under threshold', () => {
-      // Set very large threshold to force under-threshold behavior
+    it('prepares launch plan and marks isOverThreshold when exceeding limit', () => {
       const plan = preparePlatformUrl({
         platform: AI_PLATFORMS.chatgpt,
         course: sampleCourse,
+        scopeType: 'full-course',
+        contextMode: 'full',
+        maxUrlLength: 100, // force small threshold
+      });
+
+      expect(plan.isOverThreshold).toBe(true);
+      expect(plan.url).toContain(encodeURIComponent(plan.shortPrompt));
+    });
+
+    it('uses fullPrompt directly when within threshold (focused mode)', () => {
+      const plan = preparePlatformUrl({
+        platform: AI_PLATFORMS.claude,
+        course: sampleCourse,
         scopeType: 'topic',
-        section: sampleCourse.sections[0],
         lecture: sampleCourse.sections[0].lectures[0],
-        maxUrlLength: 100000,
+        contextMode: 'focused',
+        maxUrlLength: 3000,
       });
 
       expect(plan.isOverThreshold).toBe(false);
-      expect(plan.promptToUse).toBe(plan.fullPrompt);
-      expect(plan.url).toContain(encodeURIComponent('You are an expert AI tutor'));
-    });
-
-    it('switches to short prompt when full prompt exceeds threshold', () => {
-      // Small threshold (e.g. 500 chars) guarantees full prompt exceeds it
-      const plan = preparePlatformUrl({
-        platform: AI_PLATFORMS.claude,
-        course: sampleCourse,
-        scopeType: 'topic',
-        section: sampleCourse.sections[0],
-        lecture: sampleCourse.sections[0].lectures[0],
-        maxUrlLength: 500,
-      });
-
-      expect(plan.isOverThreshold).toBe(true);
-      expect(plan.promptToUse).toBe(plan.shortPrompt);
-      expect(plan.url).toContain('https://claude.ai/new?q=');
-      expect(plan.url).toContain(encodeURIComponent('I copied my course context'));
-      expect(plan.fullPrompt).toContain('```xml');
-    });
-
-    it('works with default threshold constant', () => {
-      expect(DEFAULT_MAX_URL_LENGTH).toBe(2000);
-      const plan = preparePlatformUrl({
-        platform: AI_PLATFORMS.chatgpt,
-        course: sampleCourse,
-        scopeType: 'topic',
-        section: sampleCourse.sections[0],
-        lecture: sampleCourse.sections[0].lectures[0],
-      });
-      // The full XML with course structure is over 2000 characters
-      expect(plan.isOverThreshold).toBe(true);
-      expect(plan.promptToUse).toBe(plan.shortPrompt);
+      expect(plan.url).toContain(encodeURIComponent(plan.fullPrompt));
     });
   });
 });
-

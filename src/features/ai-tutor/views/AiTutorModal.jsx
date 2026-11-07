@@ -2,196 +2,301 @@ import { useState, useMemo, useEffect, useRef } from 'react';
 import { AI_PLATFORMS } from '../models/aiPlatforms.js';
 import { preparePlatformUrl, buildFullPrompt } from '../models/promptBuilder.js';
 import { copyToClipboard } from '../models/clipboard.js';
-import { downloadCourseXml } from '../models/courseXmlSerializer.js';
+import { downloadCourseXml, downloadCourseContextFile } from '../models/courseXmlSerializer.js';
 import { showToast } from '../../../utils/toast.js';
 import './AiTutorModal.css';
 
 /**
  * AiTutorModal
  *
- * Provides a streamlined dialog allowing students to select a single lecture
- * or full section and launch directly into ChatGPT or Claude with complete
- * course curriculum XML context.
+ * Professional AI Tutor dialog supporting:
+ * - Multi-lecture selection across sections
+ * - Multi-section selection
+ * - Full course syllabus context
+ * - Targeted/focused context (fits deep-link URLs) vs. full context
+ * - One-click Context File download (.md / .xml) for easy chat attachment
+ * - Deep linking to ChatGPT & Claude with hybrid clipboard fallback
  */
 export default function AiTutorModal({
   open,
   onClose,
   course,
-  initialScopeType = 'topic',
+  initialScopeType = 'multi-lecture',
   initialSectionId = null,
   initialLectureId = null,
 }) {
-  const [scopeType, setScopeType] = useState(initialScopeType);
-  const [selectedSectionId, setSelectedSectionId] = useState(null);
-  const [selectedLectureId, setSelectedLectureId] = useState(null);
+  const [scopeType, setScopeType] = useState('multi-lecture');
+  const [selectedLectureIds, setSelectedLectureIds] = useState([]);
+  const [selectedSectionIds, setSelectedSectionIds] = useState([]);
+  const [filterSectionId, setFilterSectionId] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [contextMode, setContextMode] = useState('focused'); // 'focused' | 'full'
   const [previewExpanded, setPreviewExpanded] = useState(false);
+  const [showFileGuide, setShowFileGuide] = useState(false);
   const [statusMessage, setStatusMessage] = useState(null);
   const closeBtnRef = useRef(null);
 
   const sections = useMemo(() => course?.sections || [], [course]);
 
-  // Synchronize selection state when opening or when initial props change
+  // Flatten all lectures with section metadata for search/filtering
+  const allLectures = useMemo(() => {
+    const list = [];
+    sections.forEach((sec) => {
+      (sec.lectures || []).forEach((lec) => {
+        list.push({
+          ...lec,
+          sectionId: sec.id,
+          sectionNumber: sec.number,
+          sectionTitle: sec.title,
+        });
+      });
+    });
+    return list;
+  }, [sections]);
+
+  // Synchronize state when opened
   useEffect(() => {
     if (!open) {
       setStatusMessage(null);
       setPreviewExpanded(false);
+      setShowFileGuide(false);
       return;
     }
 
-    setScopeType(initialScopeType || 'topic');
-
-    const defaultSecId = initialSectionId || sections[0]?.id || null;
-    setSelectedSectionId(defaultSecId);
-
-    const activeSec = sections.find((s) => s.id === defaultSecId) || sections[0];
-    const defaultLecId = initialLectureId || activeSec?.lectures?.[0]?.id || null;
-    setSelectedLectureId(defaultLecId);
-  }, [open, initialScopeType, initialSectionId, initialLectureId, sections]);
-
-  // Update selected lecture if the user switches to a different section
-  const handleSectionChange = (secId) => {
-    setSelectedSectionId(secId);
-    const sec = sections.find((s) => s.id === secId);
-    if (sec?.lectures?.length) {
-      setSelectedLectureId(sec.lectures[0].id);
+    // Determine initial scope
+    if (initialScopeType === 'section' || initialScopeType === 'multi-section') {
+      setScopeType('multi-section');
+      const secId = initialSectionId || sections[0]?.id;
+      setSelectedSectionIds(secId ? [secId] : []);
+      setSelectedLectureIds([]);
+    } else if (initialScopeType === 'full-course') {
+      setScopeType('full-course');
+      setSelectedLectureIds([]);
+      setSelectedSectionIds([]);
     } else {
-      setSelectedLectureId(null);
+      // multi-lecture / topic
+      setScopeType('multi-lecture');
+      if (initialLectureId) {
+        setSelectedLectureIds([initialLectureId]);
+      } else if (allLectures[0]) {
+        setSelectedLectureIds([allLectures[0].id]);
+      }
+      setSelectedSectionIds([]);
     }
-  };
 
-  const currentSection = useMemo(() => {
-    return sections.find((s) => s.id === selectedSectionId) || sections[0] || null;
-  }, [sections, selectedSectionId]);
+    if (initialSectionId) {
+      setFilterSectionId(initialSectionId);
+    } else {
+      setFilterSectionId('all');
+    }
+  }, [open, initialScopeType, initialSectionId, initialLectureId, sections, allLectures]);
 
-  const currentLecture = useMemo(() => {
-    if (!currentSection?.lectures) return null;
-    return currentSection.lectures.find((l) => l.id === selectedLectureId) || currentSection.lectures[0] || null;
-  }, [currentSection, selectedLectureId]);
+  // Focus close button when modal opens
+  useEffect(() => {
+    if (open) {
+      closeBtnRef.current?.focus();
+    }
+  }, [open]);
 
-  // Prepared launch configurations for ChatGPT and Claude
-  const chatGptPlan = useMemo(() => {
-    if (!course) return null;
-    return preparePlatformUrl({
-      platform: AI_PLATFORMS.chatgpt,
-      course,
-      scopeType,
-      section: currentSection,
-      lecture: currentLecture,
-    });
-  }, [course, scopeType, currentSection, currentLecture]);
-
-  const claudePlan = useMemo(() => {
-    if (!course) return null;
-    return preparePlatformUrl({
-      platform: AI_PLATFORMS.claude,
-      course,
-      scopeType,
-      section: currentSection,
-      lecture: currentLecture,
-    });
-  }, [course, scopeType, currentSection, currentLecture]);
-
-  const fullPromptText = useMemo(() => {
-    if (!course) return '';
-    return buildFullPrompt({
-      course,
-      scopeType,
-      section: currentSection,
-      lecture: currentLecture,
-    });
-  }, [course, scopeType, currentSection, currentLecture]);
-
-  // Handle keyboard Escape to dismiss modal
+  // Handle escape key
   useEffect(() => {
     if (!open) return;
     const handleKeyDown = (e) => {
-      if (e.key === 'Escape') {
-        onClose();
-      }
+      if (e.key === 'Escape') onClose();
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [open, onClose]);
 
-  if (!open || !course) return null;
+  // Selected lecture objects
+  const selectedLectures = useMemo(() => {
+    const idSet = new Set(selectedLectureIds);
+    return allLectures.filter((l) => idSet.has(l.id));
+  }, [allLectures, selectedLectureIds]);
 
-  /**
-   * Launch selected AI platform directly inside click turn
-   */
-  const handleLaunch = async (platformId) => {
-    const plan = platformId === 'claude' ? claudePlan : chatGptPlan;
+  // Selected section objects
+  const selectedSections = useMemo(() => {
+    const idSet = new Set(selectedSectionIds);
+    return sections.filter((s) => idSet.has(s.id));
+  }, [sections, selectedSectionIds]);
+
+  // Filtered lectures for checklist
+  const displayLectures = useMemo(() => {
+    return allLectures.filter((l) => {
+      if (filterSectionId !== 'all' && l.sectionId !== filterSectionId) return false;
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase();
+        return l.title.toLowerCase().includes(q) || (l.sectionTitle && l.sectionTitle.toLowerCase().includes(q));
+      }
+      return true;
+    });
+  }, [allLectures, filterSectionId, searchQuery]);
+
+  // Toggle lecture selection
+  const handleToggleLecture = (lecId) => {
+    setSelectedLectureIds((prev) => {
+      if (prev.includes(lecId)) {
+        return prev.filter((id) => id !== lecId);
+      }
+      return [...prev, lecId];
+    });
+  };
+
+  // Toggle section selection
+  const handleToggleSection = (secId) => {
+    setSelectedSectionIds((prev) => {
+      if (prev.includes(secId)) {
+        return prev.filter((id) => id !== secId);
+      }
+      return [...prev, secId];
+    });
+  };
+
+  // Select all lectures in active filtered view
+  const handleSelectAllFilteredLectures = () => {
+    const visibleIds = displayLectures.map((l) => l.id);
+    setSelectedLectureIds((prev) => Array.from(new Set([...prev, ...visibleIds])));
+  };
+
+  // Clear lecture selections
+  const handleClearLectures = () => {
+    setSelectedLectureIds([]);
+  };
+
+  // Select all sections
+  const handleSelectAllSections = () => {
+    setSelectedSectionIds(sections.map((s) => s.id));
+  };
+
+  // Clear section selections
+  const handleClearSections = () => {
+    setSelectedSectionIds([]);
+  };
+
+  // Prepared launch configurations
+  const launchPlan = useMemo(() => {
+    if (!course) return { chatgpt: null, claude: null, fullPrompt: '', promptLength: 0 };
+
+    const effectiveScope = scopeType === 'multi-lecture' ? 'multi-lecture'
+      : scopeType === 'multi-section' ? 'multi-section'
+      : 'full-course';
+
+    const fullPrompt = buildFullPrompt({
+      course,
+      scopeType: effectiveScope,
+      selectedLectures,
+      selectedSections,
+      contextMode,
+    });
+
+    const chatgpt = preparePlatformUrl({
+      platform: AI_PLATFORMS.chatgpt,
+      course,
+      scopeType: effectiveScope,
+      selectedLectures,
+      selectedSections,
+      contextMode,
+    });
+
+    const claude = preparePlatformUrl({
+      platform: AI_PLATFORMS.claude,
+      course,
+      scopeType: effectiveScope,
+      selectedLectures,
+      selectedSections,
+      contextMode,
+    });
+
+    return {
+      chatgpt,
+      claude,
+      fullPrompt,
+      promptLength: fullPrompt.length,
+    };
+  }, [course, scopeType, selectedLectures, selectedSections, contextMode]);
+
+  // Handle external platform launch
+  const handleLaunchPlatform = async (platformId) => {
+    const plan = platformId === 'claude' ? launchPlan.claude : launchPlan.chatgpt;
     if (!plan) return;
 
-    // If over the threshold, auto-copy full prompt to clipboard
+    setStatusMessage(null);
+
+    // If over threshold, write full prompt to clipboard
     if (plan.isOverThreshold) {
       const copyResult = await copyToClipboard(plan.fullPrompt);
       if (copyResult.success) {
-        const msg = `Full course context copied! Paste into ${plan.platformName} with Ctrl+V (⌘V).`;
-        setStatusMessage({ type: 'success', text: msg });
-        showToast(msg, 'success', 5000);
+        setStatusMessage({
+          type: 'success',
+          text: `Full prompt & context copied to clipboard! Paste it with Ctrl/Cmd+V into ${plan.platformName}.`,
+        });
+        showToast(`Full context copied! Paste into ${plan.platformName} with Ctrl+V`, 'success', 4000);
       } else {
-        const warn = `Could not auto-copy to clipboard. Please copy prompt preview manually or download XML.`;
-        setStatusMessage({ type: 'warning', text: warn });
-        showToast(warn, 'warning', 6000);
-      }
-    } else {
-      setStatusMessage({
-        type: 'success',
-        text: `Opening ${plan.platformName} with full course prompt...`,
-      });
-    }
-
-    // Call window.open inside the click handler turn
-    try {
-      const openedWindow = window.open(plan.url, '_blank', 'noopener,noreferrer');
-      if (!openedWindow || openedWindow.closed || typeof openedWindow.closed === 'undefined') {
-        // Popup might have been blocked
         setStatusMessage({
           type: 'warning',
-          text: `Pop-up was blocked by browser. Please allow popups or use the direct link below.`,
+          text: `Could not auto-copy to clipboard. Please click "Copy Full Prompt" below before continuing.`,
         });
       }
-    } catch {
+    } else {
       setStatusMessage({
-        type: 'error',
-        text: `Failed to open ${plan.platformName} tab. Please copy the prompt manually.`,
+        type: 'info',
+        text: `Opening ${plan.platformName} with complete prompt prefilled!`,
       });
     }
+
+    // Open target in new tab synchronously
+    window.open(plan.url, '_blank', 'noopener,noreferrer');
   };
 
-  /**
-   * Manually copy the full prompt text to clipboard
-   */
-  const handleManualCopy = async () => {
-    const res = await copyToClipboard(fullPromptText);
-    if (res.success) {
-      showToast('Full course prompt copied to clipboard!', 'success', 3500);
+  // Manual copy full prompt
+  const handleCopyPrompt = async () => {
+    const result = await copyToClipboard(launchPlan.fullPrompt);
+    if (result.success) {
       setStatusMessage({
         type: 'success',
-        text: 'Full course prompt copied to clipboard! You can paste it directly into any AI platform.',
+        text: '✓ Prompt copied to clipboard! Ready to paste into ChatGPT or Claude.',
       });
+      showToast('Prompt copied to clipboard!', 'success', 2500);
     } else {
-      showToast('Failed to copy to clipboard.', 'error');
+      setStatusMessage({
+        type: 'error',
+        text: 'Clipboard copy failed. Please select text in the preview and copy manually.',
+      });
     }
   };
 
-  /**
-   * Download complete course structure XML
-   */
+  // Download context file (.md)
+  const handleDownloadContext = (format = 'markdown') => {
+    if (!course) return;
+    const filename = downloadCourseContextFile(course, {
+      selectedLectures,
+      selectedSections,
+      format,
+    });
+    setStatusMessage({
+      type: 'success',
+      text: `✓ Context file "${filename}" downloaded! Drag & drop or attach it in ChatGPT / Claude.`,
+    });
+    setShowFileGuide(true);
+    showToast(`Downloaded ${filename}`, 'success', 3000);
+  };
+
+  // Download XML file
   const handleDownloadXml = () => {
-    try {
-      const filename = downloadCourseXml(course);
-      showToast(`Downloaded ${filename}`, 'info', 3500);
-    } catch {
-      showToast('Error downloading course XML.', 'error');
-    }
+    if (!course) return;
+    const filename = downloadCourseXml(course);
+    setStatusMessage({
+      type: 'success',
+      text: `✓ Course structure "${filename}" downloaded.`,
+    });
+    showToast(`Downloaded ${filename}`, 'success', 3000);
   };
 
-  const isOverThreshold = chatGptPlan?.isOverThreshold || claudePlan?.isOverThreshold;
+  if (!open) return null;
 
   return (
     <div
-      className="ai-modal-overlay"
+      className="ai-modal-backdrop"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
@@ -201,17 +306,18 @@ export default function AiTutorModal({
         className="ai-modal"
         role="dialog"
         aria-modal="true"
-        aria-labelledby="ai-tutor-modal-title"
+        aria-labelledby="ai-modal-title"
+        aria-describedby="ai-modal-subtitle"
       >
         {/* Header */}
-        <div className="ai-modal__head">
-          <div className="ai-modal__title-wrap">
-            <span className="ai-modal__sparkle" aria-hidden="true">✨</span>
+        <div className="ai-modal__header">
+          <div className="ai-modal__title-group">
+            <span className="ai-modal__title-icon" aria-hidden="true">✨</span>
             <div>
-              <h2 id="ai-tutor-modal-title" className="ai-modal__title">
-                Ask AI Tutor (ChatGPT & Claude)
-              </h2>
-              <p className="ai-modal__subtitle">
+              <h3 id="ai-modal-title" className="ai-modal__title">
+                Ask AI Tutor (ChatGPT &amp; Claude)
+              </h3>
+              <p id="ai-modal-subtitle" className="ai-modal__subtitle">
                 Contextual tutor powered by your complete course syllabus
               </p>
             </div>
@@ -219,191 +325,344 @@ export default function AiTutorModal({
           <button
             ref={closeBtnRef}
             type="button"
-            className="ai-modal__close"
+            className="ai-modal__close-btn"
             onClick={onClose}
             aria-label="Close AI Tutor dialog"
-            title="Close"
           >
             ✕
           </button>
         </div>
 
-        {/* Modal Body */}
-        <div className="ai-modal__body">
-          {/* Status Message Banner if present */}
-          {statusMessage && (
-            <div
-              className={`ai-status-banner ai-status-banner--${statusMessage.type}`}
-              role="alert"
-            >
-              <span>{statusMessage.type === 'success' ? '✓' : '⚠️'}</span>
-              <span>{statusMessage.text}</span>
-            </div>
-          )}
-
-          {/* Scope Selector: Topic vs Section */}
-          <div className="ai-scope-toggle" role="group" aria-label="Study Scope Selection">
+        {/* Scope Type Selector */}
+        <div className="ai-modal__section">
+          <label className="ai-modal__label">1. Choose Question Scope</label>
+          <div className="ai-scope-selector" role="radiogroup" aria-label="Question Scope">
             <button
               type="button"
-              className={`ai-scope-btn ${scopeType === 'topic' ? 'ai-scope-btn--active' : ''}`}
-              onClick={() => setScopeType('topic')}
-              aria-pressed={scopeType === 'topic'}
+              className={`ai-scope-btn ${scopeType === 'multi-lecture' ? 'ai-scope-btn--active' : ''}`}
+              onClick={() => setScopeType('multi-lecture')}
+              role="radio"
+              aria-checked={scopeType === 'multi-lecture'}
             >
-              <span>🎯</span> By Topic (Lecture)
+              <span className="ai-scope-btn__icon">🎯</span>
+              <span>By Topic / Lecture</span>
             </button>
             <button
               type="button"
-              className={`ai-scope-btn ${scopeType === 'section' ? 'ai-scope-btn--active' : ''}`}
-              onClick={() => setScopeType('section')}
-              aria-pressed={scopeType === 'section'}
+              className={`ai-scope-btn ${scopeType === 'multi-section' ? 'ai-scope-btn--active' : ''}`}
+              onClick={() => setScopeType('multi-section')}
+              role="radio"
+              aria-checked={scopeType === 'multi-section'}
             >
-              <span>📚</span> By Entire Section
+              <span className="ai-scope-btn__icon">📚</span>
+              <span>By Entire Section</span>
+            </button>
+            <button
+              type="button"
+              className={`ai-scope-btn ${scopeType === 'full-course' ? 'ai-scope-btn--active' : ''}`}
+              onClick={() => setScopeType('full-course')}
+              role="radio"
+              aria-checked={scopeType === 'full-course'}
+            >
+              <span className="ai-scope-btn__icon">🌐</span>
+              <span>Full Curriculum</span>
             </button>
           </div>
+        </div>
 
-          {/* Section Dropdown */}
-          <div className="ai-form-group">
-            <label htmlFor="ai-section-select" className="ai-form-label">
-              Course Section
-            </label>
-            <select
-              id="ai-section-select"
-              className="ai-select"
-              value={selectedSectionId || ''}
-              onChange={(e) => handleSectionChange(e.target.value)}
-              aria-label="Select course section"
-            >
-              {sections.map((sec) => (
-                <option key={sec.id} value={sec.id}>
-                  Section {sec.number}: {sec.title} ({sec.lectures?.length || 0} lectures)
-                </option>
-              ))}
-            </select>
-          </div>
+        {/* Scope Selection Controls */}
+        <div className="ai-modal__section">
+          {scopeType === 'multi-lecture' && (
+            <div className="ai-multi-box">
+              <div className="ai-multi-box__header">
+                <div className="ai-multi-box__filters">
+                  <select
+                    className="ai-select ai-select--filter"
+                    value={filterSectionId}
+                    onChange={(e) => setFilterSectionId(e.target.value)}
+                    aria-label="Filter lectures by section"
+                  >
+                    <option value="all">All Sections ({sections.length})</option>
+                    {sections.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        Sec {s.number}: {s.title} ({s.lectures?.length || 0})
+                      </option>
+                    ))}
+                  </select>
+                  <input
+                    type="text"
+                    className="ai-search-input"
+                    placeholder="Search lectures..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    aria-label="Search lectures"
+                  />
+                </div>
+                <div className="ai-multi-box__actions">
+                  <button
+                    type="button"
+                    className="ai-link-btn"
+                    onClick={handleSelectAllFilteredLectures}
+                  >
+                    Select All Shown
+                  </button>
+                  <button
+                    type="button"
+                    className="ai-link-btn"
+                    onClick={handleClearLectures}
+                  >
+                    Clear Selection
+                  </button>
+                </div>
+              </div>
 
-          {/* Topic / Lecture Dropdown (only visible when scopeType === 'topic') */}
-          {scopeType === 'topic' && currentSection && (
-            <div className="ai-form-group">
-              <label htmlFor="ai-lecture-select" className="ai-form-label">
-                Topic / Lecture
-              </label>
-              <select
-                id="ai-lecture-select"
-                className="ai-select"
-                value={selectedLectureId || ''}
-                onChange={(e) => setSelectedLectureId(e.target.value)}
-                aria-label="Select lecture topic"
-              >
-                {(currentSection.lectures || []).map((lec, idx) => (
-                  <option key={lec.id} value={lec.id}>
-                    {idx + 1}. {lec.title} ({lec.durationLabel || '0m'})
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-
-          {/* Selection Summary */}
-          <div className="ai-summary-card">
-            <div className="ai-summary-card__title">
-              {scopeType === 'topic'
-                ? currentLecture?.title || 'Selected Topic'
-                : `Section ${currentSection?.number}: ${currentSection?.title}`}
-            </div>
-            <div className="ai-summary-card__meta">
-              {scopeType === 'topic'
-                ? `Section ${currentSection?.number} · Duration: ${currentLecture?.durationLabel || 'N/A'}`
-                : `${currentSection?.lectures?.length || 0} total lectures in section`}
-            </div>
-          </div>
-
-          {/* Length & URL Threshold Indicator */}
-          <div
-            className={`ai-threshold-box ${
-              isOverThreshold ? 'ai-threshold-box--hybrid' : 'ai-threshold-box--direct'
-            }`}
-          >
-            <div className="ai-threshold-box__icon">
-              {isOverThreshold ? '📋' : '✓'}
-            </div>
-            <div className="ai-threshold-box__text">
-              {isOverThreshold ? (
-                <span>
-                  <strong>Hybrid Context Mode:</strong> Complete course syllabus exceeds URL length (~
-                  {Math.round(fullPromptText.length / 1024)} KB). Prompt will auto-copy to your clipboard, and chat will open with prefilled instructions.
-                </span>
-              ) : (
-                <span>
-                  <strong>Direct Deep Link:</strong> Prompt fits within safe URL limit and will open prefilled directly in chat.
-                </span>
+              {/* Selected lecture pills */}
+              {selectedLectures.length > 0 && (
+                <div className="ai-selected-pills">
+                  <span className="ai-selected-count">
+                    Selected ({selectedLectures.length}):
+                  </span>
+                  {selectedLectures.slice(0, 5).map((l) => (
+                    <span key={l.id} className="ai-pill">
+                      {l.title}
+                      <button
+                        type="button"
+                        className="ai-pill__remove"
+                        onClick={() => handleToggleLecture(l.id)}
+                        aria-label={`Remove ${l.title}`}
+                      >
+                        ×
+                      </button>
+                    </span>
+                  ))}
+                  {selectedLectures.length > 5 && (
+                    <span className="ai-pill ai-pill--more">
+                      +{selectedLectures.length - 5} more
+                    </span>
+                  )}
+                </div>
               )}
+
+              {/* Lecture Checklist */}
+              <div className="ai-checklist" role="group" aria-label="Available lectures">
+                {displayLectures.map((lec) => {
+                  const isChecked = selectedLectureIds.includes(lec.id);
+                  return (
+                    <label key={lec.id} className={`ai-check-item ${isChecked ? 'ai-check-item--checked' : ''}`}>
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={() => handleToggleLecture(lec.id)}
+                        className="ai-check-input"
+                      />
+                      <div className="ai-check-info">
+                        <span className="ai-check-title">{lec.title}</span>
+                        <span className="ai-check-meta">
+                          Sec {lec.sectionNumber} · {lec.durationLabel || '15m'}
+                        </span>
+                      </div>
+                    </label>
+                  );
+                })}
+              </div>
             </div>
-            <span className="ai-threshold-box__badge">
-              {fullPromptText.length.toLocaleString()} chars
+          )}
+
+          {scopeType === 'multi-section' && (
+            <div className="ai-multi-box">
+              <div className="ai-multi-box__header">
+                <span className="ai-multi-box__subtitle">
+                  Select one or more sections ({selectedSections.length} of {sections.length} selected):
+                </span>
+                <div className="ai-multi-box__actions">
+                  <button type="button" className="ai-link-btn" onClick={handleSelectAllSections}>
+                    Select All
+                  </button>
+                  <button type="button" className="ai-link-btn" onClick={handleClearSections}>
+                    Clear
+                  </button>
+                </div>
+              </div>
+
+              <div className="ai-checklist" role="group" aria-label="Available sections">
+                {sections.map((sec) => {
+                  const isChecked = selectedSectionIds.includes(sec.id);
+                  return (
+                    <label key={sec.id} className={`ai-check-item ${isChecked ? 'ai-check-item--checked' : ''}`}>
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={() => handleToggleSection(sec.id)}
+                        className="ai-check-input"
+                      />
+                      <div className="ai-check-info">
+                        <span className="ai-check-title">
+                          Section {sec.number}: {sec.title}
+                        </span>
+                        <span className="ai-check-meta">
+                          {sec.lectures?.length || 0} lectures · {sec.isProject ? 'Project' : 'Theory & Practice'}
+                        </span>
+                      </div>
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {scopeType === 'full-course' && (
+            <div className="ai-summary-card">
+              <div className="ai-summary-card__title">
+                🌐 Entire Curriculum Context: &ldquo;{course?.title || 'Core Java with AI'}&rdquo;
+              </div>
+              <div className="ai-summary-card__details">
+                Includes all {sections.length} sections and {allLectures.length} lectures as comprehensive background context for the AI.
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Context Mode Toggle (Focused vs Full) */}
+        <div className="ai-modal__section">
+          <div className="ai-context-header">
+            <label className="ai-modal__label">2. Context Optimization Mode</label>
+            <div className="ai-mode-toggle" role="radiogroup" aria-label="Context Mode">
+              <button
+                type="button"
+                className={`ai-mode-btn ${contextMode === 'focused' ? 'ai-mode-btn--active' : ''}`}
+                onClick={() => setContextMode('focused')}
+                role="radio"
+                aria-checked={contextMode === 'focused'}
+                title="Concise outline tailored to fit deep links cleanly"
+              >
+                ⚡ Focused (~1.5KB &middot; Fits Deep Links)
+              </button>
+              <button
+                type="button"
+                className={`ai-mode-btn ${contextMode === 'full' ? 'ai-mode-btn--active' : ''}`}
+                onClick={() => setContextMode('full')}
+                role="radio"
+                aria-checked={contextMode === 'full'}
+                title="Full course syllabus XML (Recommended for file attachment)"
+              >
+                📚 Full Syllabus (~15KB)
+              </button>
+            </div>
+          </div>
+
+          <div className="ai-length-badge">
+            <span className="ai-length-dot" />
+            <span>
+              Prompt size: <strong>{launchPlan.promptLength.toLocaleString()} chars</strong>
+              {contextMode === 'focused'
+                ? ' — Fits directly in ChatGPT & Claude query parameters!'
+                : ' — Exceeds URL limit; auto-copies to clipboard or use file attachment.'}
             </span>
           </div>
+        </div>
 
-          {/* Primary Platform Launch Actions */}
-          <div className="ai-actions-grid">
-            <button
-              type="button"
-              className="ai-btn-platform ai-btn-platform--chatgpt"
-              onClick={() => handleLaunch('chatgpt')}
-            >
-              <span>💬</span> Ask ChatGPT
-            </button>
-            <button
-              type="button"
-              className="ai-btn-platform ai-btn-platform--claude"
-              onClick={() => handleLaunch('claude')}
-            >
-              <span>⚡</span> Ask Claude
-            </button>
+        {/* Action Status Notification */}
+        {statusMessage && (
+          <div className={`ai-status-banner ai-status-banner--${statusMessage.type}`}>
+            {statusMessage.text}
           </div>
+        )}
 
-          {/* Auxiliary Tools: Copy Prompt & Download XML */}
-          <div className="ai-aux-tools">
-            <button
-              type="button"
-              className="ai-btn-aux"
-              onClick={handleManualCopy}
-            >
-              <span>📋</span> Copy Full Prompt
-            </button>
-            <button
-              type="button"
-              className="ai-btn-aux"
-              onClick={handleDownloadXml}
-            >
-              <span>📥</span> Download Course XML
-            </button>
+        {/* File Attachment Guide (when opened or downloaded) */}
+        {showFileGuide && (
+          <div className="ai-file-guide">
+            <div className="ai-file-guide__title">
+              💡 How to use the Context File in ChatGPT or Claude:
+            </div>
+            <ol className="ai-file-guide__steps">
+              <li>Open your chat platform (<button type="button" className="ai-link-inline" onClick={() => handleLaunchPlatform('chatgpt')}>ChatGPT</button> or <button type="button" className="ai-link-inline" onClick={() => handleLaunchPlatform('claude')}>Claude</button>).</li>
+              <li>Click the paperclip 📎 (or drag &amp; drop) the downloaded <code>.md</code> file into the prompt box.</li>
+              <li>Ask your question! The AI will have full curriculum context without character limits.</li>
+            </ol>
           </div>
+        )}
 
-          {/* Collapsible Prompt Preview */}
-          <div>
-            <button
-              type="button"
-              className="ai-preview-toggle"
-              onClick={() => setPreviewExpanded((prev) => !prev)}
-              aria-expanded={previewExpanded}
-            >
-              <span>{previewExpanded ? '▼ Hide Generated Prompt' : '▶ Preview Full Prompt'}</span>
-              <span>{fullPromptText.length.toLocaleString()} characters</span>
-            </button>
-            {previewExpanded && (
-              <pre className="ai-preview-box" tabIndex={0} aria-label="Generated Prompt Preview">
-                {fullPromptText}
-              </pre>
-            )}
-          </div>
+        {/* Primary Launch Action Buttons */}
+        <div className="ai-actions-grid">
+          <button
+            type="button"
+            className="ai-btn-platform ai-btn-platform--chatgpt"
+            onClick={() => handleLaunchPlatform('chatgpt')}
+          >
+            <span className="ai-platform-icon">💬</span>
+            <div className="ai-platform-btn-text">
+              <span className="ai-platform-btn-title">Ask ChatGPT</span>
+              <span className="ai-platform-btn-sub">Open chatgpt.com</span>
+            </div>
+          </button>
 
-          {/* Logged-In User Hint */}
-          <div className="ai-hint-note">
-            💡 <em>Note:</em> Make sure you are logged into ChatGPT or Claude in your browser. If not logged in, the AI platform will prompt for login first.
-          </div>
+          <button
+            type="button"
+            className="ai-btn-platform ai-btn-platform--claude"
+            onClick={() => handleLaunchPlatform('claude')}
+          >
+            <span className="ai-platform-icon">⚡</span>
+            <div className="ai-platform-btn-text">
+              <span className="ai-platform-btn-title">Ask Claude</span>
+              <span className="ai-platform-btn-sub">Open claude.ai</span>
+            </div>
+          </button>
+        </div>
+
+        {/* Auxiliary Actions: File Download & Clipboard */}
+        <div className="ai-aux-actions">
+          <button
+            type="button"
+            className="ai-btn-aux ai-btn-aux--primary"
+            onClick={() => handleDownloadContext('markdown')}
+            title="Download formatted Markdown syllabus to drag and drop into chat"
+          >
+            📎 Download Context File (.md)
+          </button>
+
+          <button
+            type="button"
+            className="ai-btn-aux"
+            onClick={handleCopyPrompt}
+            title="Copy full formatted prompt to clipboard"
+          >
+            📋 Copy Formatted Prompt
+          </button>
+
+          <button
+            type="button"
+            className="ai-btn-aux"
+            onClick={handleDownloadXml}
+            title="Download complete course XML file"
+          >
+            📥 Download XML
+          </button>
+        </div>
+
+        {/* Collapsible Prompt Preview */}
+        <div className="ai-preview-section">
+          <button
+            type="button"
+            className="ai-preview-toggle"
+            onClick={() => setPreviewExpanded((v) => !v)}
+            aria-expanded={previewExpanded}
+          >
+            <span>{previewExpanded ? '▼ Hide prompt text' : '▶ Preview prompt text...'}</span>
+            <span className="ai-preview-tag">{launchPlan.promptLength} chars</span>
+          </button>
+
+          {previewExpanded && (
+            <div className="ai-preview-content">
+              <pre className="ai-preview-code">{launchPlan.fullPrompt}</pre>
+            </div>
+          )}
+        </div>
+
+        {/* Privacy & Logged-In Hint */}
+        <div className="ai-modal__footer-note">
+          🔒 <strong>100% Client-Side Privacy:</strong> Your course data never touches an external server. Ensure you are signed in to ChatGPT or Claude in your browser.
         </div>
       </div>
     </div>
   );
 }
-

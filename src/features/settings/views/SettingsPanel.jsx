@@ -1,4 +1,4 @@
-﻿import { useState, useMemo, useRef, useEffect } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import Drawer from '../../../components/Drawer.jsx';
 import MemoryManagement from './MemoryManagement.jsx';
 import BackupRestore from './BackupRestore.jsx';
@@ -18,6 +18,7 @@ import {
 } from '../../notifications/models/notificationModel.js';
 import { showToast } from '../../../utils/toast.js';
 import './SettingsPanel.css';
+import { ApiKeyManager } from '../../ai-tutor/index.js';
 import {
   ProgressDashboard,
   ProgressReportDialog,
@@ -452,6 +453,10 @@ export default function SettingsPanel({
             </div>
           )}
         </div>
+      </section>
+
+      <section className="settings-section">
+        <ApiKeyManager />
       </section>
 
       <NotificationSettingsSection onClose={onClose} />
