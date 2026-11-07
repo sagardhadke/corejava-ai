@@ -3,7 +3,7 @@ import Drawer from '../../../components/Drawer.jsx';
 import MemoryManagement from './MemoryManagement.jsx';
 import BackupRestore from './BackupRestore.jsx';
 import DeleteConfirmModal from './DeleteConfirmModal.jsx';
-import CourseSelector from '../../../components/CourseSelector.jsx';
+import CourseSelector from '../../course/views/CourseSelector.jsx';
 import { getStoredApiKey, setStoredApiKey, verifyOpenAiApiKey } from '../../motivation/models/apiKeyModel.js';
 import { formatDuration } from '../../../utils/time.js';
 import { TARGET_PRESETS, PER_SECTION_OPTIONS } from '../models/settingsModel.js';

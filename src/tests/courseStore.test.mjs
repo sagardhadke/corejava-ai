@@ -48,10 +48,10 @@ const {
 } = await import('../data/courseStore.js');
 
 const { getActiveSectionId, getActiveSectionIds } = await import('../utils/activeSection.js');
-const { getAggregatedHistory } = await import('../utils/activityHistory.js');
-const { buildWeeksForYear, intensity } = await import('../utils/calendarGrid.js');
-const { DEFAULT_MOTIVATION_MESSAGES, pickDefaultMotivation } = await import('../utils/motivation.js');
-const { verifyOpenAiApiKey } = await import('../utils/apiKey.js');
+const { getAggregatedHistory } = await import('../features/streak/models/activityHistoryModel.js');
+const { buildWeeksForYear, intensity } = await import('../features/streak/models/calendarGridModel.js');
+const { DEFAULT_MOTIVATION_MESSAGES, pickDefaultMotivation } = await import('../features/motivation/models/motivationModel.js');
+const { verifyOpenAiApiKey } = await import('../features/motivation/models/apiKeyModel.js');
 
 const {
   COMPLETION_STATUS,
@@ -726,7 +726,7 @@ describe('Course Flow & State Management Integration Tests', () => {
         status: 200,
         json: async () => ({ data: [{ id: 'gpt-4o' }, { id: 'gpt-4o-mini' }] }),
       });
-      const okRes = await verifyOpenAiApiKey('mock-valid-openai-key');
+      const okRes = await verifyOpenAiApiKey('sk-mock-valid-key');
       assert.equal(okRes.ok, true);
       assert.equal(okRes.status, 200);
       assert.ok(okRes.message.includes('verified and working'));
@@ -737,7 +737,7 @@ describe('Course Flow & State Management Integration Tests', () => {
         status: 401,
         json: async () => ({ error: { message: 'Incorrect API key provided' } }),
       });
-      const unauthRes = await verifyOpenAiApiKey('mock-revoked-openai-key');
+      const unauthRes = await verifyOpenAiApiKey('sk-mock-revoked-key');
       assert.equal(unauthRes.ok, false);
       assert.equal(unauthRes.status, 401);
       assert.ok(unauthRes.error.includes('invalid, expired, or was revoked'));
@@ -747,7 +747,7 @@ describe('Course Flow & State Management Integration Tests', () => {
         status: 429,
         json: async () => ({ error: { message: 'Rate limit or quota exceeded' } }),
       });
-      const quotaRes = await verifyOpenAiApiKey('mock-overquota-openai-key');
+      const quotaRes = await verifyOpenAiApiKey('sk-mock-overquota-key');
       assert.ok(quotaRes.error.includes('Quota exceeded'));
     } finally {
       globalThis.fetch = originalFetch;
@@ -790,7 +790,7 @@ describe('Course Flow & State Management Integration Tests', () => {
   });
 
   it('24. Course completion and streak milestone badges calculate, unlock, and isolate per course', async () => {
-    const { getBadgesStatus, getBadgeRank, COURSE_COMPLETION_BADGES, STREAK_BADGES, ALL_BADGES } = await import('../utils/badges.js');
+    const { getBadgesStatus, getBadgeRank, COURSE_COMPLETION_BADGES, STREAK_BADGES, ALL_BADGES } = await import('../features/badges/models/badgeModel.js');
 
     // 1. Verify badge counts and threshold specifications
     assert.equal(ALL_BADGES.length, 12, 'Must have exactly 12 total milestone badges');
