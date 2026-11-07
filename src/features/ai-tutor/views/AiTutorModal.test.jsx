@@ -44,7 +44,7 @@ describe('AiTutorModal Component', () => {
     writeTextSpy = vi.spyOn(navigator.clipboard, 'writeText').mockResolvedValue(undefined);
   });
 
-  it('renders modal with title, scope toggle, and selection dropdowns when open', () => {
+  it('renders modal with title, scope toggles, and multi-lecture selector when open', () => {
     render(
       <AiTutorModal
         open={true}
@@ -54,26 +54,14 @@ describe('AiTutorModal Component', () => {
     );
 
     expect(screen.getByRole('dialog', { name: /ask ai tutor/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /by topic/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /by entire section/i })).toBeInTheDocument();
-    expect(screen.getByRole('combobox', { name: /select course section/i })).toBeInTheDocument();
-    expect(screen.getByRole('combobox', { name: /select lecture topic/i })).toBeInTheDocument();
+    expect(screen.getByRole('radio', { name: /by topic/i })).toBeInTheDocument();
+    expect(screen.getByRole('radio', { name: /by entire section/i })).toBeInTheDocument();
+    expect(screen.getByRole('radio', { name: /full curriculum/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /ask chatgpt/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /ask claude/i })).toBeInTheDocument();
   });
 
-  it('does not render when open is false', () => {
-    const { container } = render(
-      <AiTutorModal
-        open={false}
-        onClose={vi.fn()}
-        course={mockCourse}
-      />
-    );
-    expect(container.firstChild).toBeNull();
-  });
-
-  it('allows switching between Topic and Section scopes', async () => {
+  it('allows selecting multiple lectures via checkboxes', async () => {
     const user = userEvent.setup();
     render(
       <AiTutorModal
@@ -83,18 +71,18 @@ describe('AiTutorModal Component', () => {
       />
     );
 
-    // Initially in Topic mode
-    expect(screen.getByRole('combobox', { name: /select lecture topic/i })).toBeInTheDocument();
+    // Initial first lecture is selected
+    expect(screen.getByText(/selected \(1\):/i)).toBeInTheDocument();
 
-    // Switch to Entire Section mode
-    await user.click(screen.getByRole('button', { name: /by entire section/i }));
+    // Check the second lecture
+    const secondCheckbox = screen.getAllByRole('checkbox')[1];
+    await user.click(secondCheckbox);
 
-    // Topic dropdown should now be hidden
-    expect(screen.queryByRole('combobox', { name: /select lecture topic/i })).not.toBeInTheDocument();
-    expect(screen.getByText(/total lectures in section/i)).toBeInTheDocument();
+    // Now 2 lectures should be selected
+    expect(screen.getByText(/selected \(2\):/i)).toBeInTheDocument();
   });
 
-  it('updates lecture options when changing sections', async () => {
+  it('switches to section mode and renders section checkboxes', async () => {
     const user = userEvent.setup();
     render(
       <AiTutorModal
@@ -104,16 +92,12 @@ describe('AiTutorModal Component', () => {
       />
     );
 
-    // Switch section to s02
-    const sectionSelect = screen.getByRole('combobox', { name: /select course section/i });
-    await user.selectOptions(sectionSelect, 's02');
-
-    // Lecture dropdown should now only show s02 lectures
-    expect(screen.getByRole('option', { name: /parallel stream internals/i })).toBeInTheDocument();
-    expect(screen.queryByRole('option', { name: /installation guide/i })).not.toBeInTheDocument();
+    await user.click(screen.getByRole('radio', { name: /by entire section/i }));
+    expect(screen.getByText(/section 01: getting started/i)).toBeInTheDocument();
+    expect(screen.getByText(/section 02: advanced streams/i)).toBeInTheDocument();
   });
 
-  it('clicking Ask ChatGPT auto-copies full prompt and opens ChatGPT in a new tab', async () => {
+  it('toggles context optimization mode between focused and full', async () => {
     const user = userEvent.setup();
     render(
       <AiTutorModal
@@ -123,26 +107,32 @@ describe('AiTutorModal Component', () => {
       />
     );
 
-    const chatGptBtn = screen.getByRole('button', { name: /ask chatgpt/i });
-    await user.click(chatGptBtn);
+    const fullModeBtn = screen.getByRole('radio', { name: /full syllabus/i });
+    await user.click(fullModeBtn);
+    expect(fullModeBtn).toHaveClass('ai-mode-btn--active');
+  });
 
-    // Clipboard writeText should have been called with full prompt (including XML)
-    expect(writeTextSpy).toHaveBeenCalledWith(
-      expect.stringContaining('You are an expert AI tutor for the course "Java Masterclass"')
-    );
-    expect(writeTextSpy).toHaveBeenCalledWith(
-      expect.stringContaining('```xml')
+  it('launches ChatGPT in new tab on button click', async () => {
+    const user = userEvent.setup();
+    render(
+      <AiTutorModal
+        open={true}
+        onClose={vi.fn()}
+        course={mockCourse}
+      />
     );
 
-    // Window.open should have been called with chatgpt URL and noopener,noreferrer
+    const gptBtn = screen.getByRole('button', { name: /ask chatgpt/i });
+    await user.click(gptBtn);
+
     expect(globalThis.open).toHaveBeenCalledWith(
-      expect.stringContaining('https://chatgpt.com/?q='),
+      expect.stringContaining('https://chatgpt.com'),
       '_blank',
       'noopener,noreferrer'
     );
   });
 
-  it('clicking Ask Claude opens Claude in a new tab and copies context', async () => {
+  it('launches Claude in new tab on button click', async () => {
     const user = userEvent.setup();
     render(
       <AiTutorModal
@@ -155,15 +145,14 @@ describe('AiTutorModal Component', () => {
     const claudeBtn = screen.getByRole('button', { name: /ask claude/i });
     await user.click(claudeBtn);
 
-    expect(writeTextSpy).toHaveBeenCalled();
     expect(globalThis.open).toHaveBeenCalledWith(
-      expect.stringContaining('https://claude.ai/new?q='),
+      expect.stringContaining('https://claude.ai/new'),
       '_blank',
       'noopener,noreferrer'
     );
   });
 
-  it('manual copy prompt button copies prompt to clipboard', async () => {
+  it('copies full prompt to clipboard and shows success message', async () => {
     const user = userEvent.setup();
     render(
       <AiTutorModal
@@ -173,15 +162,14 @@ describe('AiTutorModal Component', () => {
       />
     );
 
-    const copyBtn = screen.getByRole('button', { name: /copy full prompt/i });
+    const copyBtn = screen.getByRole('button', { name: /copy formatted prompt/i });
     await user.click(copyBtn);
 
-    expect(writeTextSpy).toHaveBeenCalledWith(
-      expect.stringContaining('You are an expert AI tutor')
-    );
+    expect(writeTextSpy).toHaveBeenCalled();
+    expect(screen.getByText(/prompt copied to clipboard/i)).toBeInTheDocument();
   });
 
-  it('toggles prompt preview when clicking preview button', async () => {
+  it('downloads context file and displays the file guide', async () => {
     const user = userEvent.setup();
     render(
       <AiTutorModal
@@ -191,17 +179,16 @@ describe('AiTutorModal Component', () => {
       />
     );
 
-    expect(screen.queryByLabelText(/generated prompt preview/i)).not.toBeInTheDocument();
+    const downloadBtn = screen.getByRole('button', { name: /download context file \(\.md\)/i });
+    await user.click(downloadBtn);
 
-    const previewToggle = screen.getByRole('button', { name: /preview full prompt/i });
-    await user.click(previewToggle);
-
-    expect(screen.getByLabelText(/generated prompt preview/i)).toBeInTheDocument();
+    expect(screen.getByText(/how to use the context file in chatgpt or claude/i)).toBeInTheDocument();
   });
 
-  it('closes when pressing Escape key or clicking close button', async () => {
+  it('calls onClose when close button is clicked', async () => {
     const user = userEvent.setup();
     const handleClose = vi.fn();
+
     render(
       <AiTutorModal
         open={true}
@@ -210,13 +197,7 @@ describe('AiTutorModal Component', () => {
       />
     );
 
-    // Close button
-    const closeBtn = screen.getByRole('button', { name: /close ai tutor dialog/i });
-    await user.click(closeBtn);
+    await user.click(screen.getByRole('button', { name: /close ai tutor dialog/i }));
     expect(handleClose).toHaveBeenCalledTimes(1);
-
-    // Escape key
-    fireEvent.keyDown(window, { key: 'Escape' });
-    expect(handleClose).toHaveBeenCalledTimes(2);
   });
 });

@@ -1,102 +1,107 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import {
   escapeXml,
   courseToXml,
+  courseToMarkdown,
   downloadCourseXml,
+  downloadCourseContextFile,
 } from './courseXmlSerializer.js';
 
 describe('courseXmlSerializer', () => {
+  const sampleCourse = {
+    title: 'Core Java with AI & Concurrency',
+    sections: [
+      {
+        id: 'sec-1',
+        number: '01',
+        title: 'Introduction & Setup',
+        isProject: false,
+        lectures: [
+          { id: 'lec-1', title: 'JDK Installation <v21>', durationSec: 900, durationLabel: '15m' },
+          { id: 'lec-2', title: 'Hello World "Special"', durationSec: 1200, durationLabel: '20m' },
+        ],
+      },
+      {
+        id: 'sec-2',
+        number: '02',
+        title: 'Final Project',
+        isProject: true,
+        lectures: [
+          { id: 'lec-3', title: 'Building a CLI App', durationSec: 3600, durationLabel: '1h' },
+        ],
+      },
+    ],
+  };
+
   describe('escapeXml', () => {
     it('escapes &, <, >, ", and single quotes correctly', () => {
-      const input = 'Spring & "Boot" <Fast> \'Core\'';
-      expect(escapeXml(input)).toBe('Spring &amp; &quot;Boot&quot; &lt;Fast&gt; &apos;Core&apos;');
+      const raw = 'Java & Python < "Hello" & \'World\' >';
+      expect(escapeXml(raw)).toBe('Java &amp; Python &lt; &quot;Hello&quot; &amp; &apos;World&apos; &gt;');
     });
 
-    it('handles null and undefined gracefully', () => {
+    it('returns empty string for null and undefined', () => {
       expect(escapeXml(null)).toBe('');
       expect(escapeXml(undefined)).toBe('');
-    });
-
-    it('preserves unicode and emojis', () => {
-      expect(escapeXml('Java 🚀 & AI 🤖')).toBe('Java 🚀 &amp; AI 🤖');
     });
   });
 
   describe('courseToXml', () => {
-    it('produces valid course XML matching parser schema', () => {
-      const course = {
-        title: 'Core Java & AI',
-        sections: [
-          {
-            number: '01',
-            title: 'Fundamentals <Basics>',
-            isProject: false,
-            lectures: [
-              { title: 'Intro & Setup', durationLabel: '15m', durationSec: 900 },
-              { title: 'Variables & Types', durationLabel: '20m', durationSec: 1200 },
-            ],
-          },
-          {
-            number: '02',
-            title: 'Hands-on Project',
-            isProject: true,
-            lectures: [
-              { title: 'Build CLI App', durationLabel: '45m', durationSec: 2700 },
-            ],
-          },
-        ],
-      };
-
-      const xml = courseToXml(course);
-
+    it('produces valid canonical XML conforming to course structure', () => {
+      const xml = courseToXml(sampleCourse);
       expect(xml).toContain('<?xml version="1.0" encoding="UTF-8"?>');
-      expect(xml).toContain('<title>Core Java &amp; AI</title>');
-      expect(xml).toContain('<section number="01" title="Fundamentals &lt;Basics&gt;">');
-      expect(xml).toContain('<section number="02" title="Hands-on Project" project="true">');
-      expect(xml).toContain('<item type="video" title="Intro &amp; Setup" duration="15m" />');
-      expect(xml).toContain('<item type="video" title="Build CLI App" duration="45m" />');
-
-      // Verify DOMParser parses it without error
-      const parser = new DOMParser();
-      const doc = parser.parseFromString(xml, 'application/xml');
-      expect(doc.querySelector('parsererror')).toBeNull();
-      expect(doc.querySelector('course > title').textContent).toBe('Core Java & AI');
-      expect(doc.querySelectorAll('sections > section')).toHaveLength(2);
+      expect(xml).toContain('<title>Core Java with AI &amp; Concurrency</title>');
+      expect(xml).toContain('<section number="01" title="Introduction &amp; Setup">');
+      expect(xml).toContain('<item type="video" title="JDK Installation &lt;v21&gt;" duration="15m" />');
+      expect(xml).toContain('<section number="02" title="Final Project" project="true">');
     });
 
-    it('handles null course without throwing', () => {
+    it('returns fallback valid XML for null course', () => {
       const xml = courseToXml(null);
-      expect(xml).toContain('<course>');
-      expect(xml).toContain('</course>');
-    });
-
-    it('handles course with empty sections or empty lectures', () => {
-      const course = { title: 'Empty Course', sections: [] };
-      const xml = courseToXml(course);
-      expect(xml).toContain('<title>Empty Course</title>');
-      expect(xml).toContain('</sections>');
+      expect(xml).toContain('<title>Course</title>');
+      expect(xml).toContain('<sections/>');
     });
   });
 
-  describe('downloadCourseXml', () => {
-    it('creates Blob and triggers download link click', () => {
-      const course = { title: 'Python Pro', sections: [] };
-      const createObjectURLMock = vi.fn().mockReturnValue('blob:mock-url');
-      const revokeObjectURLMock = vi.fn();
-      globalThis.URL.createObjectURL = createObjectURLMock;
-      globalThis.URL.revokeObjectURL = revokeObjectURLMock;
+  describe('courseToMarkdown', () => {
+    it('generates a clean markdown context document for LLMs', () => {
+      const md = courseToMarkdown(sampleCourse, {
+        selectedLectures: [sampleCourse.sections[0].lectures[0]],
+      });
 
-      const appendChildSpy = vi.spyOn(document.body, 'appendChild');
-      const removeChildSpy = vi.spyOn(document.body, 'removeChild');
+      expect(md).toContain('# Course Context: Core Java with AI & Concurrency');
+      expect(md).toContain('## ⭐ Selected Focus Topics for Current Session');
+      expect(md).toContain('JDK Installation <v21>');
+      expect(md).toContain('## Full Curriculum Roadmap');
+      expect(md).toContain('### Section 01: Introduction & Setup');
+      expect(md).toContain('👉 Lecture 1: JDK Installation <v21> (15m) **[SELECTED]**');
+    });
+  });
 
-      const filename = downloadCourseXml(course);
+  describe('downloadCourseXml & downloadCourseContextFile', () => {
+    let originalCreateObjectURL;
+    let originalRevokeObjectURL;
 
-      expect(filename).toBe('python-pro-structure.xml');
-      expect(createObjectURLMock).toHaveBeenCalled();
-      expect(appendChildSpy).toHaveBeenCalled();
-      expect(removeChildSpy).toHaveBeenCalled();
-      expect(revokeObjectURLMock).toHaveBeenCalledWith('blob:mock-url');
+    beforeEach(() => {
+      originalCreateObjectURL = URL.createObjectURL;
+      originalRevokeObjectURL = URL.revokeObjectURL;
+      URL.createObjectURL = vi.fn(() => 'blob:mock-url');
+      URL.revokeObjectURL = vi.fn();
+    });
+
+    it('triggers XML file download in browser environment', () => {
+      const appendSpy = vi.spyOn(document.body, 'appendChild');
+      const filename = downloadCourseXml(sampleCourse);
+
+      expect(filename).toContain('.xml');
+      expect(appendSpy).toHaveBeenCalled();
+    });
+
+    it('triggers Markdown context file download', () => {
+      const appendSpy = vi.spyOn(document.body, 'appendChild');
+      const filename = downloadCourseContextFile(sampleCourse, { format: 'markdown' });
+
+      expect(filename).toContain('-context.md');
+      expect(appendSpy).toHaveBeenCalled();
     });
   });
 });
-

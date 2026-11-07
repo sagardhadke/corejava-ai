@@ -1,8 +1,8 @@
 /**
  * E2E: Flow 16 — AI Tutor Context Launch (ChatGPT & Claude Deep Links)
- * Tests opening AI Tutor from Toolbar, SectionCard, and LectureRow,
- * verifies scope selection, XML context generation, prompt preview,
- * deep link generation, clipboard copy fallback, and Axe accessibility.
+ * Tests opening AI Tutor from Toolbar, Floating Action Button (FAB), and LectureRow,
+ * verifies multi-lecture selection, section selection, context file download,
+ * prompt preview, deep link generation, clipboard copy fallback, and Axe accessibility.
  */
 
 import { test, expect } from '@playwright/test';
@@ -29,7 +29,7 @@ test.describe('Flow 16 — AI Tutor (ChatGPT & Claude Context Launcher)', () => 
     page.on('pageerror', (err) => errors.push(err));
 
     // 1. Click "Ask AI Tutor" button in Toolbar
-    const aiBtn = page.getByRole('button', { name: 'Ask AI Tutor', exact: true });
+    const aiBtn = page.locator('.tb-btn--ai');
     await expect(aiBtn).toBeVisible();
     await aiBtn.click();
 
@@ -41,66 +41,81 @@ test.describe('Flow 16 — AI Tutor (ChatGPT & Claude Context Launcher)', () => 
     await expect(modal.getByText(/ask ai tutor \(chatgpt & claude\)/i)).toBeVisible();
 
     // 4. Scope toggles present
-    await expect(modal.getByRole('button', { name: /by topic/i })).toBeVisible();
-    await expect(modal.getByRole('button', { name: /by entire section/i })).toBeVisible();
+    await expect(modal.getByRole('radio', { name: /by topic/i })).toBeVisible();
+    await expect(modal.getByRole('radio', { name: /by entire section/i })).toBeVisible();
+    await expect(modal.getByRole('radio', { name: /full curriculum/i })).toBeVisible();
 
-    // 5. Threshold indicator shows characters & hybrid context info
-    await expect(modal.getByText(/hybrid context mode/i)).toBeVisible();
-
-    // 6. Action buttons
+    // 5. Action buttons
     await expect(modal.getByRole('button', { name: /ask chatgpt/i })).toBeVisible();
     await expect(modal.getByRole('button', { name: /ask claude/i })).toBeVisible();
-    await expect(modal.getByRole('button', { name: /download course xml/i })).toBeVisible();
+    await expect(modal.getByRole('button', { name: /download context file/i })).toBeVisible();
 
-    // 7. Close dialog via close button
+    // 6. Close dialog via close button
     await modal.getByRole('button', { name: /close ai tutor dialog/i }).click();
     await expect(modal).not.toBeVisible();
 
     expect(errors).toHaveLength(0);
   });
 
-  test('switching between topic and section modes updates selection summary', async ({ page }) => {
+  test('opens AI Tutor modal from floating action button (FAB)', async ({ page }) => {
     const errors: Error[] = [];
     page.on('pageerror', (err) => errors.push(err));
 
-    await page.getByRole('button', { name: 'Ask AI Tutor', exact: true }).click();
+    // Find and click floating action button
+    const fab = page.locator('.ai-fab-btn');
+    await expect(fab).toBeVisible();
+    await fab.click();
+
     const modal = page.getByRole('dialog', { name: /ask ai tutor/i });
     await expect(modal).toBeVisible();
 
-    // In topic mode by default
-    const lectureSelect = modal.getByRole('combobox', { name: /select lecture topic/i });
-    await expect(lectureSelect).toBeVisible();
-
-    // Switch to section mode
-    await modal.getByRole('button', { name: /by entire section/i }).click();
-    await expect(lectureSelect).not.toBeVisible();
-    await expect(modal.getByText(/total lectures in section/i)).toBeVisible();
-
-    // Switch back to topic mode
-    await modal.getByRole('button', { name: /by topic/i }).click();
-    await expect(modal.getByRole('combobox', { name: /select lecture topic/i })).toBeVisible();
+    // Dismiss with Escape key
+    await page.keyboard.press('Escape');
+    await expect(modal).not.toBeVisible();
 
     expect(errors).toHaveLength(0);
   });
 
-  test('expanding prompt preview displays tutor instructions and XML syllabus block', async ({ page }) => {
+  test('selecting multiple lectures updates selection pills and prompt size', async ({ page }) => {
     const errors: Error[] = [];
     page.on('pageerror', (err) => errors.push(err));
 
-    await page.getByRole('button', { name: 'Ask AI Tutor', exact: true }).click();
+    await page.locator('.tb-btn--ai').click();
     const modal = page.getByRole('dialog', { name: /ask ai tutor/i });
+    await expect(modal).toBeVisible();
 
-    // Click preview toggle
-    const previewBtn = modal.getByRole('button', { name: /preview full prompt/i });
-    await previewBtn.click();
+    // Initial state has 1 lecture selected
+    await expect(modal.getByText(/selected \(1\):/i)).toBeVisible();
 
-    // Preview code block should be visible
-    const previewBox = modal.getByLabel('Generated Prompt Preview');
-    await expect(previewBox).toBeVisible();
-    await expect(previewBox).toContainText('You are an expert AI tutor');
-    await expect(previewBox).toContainText('```xml');
-    await expect(previewBox).toContainText('<course>');
-    await expect(previewBox).toContainText('</course>');
+    // Check second lecture in checklist
+    const checkboxes = modal.getByRole('checkbox');
+    await checkboxes.nth(1).check();
+
+    // Should now show 2 selected
+    await expect(modal.getByText(/selected \(2\):/i)).toBeVisible();
+
+    expect(errors).toHaveLength(0);
+  });
+
+  test('switching between multi-lecture, section, and full-curriculum scopes', async ({ page }) => {
+    const errors: Error[] = [];
+    page.on('pageerror', (err) => errors.push(err));
+
+    await page.locator('.tb-btn--ai').click();
+    const modal = page.getByRole('dialog', { name: /ask ai tutor/i });
+    await expect(modal).toBeVisible();
+
+    // Switch to section mode
+    await modal.getByRole('radio', { name: /by entire section/i }).click();
+    await expect(modal.getByText(/select one or more sections/i)).toBeVisible();
+
+    // Switch to full curriculum mode
+    await modal.getByRole('radio', { name: /full curriculum/i }).click();
+    await expect(modal.getByText(/entire curriculum context/i)).toBeVisible();
+
+    // Switch back to topic mode
+    await modal.getByRole('radio', { name: /by topic/i }).click();
+    await expect(modal.getByText(/selected \(/i)).toBeVisible();
 
     expect(errors).toHaveLength(0);
   });
@@ -118,10 +133,10 @@ test.describe('Flow 16 — AI Tutor (ChatGPT & Claude Context Launcher)', () => 
     await expect(lectureAiBtn).toBeVisible();
     await lectureAiBtn.click();
 
-    // Modal should open with that lecture pre-selected
+    // Modal should open with topic scope active
     const modal = page.getByRole('dialog', { name: /ask ai tutor/i });
     await expect(modal).toBeVisible();
-    await expect(modal.getByRole('button', { name: /by topic/i })).toHaveClass(/ai-scope-btn--active/);
+    await expect(modal.getByRole('radio', { name: /by topic/i })).toHaveClass(/ai-scope-btn--active/);
 
     // Dismiss with Escape key
     await page.keyboard.press('Escape');
@@ -130,24 +145,8 @@ test.describe('Flow 16 — AI Tutor (ChatGPT & Claude Context Launcher)', () => 
     expect(errors).toHaveLength(0);
   });
 
-  test('clicking Ask AI on section banner pre-selects section mode in modal', async ({ page }) => {
-    const errors: Error[] = [];
-    page.on('pageerror', (err) => errors.push(err));
-
-    const openCard = page.locator('.section-card--open').first();
-    const sectionAiBtn = openCard.getByRole('button', { name: /ask ai tutor about section/i });
-    await expect(sectionAiBtn).toBeVisible();
-    await sectionAiBtn.click();
-
-    const modal = page.getByRole('dialog', { name: /ask ai tutor/i });
-    await expect(modal).toBeVisible();
-    await expect(modal.getByRole('button', { name: /by entire section/i })).toHaveClass(/ai-scope-btn--active/);
-
-    expect(errors).toHaveLength(0);
-  });
-
   test('accessibility: zero axe violations on AI Tutor modal', async ({ page }) => {
-    await page.getByRole('button', { name: 'Ask AI Tutor', exact: true }).click();
+    await page.locator('.tb-btn--ai').click();
     const modal = page.getByRole('dialog', { name: /ask ai tutor/i });
     await expect(modal).toBeVisible();
 
@@ -160,4 +159,3 @@ test.describe('Flow 16 — AI Tutor (ChatGPT & Claude Context Launcher)', () => 
     expect(axeResults.violations).toHaveLength(0);
   });
 });
-

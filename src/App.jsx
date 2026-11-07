@@ -34,7 +34,7 @@ import { SettingsPanel } from './features/settings/index.js';
 import { MotivationPopup } from './features/motivation/index.js';
 import { NotificationsPanel, useNotificationsViewModel } from './features/notifications/index.js';
 import { DailyLimitDialog } from './features/tracking/index.js';
-import { AiTutorModal } from './features/ai-tutor/index.js';
+import { AiTutorModal, AiTutorFloatingButton } from './features/ai-tutor/index.js';
 import './App.css';
 
 export default function App() {
@@ -633,6 +633,8 @@ export default function App() {
         initialSectionId={aiTutorInitialScope.sectionId}
         initialLectureId={aiTutorInitialScope.lectureId}
       />
+
+      <AiTutorFloatingButton onClick={() => handleOpenAiTutor()} />
 
       <ToastContainer />
       <DeveloperBadge />

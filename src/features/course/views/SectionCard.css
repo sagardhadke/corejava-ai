@@ -118,36 +118,7 @@
   border-top: 1px solid var(--border-soft);
 }
 
-.section-card__ai-banner {
-  display: flex;
-  justify-content: flex-end;
-  padding: 4px 6px 8px;
-  margin-bottom: 4px;
-  border-bottom: 1px dashed var(--border-soft);
-}
 
-.section-card__ai-trigger {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  background: transparent;
-  border: 1px solid rgba(255, 184, 0, 0.28);
-  border-radius: var(--r-sm);
-  color: var(--amber);
-  font-size: 11.5px;
-  font-weight: 600;
-  padding: 4px 10px;
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.section-card__ai-trigger:hover,
-.section-card__ai-trigger:focus-visible {
-  background: rgba(255, 184, 0, 0.12);
-  border-color: var(--amber);
-  color: var(--amber-bright, #ffd54a);
-  outline: none;
-}
 
 @media (max-width: 600px) {
   .section-card {
