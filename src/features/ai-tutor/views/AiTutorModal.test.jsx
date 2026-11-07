@@ -62,8 +62,6 @@ describe('AiTutorModal Component', () => {
     expect(screen.getByRole('button', { name: /ask claude/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /copy complete prompt/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /download prompt \(\.md\)/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /download prompt \(\.txt\)/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /download xml structure/i })).toBeInTheDocument();
   });
 
   it('allows selecting multiple lectures via checkboxes and shows pills', async () => {
@@ -194,7 +192,7 @@ describe('AiTutorModal Component', () => {
     expect(screen.getByText(/complete prompt & course context copied/i)).toBeInTheDocument();
   });
 
-  it('downloads context file (.md, .txt, and .xml)', async () => {
+  it('downloads markdown prompt context file (.md)', async () => {
     const user = userEvent.setup();
     render(
       <AiTutorModal
@@ -206,15 +204,7 @@ describe('AiTutorModal Component', () => {
 
     const mdBtn = screen.getByRole('button', { name: /download prompt \(\.md\)/i });
     await user.click(mdBtn);
-    expect(screen.getByText(/markdown \(\.md\) file .* downloaded/i)).toBeInTheDocument();
-
-    const txtBtn = screen.getByRole('button', { name: /download prompt \(\.txt\)/i });
-    await user.click(txtBtn);
-    expect(screen.getByText(/text \(\.txt\) file .* downloaded/i)).toBeInTheDocument();
-
-    const xmlBtn = screen.getByRole('button', { name: /download xml structure/i });
-    await user.click(xmlBtn);
-    expect(screen.getByText(/full course structure .* downloaded/i)).toBeInTheDocument();
+    expect(screen.getByText(/markdown prompt file .* downloaded/i)).toBeInTheDocument();
   });
 
   it('calls onClose when close button is clicked', async () => {

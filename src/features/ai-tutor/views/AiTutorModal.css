@@ -782,28 +782,25 @@
   font-family: var(--font-mono, monospace);
 }
 
-/* Auxiliary File Download & Copy Actions */
+/* Core Action Buttons: 2 Focused Actions */
 .ai-aux-actions {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
 }
 
 .ai-btn-aux {
-  flex: 1;
-  min-width: 130px;
-  height: 28px;
+  height: 34px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 5px;
+  gap: 6px;
   background: var(--surface-2, #191c22);
   border: 1px solid var(--border, #2a2e37);
-  border-radius: var(--r-sm, 4px);
+  border-radius: var(--r-sm, 6px);
   color: var(--ink, #eef0f3);
   font-family: var(--font-display, sans-serif);
-  font-size: 0.72rem;
+  font-size: 0.78rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.15s ease;
@@ -812,7 +809,7 @@
 
 .ai-btn-aux:hover {
   background: var(--surface-3, #21252d);
-  border-color: var(--border, #2a2e37);
+  border-color: var(--border-strong, #3b414f);
   color: #ffffff;
 }
 
@@ -909,7 +906,7 @@
     grid-template-columns: 1fr;
   }
   .ai-aux-actions {
-    flex-direction: column;
+    grid-template-columns: 1fr;
   }
   .ai-btn-aux {
     width: 100%;

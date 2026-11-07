@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect, useRef } from 'react';
 import { AI_PLATFORMS } from '../models/aiPlatforms.js';
 import { preparePlatformUrl, buildFullPrompt, DEVELOPER_ATTRIBUTION } from '../models/promptBuilder.js';
 import { copyToClipboard } from '../models/clipboard.js';
-import { downloadCourseXml, downloadCourseContextFile } from '../models/courseXmlSerializer.js';
+import { downloadCourseContextFile } from '../models/courseXmlSerializer.js';
 import { showToast } from '../../../utils/toast.js';
 import './AiTutorModal.css';
 
@@ -230,45 +230,28 @@ export default function AiTutorModal({
   }, [course, scopeType, selectedLectures, selectedSections, contextMode]);
 
   // Handle ChatGPT / Claude external platform launch
-  // Auto-copies prompt & auto-downloads syllabus context file
-  // Uses clean URL for Claude to eliminate "Malicious content could trick Claude" warning
+  // Senior Architecture: Copies prompt to clipboard & opens platform in fresh tab
+  // Zero URL length bloat, zero injection warnings, 100% reliable
   const handleLaunchPlatform = async (platformId) => {
-    const plan = platformId === 'claude' ? launchPlan.claude : launchPlan.chatgpt;
-    if (!plan) return;
+    const fullPrompt = launchPlan.fullPrompt;
+    if (!fullPrompt) return;
 
     setStatusMessage(null);
 
-    // 1. Auto-copy complete prompt to clipboard
-    const copyResult = await copyToClipboard(plan.fullPrompt);
+    // 1. Copy complete prompt to clipboard
+    const copyResult = await copyToClipboard(fullPrompt);
 
-    // 2. Auto-download context file (.md) so user can drop or attach it directly
-    let downloadedFile = null;
-    try {
-      downloadedFile = downloadCourseContextFile(course, {
-        selectedLectures,
-        selectedSections,
-        format: 'markdown',
-      });
-    } catch {
-      // Fallback silently if download blocked
-    }
-
-    // 3. Clean URLs for Claude and ChatGPT:
-    // - Claude: 'https://claude.ai/new' without ?q= parameter completely eliminates Anthropic's
-    //   "Use caution before running this prompt. Malicious content could trick Claude..." warning!
-    // - ChatGPT: 'https://chatgpt.com/' avoids HTTP 431 Request Header Fields Too Large on long prompts.
+    // 2. Open clean platform URL in new tab (no ?q= query param)
     const targetUrl = platformId === 'claude' ? 'https://claude.ai/new' : 'https://chatgpt.com/';
-
     window.open(targetUrl, '_blank', 'noopener,noreferrer');
 
     const platformName = platformId === 'claude' ? 'Claude' : 'ChatGPT';
-    const filename = downloadedFile || 'core-java-with-ai-context.md';
     if (copyResult.success) {
       setStatusMessage({
         type: 'success',
-        text: `✓ Full prompt copied & "${filename}" downloaded! In ${platformName}: Press Ctrl+V to paste, or drag & drop the downloaded file into the chat.`,
+        text: `✓ Complete prompt copied! Switched to ${platformName} in a new tab — simply press Ctrl+V to paste and ask.`,
       });
-      showToast(`Prompt copied & file downloaded! Paste (Ctrl+V) or drop file into ${platformName}`, 'success', 5000);
+      showToast(`Prompt copied! Switched to ${platformName} (Ctrl+V to paste)`, 'success', 4000);
     } else {
       setStatusMessage({
         type: 'info',
@@ -294,29 +277,17 @@ export default function AiTutorModal({
     }
   };
 
-  // Download context file (.md or .txt)
-  const handleDownloadContext = (format = 'markdown') => {
+  // Download structured prompt context file (.md)
+  const handleDownloadContext = () => {
     if (!course) return;
     const filename = downloadCourseContextFile(course, {
       selectedLectures,
       selectedSections,
-      format,
+      format: 'markdown',
     });
-    const formatLabel = format === 'markdown' ? 'Markdown (.md)' : 'Text (.txt)';
     setStatusMessage({
       type: 'success',
-      text: `✓ ${formatLabel} file "${filename}" downloaded! Drag & drop or attach it directly in ChatGPT or Claude.`,
-    });
-    showToast(`Downloaded ${filename}`, 'success', 3000);
-  };
-
-  // Download raw XML
-  const handleDownloadXml = () => {
-    if (!course) return;
-    const filename = downloadCourseXml(course);
-    setStatusMessage({
-      type: 'success',
-      text: `✓ Full course structure "${filename}" downloaded.`,
+      text: `✓ Markdown prompt file "${filename}" downloaded! Drag & drop or attach it directly in ChatGPT or Claude.`,
     });
     showToast(`Downloaded ${filename}`, 'success', 3000);
   };
@@ -655,7 +626,7 @@ export default function AiTutorModal({
                   <span className="ai-platform-btn-title">Ask ChatGPT</span>
                   <span className="ai-platform-badge ai-platform-badge--openai">OpenAI</span>
                 </div>
-                <span className="ai-platform-btn-sub">Auto-copies prompt &amp; context file ↗</span>
+                <span className="ai-platform-btn-sub">Copies prompt &amp; opens chatgpt.com ↗</span>
               </div>
             </button>
 
@@ -670,28 +641,28 @@ export default function AiTutorModal({
               <div className="ai-platform-btn-text">
                 <div className="ai-platform-btn-title-row">
                   <span className="ai-platform-btn-title">Ask Claude</span>
-                  <span className="ai-platform-badge ai-platform-badge--claude">Safe Launch</span>
+                  <span className="ai-platform-badge ai-platform-badge--claude">Anthropic</span>
                 </div>
-                <span className="ai-platform-btn-sub">Bypasses URL security warnings ↗</span>
+                <span className="ai-platform-btn-sub">Copies prompt &amp; opens claude.ai ↗</span>
               </div>
             </button>
           </div>
 
-          {/* Security & Attachment Hint */}
+          {/* Security & Privacy Banner */}
           <div className="ai-security-hint">
             <span className="ai-security-hint__icon">🛡️</span>
             <span>
-              <strong>Safe File Attachment:</strong> Clicking <strong>Ask Claude</strong> or <strong>Ask ChatGPT</strong> auto-downloads the syllabus context file and copies the prompt to your clipboard — completely bypassing Claude&apos;s malicious URL injection security warnings. Simply press <code>Ctrl+V</code> or drop the file in!
+              <strong>Privacy &amp; Security First:</strong> We provide structured, zero-retention prompts. For your security and account privacy, we never ask for your AI credentials, log into your account, or proxy your prompts through external servers. Simply click <strong>Ask ChatGPT</strong> or <strong>Ask Claude</strong> to copy the prompt and open a new chat, then press <code>Ctrl+V</code> (or <code>Cmd+V</code>) to paste with total confidence!
             </span>
           </div>
 
-          {/* Auxiliary File Download & Copy Actions */}
+          {/* Core Actions: Exactly 2 Focused Actions */}
           <div className="ai-aux-actions">
             <button
               type="button"
               className="ai-btn-aux ai-btn-aux--gold"
               onClick={handleCopyPrompt}
-              title="Copy full formatted prompt to clipboard"
+              title="Copy complete prompt and course context to clipboard"
             >
               📋 Copy Complete Prompt
             </button>
@@ -699,28 +670,10 @@ export default function AiTutorModal({
             <button
               type="button"
               className="ai-btn-aux"
-              onClick={() => handleDownloadContext('markdown')}
+              onClick={handleDownloadContext}
               title="Download ready-to-attach Markdown prompt file"
             >
               📥 Download Prompt (.md)
-            </button>
-
-            <button
-              type="button"
-              className="ai-btn-aux"
-              onClick={() => handleDownloadContext('txt')}
-              title="Download ready-to-attach Plain Text prompt file"
-            >
-              📥 Download Prompt (.txt)
-            </button>
-
-            <button
-              type="button"
-              className="ai-btn-aux"
-              onClick={handleDownloadXml}
-              title="Download complete course XML file"
-            >
-              📥 Download XML Structure
             </button>
           </div>
 
