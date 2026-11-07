@@ -8,6 +8,7 @@ import {
   STORAGE_KEY_REGISTRY,
   STORAGE_PREFIX,
   TRACKING_VERSION,
+  isSensitiveKey,
   getWatchedKey,
   getTodayPlanKey,
   getSettingsKey,
@@ -32,6 +33,8 @@ describe('Storage Key Registry & Metadata', () => {
     expect(STORAGE_KEYS.MOTIVATION_STORE).toBe('jct_motivation_store_v2');
     expect(STORAGE_KEYS.PREFETCH_COOLDOWN).toBe('jct_prefetch_cooldown_v1');
     expect(STORAGE_KEYS.MOTIVATION_SHOWN).toBe('jct_motivation_shown_v1');
+    expect(STORAGE_KEYS.SCHEMA_VERSION).toBe('jct_schema_version');
+    expect(STORAGE_KEYS.MIGRATION_BACKUP).toBe('jct_migration_backup_latest');
   });
 
   it('builds course-isolated namespaced keys matching characterization tests', () => {
@@ -86,5 +89,31 @@ describe('Storage Key Registry & Metadata', () => {
     expect(STORAGE_KEY_REGISTRY[STORAGE_KEYS.AI_API_KEYS].isSensitive).toBe(true);
     expect(STORAGE_KEY_REGISTRY[STORAGE_KEYS.AI_API_KEYS].isInBackup).toBe(false);
     expect(STORAGE_KEY_REGISTRY['completion'].isSensitive).toBe(true);
+
+    // Verify schema versioning keys metadata
+    expect(STORAGE_KEY_REGISTRY[STORAGE_KEYS.SCHEMA_VERSION].isSensitive).toBe(false);
+    expect(STORAGE_KEY_REGISTRY[STORAGE_KEYS.SCHEMA_VERSION].isInBackup).toBe(true);
+    expect(STORAGE_KEY_REGISTRY[STORAGE_KEYS.MIGRATION_BACKUP].isSensitive).toBe(false);
+    expect(STORAGE_KEY_REGISTRY[STORAGE_KEYS.MIGRATION_BACKUP].isInBackup).toBe(false);
+  });
+
+  it('correctly classifies sensitive vs non-sensitive storage keys with isSensitiveKey', () => {
+    // Sensitive keys
+    expect(isSensitiveKey(STORAGE_KEYS.OPENAI_API_KEY)).toBe(true);
+    expect(isSensitiveKey(STORAGE_KEYS.AI_API_KEYS)).toBe(true);
+    expect(isSensitiveKey(LEGACY_STORAGE_KEYS.OPENAI_API_KEY)).toBe(true);
+    expect(isSensitiveKey('jct_completion__course-1')).toBe(true);
+    expect(isSensitiveKey('jct_anthropic_api_key')).toBe(true);
+    expect(isSensitiveKey('jct_gemini_api_key')).toBe(true);
+
+    // Non-sensitive keys
+    expect(isSensitiveKey(STORAGE_KEYS.REGISTRY)).toBe(false);
+    expect(isSensitiveKey(STORAGE_KEYS.NOTIFICATIONS)).toBe(false);
+    expect(isSensitiveKey(STORAGE_KEYS.SCHEMA_VERSION)).toBe(false);
+    expect(isSensitiveKey(STORAGE_KEYS.MIGRATION_BACKUP)).toBe(false);
+    expect(isSensitiveKey('jct_watched__course-1')).toBe(false);
+    expect(isSensitiveKey('jct_today_plan__course-1')).toBe(false);
+    expect(isSensitiveKey('jct_settings__course-1')).toBe(false);
+    expect(isSensitiveKey('jct_history__course-1')).toBe(false);
   });
 });
