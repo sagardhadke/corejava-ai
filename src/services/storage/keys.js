@@ -206,6 +206,7 @@ export const SENSITIVE_STORAGE_KEYS = Object.freeze([
   'jct_api_key',
   'jct_anthropic_api_key',
   'jct_gemini_api_key',
+  'jct_groq_api_key',
 ]);
 
 /**

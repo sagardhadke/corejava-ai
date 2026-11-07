@@ -18,6 +18,10 @@ export {
   downloadCourseContextFile,
 } from './models/courseXmlSerializer.js';
 export {
+  credentialsRepository,
+  CredentialsRepository,
+} from './models/credentialsRepository.js';
+export {
   MAX_API_KEYS,
   AI_PROVIDERS,
   getStoredApiKeys,

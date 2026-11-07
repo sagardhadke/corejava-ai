@@ -73,6 +73,7 @@ describe('Storage Key Registry & Metadata', () => {
     expect(SENSITIVE_STORAGE_KEYS).toContain('jct_openai_api_key_v1');
     expect(SENSITIVE_STORAGE_KEYS).toContain('jct_ai_api_keys_v1');
     expect(SENSITIVE_STORAGE_KEYS).toContain('jct_openai_api_key');
+    expect(SENSITIVE_STORAGE_KEYS).toContain('jct_groq_api_key');
   });
 
   it('includes complete schema metadata for all registered keys', () => {
@@ -105,6 +106,7 @@ describe('Storage Key Registry & Metadata', () => {
     expect(isSensitiveKey('jct_completion__course-1')).toBe(true);
     expect(isSensitiveKey('jct_anthropic_api_key')).toBe(true);
     expect(isSensitiveKey('jct_gemini_api_key')).toBe(true);
+    expect(isSensitiveKey('jct_groq_api_key')).toBe(true);
 
     // Non-sensitive keys
     expect(isSensitiveKey(STORAGE_KEYS.REGISTRY)).toBe(false);
