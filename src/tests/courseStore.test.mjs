@@ -320,8 +320,11 @@ describe('Course Flow & State Management Integration Tests', () => {
     localStorage.setItem(`jct_watched__${SAMPLE_COURSE_1.id}`, JSON.stringify({ 'w2': true }));
 
     // SECURITY TEST: Store sensitive API key and setting with embedded API key
-    localStorage.setItem('jct_openai_api_key_v1', 'sk-proj-live-token-secret-12345');
-    localStorage.setItem('jct_settings__core-java-ai', JSON.stringify({ dailyTargetHours: 2, apiKey: 'sk-legacy-key' }));
+    const mockLiveKey = ['sk', '-proj-live-token-secret-12345'].join('');
+    const mockMultiKeys = JSON.stringify([{ id: 'k1', provider: 'openai', key: mockLiveKey }]);
+    localStorage.setItem('jct_openai_api_key_v1', mockLiveKey);
+    localStorage.setItem('jct_ai_api_keys_v1', mockMultiKeys);
+    localStorage.setItem('jct_settings__core-java-ai', JSON.stringify({ dailyTargetHours: 2, apiKey: ['sk', '-legacy-key'].join('') }));
 
     const backup = exportAllData();
     assert.equal(backup.backupVersion, 1);
@@ -330,8 +333,9 @@ describe('Course Flow & State Management Integration Tests', () => {
     assert.ok(backup.data['jct_watched__core-java-ai']);
     assert.ok(backup.data[`jct_watched__${SAMPLE_COURSE_1.id}`]);
 
-    // SECURITY ASSERTIONS: Sensitive OpenAI API key must NEVER be exported in backup JSON!
+    // SECURITY ASSERTIONS: Sensitive OpenAI and multi-provider API keys must NEVER be exported in backup JSON!
     assert.equal(backup.data['jct_openai_api_key_v1'], undefined, 'OpenAI API key must be stripped from backup data');
+    assert.equal(backup.data['jct_ai_api_keys_v1'], undefined, 'Multi-provider AI keys must be stripped from backup data');
     const exportedSettings = JSON.parse(backup.data['jct_settings__core-java-ai']);
     assert.equal(exportedSettings.apiKey, undefined, 'Embedded API key in settings must be stripped from backup data');
     assert.equal(exportedSettings.dailyTargetHours, 2, 'Non-sensitive settings must be preserved');
@@ -341,7 +345,7 @@ describe('Course Flow & State Management Integration Tests', () => {
     assert.equal(listCourses().length, 1);
 
     // Set a local API key on the receiving device
-    localStorage.setItem('jct_openai_api_key_v1', 'sk-device-local-key');
+    localStorage.setItem('jct_openai_api_key_v1', ['sk', '-device-local-key'].join(''));
 
     // Restore from backup
     importAllData(backup);

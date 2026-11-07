@@ -223,6 +223,10 @@ const SENSITIVE_STORAGE_KEYS = new Set([
   'jct_openai_api_key_v1',
   'jct_openai_key',
   'jct_api_key',
+  'jct_ai_api_keys_v1',
+  'jct_openai_api_key',
+  'jct_anthropic_api_key',
+  'jct_gemini_api_key',
 ]);
 
 /**

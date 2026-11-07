@@ -32,3 +32,21 @@ local-testing/
 playwright-report/
 test-results/
 
+# Environment, credentials, and secrets
+.env
+.env.*
+!.env.example
+*.env
+*.pem
+*.key
+*.cert
+*.crt
+*.pfx
+*.p12
+*.secret
+*.secrets
+credentials.json
+client_secrets.json
+service-account*.json
+
+
