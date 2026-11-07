@@ -6,7 +6,10 @@ import {
   SENSITIVE_STORAGE_KEYS as REGISTRY_SENSITIVE_KEYS,
   LEGACY_STORAGE_KEYS,
   STORAGE_PREFIX,
+  isSensitiveKey,
 } from '../services/storage/keys.js';
+import { CURRENT_SCHEMA_VERSION } from '../services/storage/migrations/migrationRegistry.js';
+import { migrateDataPayload } from '../services/storage/migrations/migrationRunner.js';
 
 const REGISTRY_KEY = STORAGE_KEYS.REGISTRY; // { courseIds: [...], activeCourseId, customCourses: { [id]: courseObject } }
 
@@ -270,8 +273,11 @@ export function exportAllData({ includeApiKeys = false } = {}) {
   for (let i = 0; i < localStorage.length; i++) {
     const key = localStorage.key(i);
     if (key && key.startsWith(APP_KEY_PREFIX)) {
-      if (!includeApiKeys && SENSITIVE_STORAGE_KEYS.has(key)) {
-        continue; // Do not include API key in export
+      if (key === STORAGE_KEYS.MIGRATION_BACKUP) {
+        continue; // Strictly exclude rolling pre-migration snapshot from backups
+      }
+      if (!includeApiKeys && (SENSITIVE_STORAGE_KEYS.has(key) || isSensitiveKey(key))) {
+        continue; // Strictly exclude sensitive credentials and hashes from backup
       }
       const rawValue = localStorage.getItem(key);
       const sanitized = includeApiKeys ? rawValue : sanitizeValueForExport(key, rawValue);
@@ -283,6 +289,7 @@ export function exportAllData({ includeApiKeys = false } = {}) {
   return {
     appName: 'Core Java + AI Lecture Tracker',
     backupVersion: 1,
+    schemaVersion: CURRENT_SCHEMA_VERSION,
     exportedAt: new Date().toISOString(),
     sanitized: !includeApiKeys,
     data,
@@ -290,35 +297,85 @@ export function exportAllData({ includeApiKeys = false } = {}) {
 }
 
 export function importAllData(backup, { preserveExistingApiKey = true } = {}) {
-  if (!backup || typeof backup !== 'object' || !backup.data || backup.backupVersion !== 1) {
-    throw new Error('This file doesn\'t look like a valid backup for this app.');
+  // 1. Structural validation of root object
+  if (!backup || typeof backup !== 'object' || Array.isArray(backup)) {
+    throw new Error('This file doesn\'t look like a valid backup for this app: backup root must be an object.');
   }
 
-  // Preserve existing local API key so restoring a course backup doesn't wipe credentials
-  let existingApiKey = null;
+  // 2. Data payload structure validation
+  if (!backup.data || typeof backup.data !== 'object' || Array.isArray(backup.data)) {
+    throw new Error('This file doesn\'t look like a valid backup for this app: missing or malformed data payload.');
+  }
+
+  // 3. Backup version format check
+  if (backup.backupVersion !== 1 && typeof backup.schemaVersion !== 'number') {
+    throw new Error('This file doesn\'t look like a valid backup for this app: unrecognized backup format.');
+  }
+
+  // 4. Schema version guard: reject newer versions without modifying storage
+  const backupSchemaVersion = typeof backup.schemaVersion === 'number' ? backup.schemaVersion : 0;
+  if (backupSchemaVersion > CURRENT_SCHEMA_VERSION) {
+    throw new Error(
+      `Backup is from a newer schema version (${backupSchemaVersion}) than supported by this app version (${CURRENT_SCHEMA_VERSION}). Please update the app to restore this backup.`
+    );
+  }
+
+  // 5. Value type and key format validation before touching any existing storage
+  for (const [key, value] of Object.entries(backup.data)) {
+    if (typeof key !== 'string' || !key.startsWith(APP_KEY_PREFIX)) {
+      throw new Error(`Malformed backup data: key "${key}" is invalid. All keys must begin with "${APP_KEY_PREFIX}".`);
+    }
+    if (typeof value !== 'string') {
+      throw new Error(`Malformed backup data: value for key "${key}" must be a string, got ${typeof value}.`);
+    }
+  }
+
+  // 6. Run pending migrations on older backups before applying
+  let dataToRestore = backup.data;
+  if (backupSchemaVersion < CURRENT_SCHEMA_VERSION) {
+    dataToRestore = migrateDataPayload(backup.data, backupSchemaVersion, CURRENT_SCHEMA_VERSION);
+  }
+
+  // 7. Preserve all device sensitive keys (API keys, multi-provider credentials, completion PIN hashes)
+  const preservedSensitiveEntries = [];
   if (preserveExistingApiKey) {
-    existingApiKey = localStorage.getItem(STORAGE_KEYS.OPENAI_API_KEY);
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && isSensitiveKey(k)) {
+        const val = localStorage.getItem(k);
+        if (val !== null && val !== undefined) {
+          preservedSensitiveEntries.push([k, val]);
+        }
+      }
+    }
   }
 
-  // Clear all existing app keys first, so a restore fully replaces state
-  // rather than merging with whatever was already there.
-  const existingKeys = [];
+  // 8. Clear non-sensitive app keys so restore cleanly replaces application state
+  const existingAppKeys = [];
   for (let i = 0; i < localStorage.length; i++) {
     const key = localStorage.key(i);
-    if (key && key.startsWith(APP_KEY_PREFIX)) existingKeys.push(key);
+    if (key && key.startsWith(APP_KEY_PREFIX) && !isSensitiveKey(key)) {
+      existingAppKeys.push(key);
+    }
   }
-  existingKeys.forEach((k) => localStorage.removeItem(k));
+  existingAppKeys.forEach((k) => localStorage.removeItem(k));
 
-  Object.entries(backup.data).forEach(([key, value]) => {
-    if (key.startsWith(APP_KEY_PREFIX)) {
+  // 9. Write migrated backup data (strictly disallowing sensitive keys or rolling snapshot)
+  Object.entries(dataToRestore).forEach(([key, value]) => {
+    if (key.startsWith(APP_KEY_PREFIX) && !isSensitiveKey(key) && key !== STORAGE_KEYS.MIGRATION_BACKUP) {
       localStorage.setItem(key, value);
     }
   });
 
-  // Restore preserved local API key if the backup did not provide one
-  if (preserveExistingApiKey && existingApiKey && !backup.data[STORAGE_KEYS.OPENAI_API_KEY]) {
-    localStorage.setItem(STORAGE_KEYS.OPENAI_API_KEY, existingApiKey);
+  // 10. Re-assert preserved device sensitive keys
+  if (preserveExistingApiKey) {
+    preservedSensitiveEntries.forEach(([k, v]) => {
+      localStorage.setItem(k, v);
+    });
   }
+
+  // 11. Stamp current schema version into storage
+  localStorage.setItem(STORAGE_KEYS.SCHEMA_VERSION, String(CURRENT_SCHEMA_VERSION));
 }
 
 // ---- Memory / storage usage ----
