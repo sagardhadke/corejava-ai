@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import {
   MAX_API_KEYS,
   AI_PROVIDERS,
@@ -114,9 +115,14 @@ export default function ApiKeyManager() {
               <button
                 type="button"
                 className="api-km__help-btn"
-                onClick={() => setShowHelp((v) => !v)}
+                onClick={() => setShowHelp(true)}
+                aria-haspopup="dialog"
+                aria-expanded={showHelp}
+                title={`Open step-by-step developer guide for ${providerDef.shortName}`}
               >
-                ❓ How to get a {providerDef.shortName} key
+                <span className="api-km__help-btn-icon" aria-hidden="true">📖</span>
+                <span>How to get a {providerDef.shortName} key</span>
+                <span className="api-km__help-btn-arrow" aria-hidden="true">↗</span>
               </button>
             </div>
 
@@ -212,39 +218,19 @@ export default function ApiKeyManager() {
               + Add Key
             </button>
           </div>
-
-          {/* Expandable Help Guide Dialog / Box */}
-          {showHelp && (
-            <div className="api-km__help-box">
-              <div className="api-km__help-head">
-                <ProviderFavicon provider={selectedProvider} />
-                <span className="api-km__help-title">
-                  How to generate an API key for {providerDef.name}:
-                </span>
-              </div>
-              <ol className="api-km__help-list">
-                {providerDef.helpSteps.map((step, idx) => (
-                  <li key={idx}>{step}</li>
-                ))}
-              </ol>
-              <div className="api-km__help-footer">
-                <a
-                  href={providerDef.websiteUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="api-km__help-link"
-                >
-                  Open {providerDef.name} Developer Console ↗
-                </a>
-              </div>
-            </div>
-          )}
         </form>
       ) : (
         <div className="api-km__max-banner">
           Maximum of {MAX_API_KEYS} API keys reached. Delete an existing key to add a new one.
         </div>
       )}
+
+      {/* Senior Modal Dialog for Step-by-Step API Key Setup */}
+      <ApiKeyHelpModal
+        open={showHelp}
+        onClose={() => setShowHelp(false)}
+        providerDef={providerDef}
+      />
 
       {/* Status Feedback Banner */}
       {statusMessage && (
@@ -348,4 +334,159 @@ function ShieldCheckIcon() {
       <path d="m9 12 2 2 4-4" />
     </svg>
   );
+}
+
+/**
+ * Senior Architect Help Guide Modal for API Key Generation
+ * Features:
+ * - Full-screen blurred backdrop with ESC and backdrop-click to dismiss
+ * - Direct Console Hero Redirect Card (1-click link to official provider key portal)
+ * - 4-step clear, numbered setup guide
+ * - 100% Client-Side Privacy assurance
+ * - Accessible keyboard navigation with ESC listener
+ */
+export function ApiKeyHelpModal({ open, onClose, providerDef }) {
+  const modalRef = useRef(null);
+
+  // Close on Escape key press
+  useEffect(() => {
+    if (!open) return;
+
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        onClose();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [open, onClose]);
+
+  if (!open || !providerDef) return null;
+
+  const modalContent = (
+    <div
+      className="api-help-backdrop"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+      role="presentation"
+    >
+      <div
+        className="api-help-modal"
+        ref={modalRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="api-help-title"
+        aria-describedby="api-help-desc"
+      >
+        {/* Header */}
+        <div className="api-help-modal__header">
+          <div className="api-help-modal__header-left">
+            <span className="api-help-modal__favicon" aria-hidden="true">
+              <ProviderFavicon provider={providerDef.id} />
+            </span>
+            <div>
+              <div className="api-help-modal__pill-label">DEVELOPER SETUP GUIDE</div>
+              <h3 id="api-help-title" className="api-help-modal__title">
+                How to get a {providerDef.shortName} key
+              </h3>
+            </div>
+          </div>
+          <button
+            type="button"
+            className="api-help-modal__close-btn"
+            onClick={onClose}
+            aria-label="Close guide"
+            title="Close dialog (Esc)"
+          >
+            ✕
+          </button>
+        </div>
+
+        {/* Modal Body */}
+        <div className="api-help-modal__body">
+          <p id="api-help-desc" className="api-help-modal__desc">
+            Follow the 4 quick steps below to generate an API key directly from your {providerDef.name} account.
+          </p>
+
+          {/* Primary Call-to-Action Hero Box: Direct Console Redirect */}
+          <div className="api-help-cta-card">
+            <div className="api-help-cta-card__left">
+              <span className="api-help-cta-card__badge">OFFICIAL CONSOLE</span>
+              <h4 className="api-help-cta-card__title">
+                {providerDef.name} Portal
+              </h4>
+              <p className="api-help-cta-card__subtitle">
+                Redirect directly to your {providerDef.shortName} developer console in a secure tab to create and copy your key.
+              </p>
+            </div>
+            <a
+              href={providerDef.websiteUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="api-help-cta-btn"
+            >
+              <span>Open {providerDef.shortName} Console</span>
+              <span aria-hidden="true">↗</span>
+            </a>
+          </div>
+
+          {/* Step-by-Step Interactive Roadmap */}
+          <div className="api-help-steps">
+            <div className="api-help-steps__title">Step-by-Step Instructions</div>
+            <ol className="api-help-steps__list">
+              {providerDef.helpSteps.map((step, idx) => (
+                <li key={idx} className="api-help-step-item">
+                  <div className="api-help-step-num" aria-hidden="true">
+                    {idx + 1}
+                  </div>
+                  <div className="api-help-step-content">
+                    <span className="api-help-step-text">{step}</span>
+                  </div>
+                </li>
+              ))}
+            </ol>
+          </div>
+
+          {/* Local Security & Privacy Notice */}
+          <div className="api-help-privacy-box">
+            <div className="api-help-privacy-icon" aria-hidden="true">
+              <ShieldCheckIcon />
+            </div>
+            <div className="api-help-privacy-text">
+              <strong>100% Client-Side Privacy:</strong> Your secret key stays on this device. It is stored exclusively in your browser&apos;s local storage and used solely for direct requests to {providerDef.shortName}.
+            </div>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="api-help-modal__footer">
+          <a
+            href={providerDef.websiteUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="api-help-secondary-link"
+          >
+            Open {providerDef.name} Developer Console ↗
+          </a>
+          <button
+            type="button"
+            className="api-help-dismiss-btn"
+            onClick={onClose}
+          >
+            Got it, I&apos;m Ready
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
+  if (typeof document !== 'undefined' && document.body) {
+    return createPortal(modalContent, document.body);
+  }
+  return modalContent;
 }
