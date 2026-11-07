@@ -9,7 +9,6 @@ export {
   preparePlatformUrl,
   calculateUrlLength,
   buildTopicWiseRoadmap,
-  buildFocusedRoadmap,
 } from './models/promptBuilder.js';
 export { copyToClipboard } from './models/clipboard.js';
 export {

@@ -726,7 +726,7 @@ describe('Course Flow & State Management Integration Tests', () => {
         status: 200,
         json: async () => ({ data: [{ id: 'gpt-4o' }, { id: 'gpt-4o-mini' }] }),
       });
-      const okRes = await verifyOpenAiApiKey('mock-valid-openai-key');
+      const okRes = await verifyOpenAiApiKey('sk-mock-valid-key');
       assert.equal(okRes.ok, true);
       assert.equal(okRes.status, 200);
       assert.ok(okRes.message.includes('verified and working'));
@@ -737,7 +737,7 @@ describe('Course Flow & State Management Integration Tests', () => {
         status: 401,
         json: async () => ({ error: { message: 'Incorrect API key provided' } }),
       });
-      const unauthRes = await verifyOpenAiApiKey('mock-revoked-openai-key');
+      const unauthRes = await verifyOpenAiApiKey('sk-mock-revoked-key');
       assert.equal(unauthRes.ok, false);
       assert.equal(unauthRes.status, 401);
       assert.ok(unauthRes.error.includes('invalid, expired, or was revoked'));
@@ -747,7 +747,7 @@ describe('Course Flow & State Management Integration Tests', () => {
         status: 429,
         json: async () => ({ error: { message: 'Rate limit or quota exceeded' } }),
       });
-      const quotaRes = await verifyOpenAiApiKey('mock-overquota-openai-key');
+      const quotaRes = await verifyOpenAiApiKey('sk-mock-overquota-key');
       assert.ok(quotaRes.error.includes('Quota exceeded'));
     } finally {
       globalThis.fetch = originalFetch;

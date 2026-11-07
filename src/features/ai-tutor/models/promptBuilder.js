@@ -78,11 +78,6 @@ export function buildTopicWiseRoadmap(course, selectedLectures = [], selectedSec
 }
 
 /**
- * Backward compatibility alias for buildTopicWiseRoadmap.
- */
-export const buildFocusedRoadmap = buildTopicWiseRoadmap;
-
-/**
  * Builds the complete prompt for ChatGPT, Claude, and other LLMs.
  */
 export function buildFullPrompt({
