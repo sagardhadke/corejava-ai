@@ -44,7 +44,7 @@ describe('AiTutorModal Component', () => {
     writeTextSpy = vi.spyOn(navigator.clipboard, 'writeText').mockResolvedValue(undefined);
   });
 
-  it('renders modal with title, scope toggles, and multi-lecture selector when open', () => {
+  it('renders modal with title, developer attribution, scope toggles, and multi-lecture selector when open', () => {
     render(
       <AiTutorModal
         open={true}
@@ -53,15 +53,20 @@ describe('AiTutorModal Component', () => {
       />
     );
 
-    expect(screen.getByRole('dialog', { name: /ask ai tutor/i })).toBeInTheDocument();
-    expect(screen.getByRole('radio', { name: /by topic/i })).toBeInTheDocument();
-    expect(screen.getByRole('radio', { name: /by entire section/i })).toBeInTheDocument();
-    expect(screen.getByRole('radio', { name: /full curriculum/i })).toBeInTheDocument();
+    expect(screen.getByRole('dialog', { name: /ai tutor/i })).toBeInTheDocument();
+    expect(screen.getByText(/sagar dhadke/i)).toBeInTheDocument();
+    expect(screen.getByRole('radio', { name: /topic \/ lecture/i })).toBeInTheDocument();
+    expect(screen.getByRole('radio', { name: /entire section/i })).toBeInTheDocument();
+    expect(screen.getByRole('radio', { name: /entire curriculum/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /ask chatgpt/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /ask claude/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /copy complete prompt/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /download prompt \(\.md\)/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /download prompt \(\.txt\)/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /download xml structure/i })).toBeInTheDocument();
   });
 
-  it('allows selecting multiple lectures via checkboxes', async () => {
+  it('allows selecting multiple lectures via checkboxes and shows pills', async () => {
     const user = userEvent.setup();
     render(
       <AiTutorModal
@@ -82,6 +87,24 @@ describe('AiTutorModal Component', () => {
     expect(screen.getByText(/selected \(2\):/i)).toBeInTheDocument();
   });
 
+  it('supports section-level quick select/clear toggle', async () => {
+    const user = userEvent.setup();
+    render(
+      <AiTutorModal
+        open={true}
+        onClose={vi.fn()}
+        course={mockCourse}
+      />
+    );
+
+    // Click "Select Sec" on section 1
+    const sec1Btn = screen.getAllByRole('button', { name: /select sec|clear sec/i })[0];
+    await user.click(sec1Btn);
+
+    // Both lectures in section 1 should be selected
+    expect(screen.getByText(/selected \(2\):/i)).toBeInTheDocument();
+  });
+
   it('switches to section mode and renders section checkboxes', async () => {
     const user = userEvent.setup();
     render(
@@ -92,9 +115,9 @@ describe('AiTutorModal Component', () => {
       />
     );
 
-    await user.click(screen.getByRole('radio', { name: /by entire section/i }));
-    expect(screen.getByText(/section 01: getting started/i)).toBeInTheDocument();
-    expect(screen.getByText(/section 02: advanced streams/i)).toBeInTheDocument();
+    await user.click(screen.getByRole('radio', { name: /entire section/i }));
+    expect(screen.getByText(/section 01:/i)).toBeInTheDocument();
+    expect(screen.getByText(/section 02:/i)).toBeInTheDocument();
   });
 
   it('toggles context optimization mode between focused and full', async () => {
@@ -112,7 +135,7 @@ describe('AiTutorModal Component', () => {
     expect(fullModeBtn).toHaveClass('ai-mode-btn--active');
   });
 
-  it('launches ChatGPT in new tab on button click', async () => {
+  it('launches ChatGPT in new tab on button click and auto-copies prompt', async () => {
     const user = userEvent.setup();
     render(
       <AiTutorModal
@@ -125,6 +148,7 @@ describe('AiTutorModal Component', () => {
     const gptBtn = screen.getByRole('button', { name: /ask chatgpt/i });
     await user.click(gptBtn);
 
+    expect(writeTextSpy).toHaveBeenCalled();
     expect(globalThis.open).toHaveBeenCalledWith(
       expect.stringContaining('https://chatgpt.com'),
       '_blank',
@@ -132,7 +156,7 @@ describe('AiTutorModal Component', () => {
     );
   });
 
-  it('launches Claude in new tab on button click', async () => {
+  it('launches Claude in new tab on button click and auto-copies prompt', async () => {
     const user = userEvent.setup();
     render(
       <AiTutorModal
@@ -145,6 +169,7 @@ describe('AiTutorModal Component', () => {
     const claudeBtn = screen.getByRole('button', { name: /ask claude/i });
     await user.click(claudeBtn);
 
+    expect(writeTextSpy).toHaveBeenCalled();
     expect(globalThis.open).toHaveBeenCalledWith(
       expect.stringContaining('https://claude.ai/new'),
       '_blank',
@@ -152,7 +177,7 @@ describe('AiTutorModal Component', () => {
     );
   });
 
-  it('copies full prompt to clipboard and shows success message', async () => {
+  it('copies full prompt to clipboard manually and shows status message', async () => {
     const user = userEvent.setup();
     render(
       <AiTutorModal
@@ -162,14 +187,14 @@ describe('AiTutorModal Component', () => {
       />
     );
 
-    const copyBtn = screen.getByRole('button', { name: /copy formatted prompt/i });
+    const copyBtn = screen.getByRole('button', { name: /copy complete prompt/i });
     await user.click(copyBtn);
 
     expect(writeTextSpy).toHaveBeenCalled();
-    expect(screen.getByText(/prompt copied to clipboard/i)).toBeInTheDocument();
+    expect(screen.getByText(/complete prompt & course context copied/i)).toBeInTheDocument();
   });
 
-  it('downloads context file and displays the file guide', async () => {
+  it('downloads context file (.md, .txt, and .xml)', async () => {
     const user = userEvent.setup();
     render(
       <AiTutorModal
@@ -179,10 +204,17 @@ describe('AiTutorModal Component', () => {
       />
     );
 
-    const downloadBtn = screen.getByRole('button', { name: /download context file \(\.md\)/i });
-    await user.click(downloadBtn);
+    const mdBtn = screen.getByRole('button', { name: /download prompt \(\.md\)/i });
+    await user.click(mdBtn);
+    expect(screen.getByText(/markdown \(\.md\) file .* downloaded/i)).toBeInTheDocument();
 
-    expect(screen.getByText(/how to use the context file in chatgpt or claude/i)).toBeInTheDocument();
+    const txtBtn = screen.getByRole('button', { name: /download prompt \(\.txt\)/i });
+    await user.click(txtBtn);
+    expect(screen.getByText(/text \(\.txt\) file .* downloaded/i)).toBeInTheDocument();
+
+    const xmlBtn = screen.getByRole('button', { name: /download xml structure/i });
+    await user.click(xmlBtn);
+    expect(screen.getByText(/full course structure .* downloaded/i)).toBeInTheDocument();
   });
 
   it('calls onClose when close button is clicked', async () => {

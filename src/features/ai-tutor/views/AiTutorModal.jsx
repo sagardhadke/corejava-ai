@@ -1,21 +1,21 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { AI_PLATFORMS } from '../models/aiPlatforms.js';
-import { preparePlatformUrl, buildFullPrompt } from '../models/promptBuilder.js';
+import { preparePlatformUrl, buildFullPrompt, DEVELOPER_ATTRIBUTION } from '../models/promptBuilder.js';
 import { copyToClipboard } from '../models/clipboard.js';
 import { downloadCourseXml, downloadCourseContextFile } from '../models/courseXmlSerializer.js';
 import { showToast } from '../../../utils/toast.js';
 import './AiTutorModal.css';
 
 /**
- * AiTutorModal
+ * AiTutorModal — Senior Architecture
  *
- * Professional AI Tutor dialog supporting:
- * - Multi-lecture selection across sections
- * - Multi-section selection
- * - Full course syllabus context
- * - Targeted/focused context (fits deep-link URLs) vs. full context
- * - One-click Context File download (.md / .xml) for easy chat attachment
- * - Deep linking to ChatGPT & Claude with hybrid clipboard fallback
+ * Professional AI Tutor modal supporting:
+ * - Topic-wise structured lecture checklist (section by section)
+ * - Multi-section & Full curriculum modes
+ * - Copy prompt, Download .md, Download .txt, and Download XML
+ * - Developer & Platform attribution (Sagar Dhadke)
+ * - ChatGPT & Claude external launcher with auto-clipboard copy
+ * - Obsidian & Amber theme design system
  */
 export default function AiTutorModal({
   open,
@@ -28,17 +28,16 @@ export default function AiTutorModal({
   const [scopeType, setScopeType] = useState('multi-lecture');
   const [selectedLectureIds, setSelectedLectureIds] = useState([]);
   const [selectedSectionIds, setSelectedSectionIds] = useState([]);
-  const [filterSectionId, setFilterSectionId] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [openSections, setOpenSections] = useState({});
   const [contextMode, setContextMode] = useState('focused'); // 'focused' | 'full'
   const [previewExpanded, setPreviewExpanded] = useState(false);
-  const [showFileGuide, setShowFileGuide] = useState(false);
   const [statusMessage, setStatusMessage] = useState(null);
   const closeBtnRef = useRef(null);
 
   const sections = useMemo(() => course?.sections || [], [course]);
 
-  // Flatten all lectures with section metadata for search/filtering
+  // Flatten all lectures with section metadata
   const allLectures = useMemo(() => {
     const list = [];
     sections.forEach((sec) => {
@@ -59,11 +58,19 @@ export default function AiTutorModal({
     if (!open) {
       setStatusMessage(null);
       setPreviewExpanded(false);
-      setShowFileGuide(false);
       return;
     }
 
-    // Determine initial scope
+    // Default open sections: expand first section or initial section
+    const initOpen = {};
+    if (initialSectionId) {
+      initOpen[initialSectionId] = true;
+    } else if (sections[0]) {
+      initOpen[sections[0].id] = true;
+    }
+    setOpenSections(initOpen);
+
+    // Initial scope determination
     if (initialScopeType === 'section' || initialScopeType === 'multi-section') {
       setScopeType('multi-section');
       const secId = initialSectionId || sections[0]?.id;
@@ -74,7 +81,6 @@ export default function AiTutorModal({
       setSelectedLectureIds([]);
       setSelectedSectionIds([]);
     } else {
-      // multi-lecture / topic
       setScopeType('multi-lecture');
       if (initialLectureId) {
         setSelectedLectureIds([initialLectureId]);
@@ -83,22 +89,9 @@ export default function AiTutorModal({
       }
       setSelectedSectionIds([]);
     }
-
-    if (initialSectionId) {
-      setFilterSectionId(initialSectionId);
-    } else {
-      setFilterSectionId('all');
-    }
   }, [open, initialScopeType, initialSectionId, initialLectureId, sections, allLectures]);
 
-  // Focus close button when modal opens
-  useEffect(() => {
-    if (open) {
-      closeBtnRef.current?.focus();
-    }
-  }, [open]);
-
-  // Handle escape key
+  // Keyboard navigation: Escape to dismiss
   useEffect(() => {
     if (!open) return;
     const handleKeyDown = (e) => {
@@ -107,6 +100,13 @@ export default function AiTutorModal({
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [open, onClose]);
+
+  // Focus close button on open
+  useEffect(() => {
+    if (open) {
+      closeBtnRef.current?.focus();
+    }
+  }, [open]);
 
   // Selected lecture objects
   const selectedLectures = useMemo(() => {
@@ -120,18 +120,6 @@ export default function AiTutorModal({
     return sections.filter((s) => idSet.has(s.id));
   }, [sections, selectedSectionIds]);
 
-  // Filtered lectures for checklist
-  const displayLectures = useMemo(() => {
-    return allLectures.filter((l) => {
-      if (filterSectionId !== 'all' && l.sectionId !== filterSectionId) return false;
-      if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase();
-        return l.title.toLowerCase().includes(q) || (l.sectionTitle && l.sectionTitle.toLowerCase().includes(q));
-      }
-      return true;
-    });
-  }, [allLectures, filterSectionId, searchQuery]);
-
   // Toggle lecture selection
   const handleToggleLecture = (lecId) => {
     setSelectedLectureIds((prev) => {
@@ -142,8 +130,38 @@ export default function AiTutorModal({
     });
   };
 
-  // Toggle section selection
-  const handleToggleSection = (secId) => {
+  // Toggle section accordion collapse
+  const handleToggleSectionAccordion = (secId) => {
+    setOpenSections((prev) => ({
+      ...prev,
+      [secId]: !prev[secId],
+    }));
+  };
+
+  // Select all lectures in a specific section
+  const handleSelectAllInSection = (sec) => {
+    const lecIds = (sec.lectures || []).map((l) => l.id);
+    setSelectedLectureIds((prev) => Array.from(new Set([...prev, ...lecIds])));
+  };
+
+  // Deselect all lectures in a specific section
+  const handleDeselectSection = (sec) => {
+    const lecIds = new Set((sec.lectures || []).map((l) => l.id));
+    setSelectedLectureIds((prev) => prev.filter((id) => !lecIds.has(id)));
+  };
+
+  // Select all lectures across the entire course
+  const handleSelectAllLectures = () => {
+    setSelectedLectureIds(allLectures.map((l) => l.id));
+  };
+
+  // Clear all selected lectures
+  const handleClearLectures = () => {
+    setSelectedLectureIds([]);
+  };
+
+  // Toggle section in multi-section mode
+  const handleToggleSectionSelect = (secId) => {
     setSelectedSectionIds((prev) => {
       if (prev.includes(secId)) {
         return prev.filter((id) => id !== secId);
@@ -152,25 +170,22 @@ export default function AiTutorModal({
     });
   };
 
-  // Select all lectures in active filtered view
-  const handleSelectAllFilteredLectures = () => {
-    const visibleIds = displayLectures.map((l) => l.id);
-    setSelectedLectureIds((prev) => Array.from(new Set([...prev, ...visibleIds])));
-  };
-
-  // Clear lecture selections
-  const handleClearLectures = () => {
-    setSelectedLectureIds([]);
-  };
-
   // Select all sections
   const handleSelectAllSections = () => {
     setSelectedSectionIds(sections.map((s) => s.id));
   };
 
-  // Clear section selections
+  // Clear all sections
   const handleClearSections = () => {
     setSelectedSectionIds([]);
+  };
+
+  // Expand or collapse all sections in topic view
+  const handleToggleExpandAll = () => {
+    const allOpen = sections.every((s) => openSections[s.id]);
+    const next = {};
+    sections.forEach((s) => { next[s.id] = !allOpen; });
+    setOpenSections(next);
   };
 
   // Prepared launch configurations
@@ -215,57 +230,50 @@ export default function AiTutorModal({
     };
   }, [course, scopeType, selectedLectures, selectedSections, contextMode]);
 
-  // Handle external platform launch
+  // Handle ChatGPT / Claude external platform launch with auto-copy
   const handleLaunchPlatform = async (platformId) => {
     const plan = platformId === 'claude' ? launchPlan.claude : launchPlan.chatgpt;
     if (!plan) return;
 
     setStatusMessage(null);
 
-    // If over threshold, write full prompt to clipboard
-    if (plan.isOverThreshold) {
-      const copyResult = await copyToClipboard(plan.fullPrompt);
-      if (copyResult.success) {
-        setStatusMessage({
-          type: 'success',
-          text: `Full prompt & context copied to clipboard! Paste it with Ctrl/Cmd+V into ${plan.platformName}.`,
-        });
-        showToast(`Full context copied! Paste into ${plan.platformName} with Ctrl+V`, 'success', 4000);
-      } else {
-        setStatusMessage({
-          type: 'warning',
-          text: `Could not auto-copy to clipboard. Please click "Copy Full Prompt" below before continuing.`,
-        });
-      }
+    // Auto-copy full prompt to clipboard
+    const copyResult = await copyToClipboard(plan.fullPrompt);
+    if (copyResult.success) {
+      setStatusMessage({
+        type: 'success',
+        text: `✓ Full prompt & syllabus context copied to clipboard! Paste it with Ctrl/Cmd+V into ${plan.platformName}.`,
+      });
+      showToast(`Context copied! Paste into ${plan.platformName} with Ctrl+V`, 'success', 4000);
     } else {
       setStatusMessage({
         type: 'info',
-        text: `Opening ${plan.platformName} with complete prompt prefilled!`,
+        text: `Opening ${plan.platformName}. Click "Copy Complete Prompt" below to copy manually.`,
       });
     }
 
-    // Open target in new tab synchronously
+    // Open target platform in new tab
     window.open(plan.url, '_blank', 'noopener,noreferrer');
   };
 
-  // Manual copy full prompt
+  // Copy full prompt manually
   const handleCopyPrompt = async () => {
     const result = await copyToClipboard(launchPlan.fullPrompt);
     if (result.success) {
       setStatusMessage({
         type: 'success',
-        text: '✓ Prompt copied to clipboard! Ready to paste into ChatGPT or Claude.',
+        text: '✓ Complete prompt & course context copied to clipboard! Ready to paste into ChatGPT or Claude.',
       });
       showToast('Prompt copied to clipboard!', 'success', 2500);
     } else {
       setStatusMessage({
         type: 'error',
-        text: 'Clipboard copy failed. Please select text in the preview and copy manually.',
+        text: 'Clipboard access was blocked. Please select text in the preview below and copy manually.',
       });
     }
   };
 
-  // Download context file (.md)
+  // Download context file (.md or .txt)
   const handleDownloadContext = (format = 'markdown') => {
     if (!course) return;
     const filename = downloadCourseContextFile(course, {
@@ -273,21 +281,21 @@ export default function AiTutorModal({
       selectedSections,
       format,
     });
+    const formatLabel = format === 'markdown' ? 'Markdown (.md)' : 'Text (.txt)';
     setStatusMessage({
       type: 'success',
-      text: `✓ Context file "${filename}" downloaded! Drag & drop or attach it in ChatGPT / Claude.`,
+      text: `✓ ${formatLabel} file "${filename}" downloaded! Drag & drop or attach it directly in ChatGPT or Claude.`,
     });
-    setShowFileGuide(true);
     showToast(`Downloaded ${filename}`, 'success', 3000);
   };
 
-  // Download XML file
+  // Download raw XML
   const handleDownloadXml = () => {
     if (!course) return;
     const filename = downloadCourseXml(course);
     setStatusMessage({
       type: 'success',
-      text: `✓ Course structure "${filename}" downloaded.`,
+      text: `✓ Full course structure "${filename}" downloaded.`,
     });
     showToast(`Downloaded ${filename}`, 'success', 3000);
   };
@@ -309,16 +317,24 @@ export default function AiTutorModal({
         aria-labelledby="ai-modal-title"
         aria-describedby="ai-modal-subtitle"
       >
-        {/* Header */}
+        {/* Header with Developer & Platform Info */}
         <div className="ai-modal__header">
           <div className="ai-modal__title-group">
-            <span className="ai-modal__title-icon" aria-hidden="true">✨</span>
+            <span className="ai-modal__title-sparkle" aria-hidden="true">✨</span>
             <div>
               <h3 id="ai-modal-title" className="ai-modal__title">
-                Ask AI Tutor (ChatGPT &amp; Claude)
+                AI Tutor (ChatGPT &amp; Claude)
               </h3>
               <p id="ai-modal-subtitle" className="ai-modal__subtitle">
-                Contextual tutor powered by your complete course syllabus
+                Contextual AI tutor powered by your complete syllabus &middot; Crafted by{' '}
+                <a
+                  href={DEVELOPER_ATTRIBUTION.github}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="ai-modal__dev-link"
+                >
+                  {DEVELOPER_ATTRIBUTION.name} ↗
+                </a>
               </p>
             </div>
           </div>
@@ -333,9 +349,11 @@ export default function AiTutorModal({
           </button>
         </div>
 
-        {/* Scope Type Selector */}
-        <div className="ai-modal__section">
-          <label className="ai-modal__label">1. Choose Question Scope</label>
+        {/* Modal Scrollable Body */}
+        <div className="ai-modal__body">
+          {/* Scope Type Selector */}
+          <div className="ai-modal__section">
+          <label className="ai-modal__label">1. Select Study Scope</label>
           <div className="ai-scope-selector" role="radiogroup" aria-label="Question Scope">
             <button
               type="button"
@@ -345,7 +363,7 @@ export default function AiTutorModal({
               aria-checked={scopeType === 'multi-lecture'}
             >
               <span className="ai-scope-btn__icon">🎯</span>
-              <span>By Topic / Lecture</span>
+              <span>Topic / Lecture (Topic-Wise)</span>
             </button>
             <button
               type="button"
@@ -355,7 +373,7 @@ export default function AiTutorModal({
               aria-checked={scopeType === 'multi-section'}
             >
               <span className="ai-scope-btn__icon">📚</span>
-              <span>By Entire Section</span>
+              <span>Entire Section(s)</span>
             </button>
             <button
               type="button"
@@ -365,69 +383,50 @@ export default function AiTutorModal({
               aria-checked={scopeType === 'full-course'}
             >
               <span className="ai-scope-btn__icon">🌐</span>
-              <span>Full Curriculum</span>
+              <span>Entire Curriculum</span>
             </button>
           </div>
         </div>
 
-        {/* Scope Selection Controls */}
+        {/* Topic-Wise Lecture Checklist (Section by Section) */}
         <div className="ai-modal__section">
           {scopeType === 'multi-lecture' && (
-            <div className="ai-multi-box">
-              <div className="ai-multi-box__header">
-                <div className="ai-multi-box__filters">
-                  <select
-                    className="ai-select ai-select--filter"
-                    value={filterSectionId}
-                    onChange={(e) => setFilterSectionId(e.target.value)}
-                    aria-label="Filter lectures by section"
-                  >
-                    <option value="all">All Sections ({sections.length})</option>
-                    {sections.map((s) => (
-                      <option key={s.id} value={s.id}>
-                        Sec {s.number}: {s.title} ({s.lectures?.length || 0})
-                      </option>
-                    ))}
-                  </select>
-                  <input
-                    type="text"
-                    className="ai-search-input"
-                    placeholder="Search lectures..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    aria-label="Search lectures"
-                  />
-                </div>
-                <div className="ai-multi-box__actions">
-                  <button
-                    type="button"
-                    className="ai-link-btn"
-                    onClick={handleSelectAllFilteredLectures}
-                  >
-                    Select All Shown
+            <div className="ai-topic-container">
+              {/* Filter and Global Actions Bar */}
+              <div className="ai-topic-toolbar">
+                <input
+                  type="text"
+                  className="ai-topic-search"
+                  placeholder="Filter topics by keyword (e.g. Streams, JVM, Threads)..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  aria-label="Filter topics by keyword"
+                />
+                <div className="ai-topic-actions">
+                  <button type="button" className="ai-text-btn" onClick={handleToggleExpandAll}>
+                    Toggle Expand All
                   </button>
-                  <button
-                    type="button"
-                    className="ai-link-btn"
-                    onClick={handleClearLectures}
-                  >
-                    Clear Selection
+                  <button type="button" className="ai-text-btn" onClick={handleSelectAllLectures}>
+                    Select All
+                  </button>
+                  <button type="button" className="ai-text-btn" onClick={handleClearLectures}>
+                    Clear
                   </button>
                 </div>
               </div>
 
-              {/* Selected lecture pills */}
+              {/* Selected topic pills bar */}
               {selectedLectures.length > 0 && (
-                <div className="ai-selected-pills">
-                  <span className="ai-selected-count">
+                <div className="ai-pills-bar">
+                  <span className="ai-pills-label">
                     Selected ({selectedLectures.length}):
                   </span>
-                  {selectedLectures.slice(0, 5).map((l) => (
-                    <span key={l.id} className="ai-pill">
+                  {selectedLectures.slice(0, 6).map((l) => (
+                    <span key={l.id} className="ai-topic-pill">
                       {l.title}
                       <button
                         type="button"
-                        className="ai-pill__remove"
+                        className="ai-topic-pill__remove"
                         onClick={() => handleToggleLecture(l.id)}
                         aria-label={`Remove ${l.title}`}
                       >
@@ -435,33 +434,78 @@ export default function AiTutorModal({
                       </button>
                     </span>
                   ))}
-                  {selectedLectures.length > 5 && (
-                    <span className="ai-pill ai-pill--more">
-                      +{selectedLectures.length - 5} more
+                  {selectedLectures.length > 6 && (
+                    <span className="ai-topic-pill ai-topic-pill--more">
+                      +{selectedLectures.length - 6} more
                     </span>
                   )}
                 </div>
               )}
 
-              {/* Lecture Checklist */}
-              <div className="ai-checklist" role="group" aria-label="Available lectures">
-                {displayLectures.map((lec) => {
-                  const isChecked = selectedLectureIds.includes(lec.id);
+              {/* Topic-wise Section Groups */}
+              <div className="ai-topic-tree" role="group" aria-label="Course Topics">
+                {sections.map((sec) => {
+                  const lectures = sec.lectures || [];
+                  const isSectionOpen = searchQuery ? true : !!openSections[sec.id];
+                  const filteredLecs = searchQuery.trim()
+                    ? lectures.filter((l) => l.title.toLowerCase().includes(searchQuery.toLowerCase()))
+                    : lectures;
+
+                  if (searchQuery.trim() && filteredLecs.length === 0) return null;
+
+                  const secLecIds = new Set(lectures.map((l) => l.id));
+                  const selectedInSec = selectedLectures.filter((l) => secLecIds.has(l.id)).length;
+                  const allSecSelected = lectures.length > 0 && selectedInSec === lectures.length;
+
                   return (
-                    <label key={lec.id} className={`ai-check-item ${isChecked ? 'ai-check-item--checked' : ''}`}>
-                      <input
-                        type="checkbox"
-                        checked={isChecked}
-                        onChange={() => handleToggleLecture(lec.id)}
-                        className="ai-check-input"
-                      />
-                      <div className="ai-check-info">
-                        <span className="ai-check-title">{lec.title}</span>
-                        <span className="ai-check-meta">
-                          Sec {lec.sectionNumber} · {lec.durationLabel || '15m'}
-                        </span>
+                    <div key={sec.id} className="ai-sec-group">
+                      <div className="ai-sec-group__head">
+                        <button
+                          type="button"
+                          className="ai-sec-group__toggle"
+                          onClick={() => handleToggleSectionAccordion(sec.id)}
+                          aria-expanded={isSectionOpen}
+                        >
+                          <span className="ai-sec-chevron">{isSectionOpen ? '▼' : '▶'}</span>
+                          <span className="ai-sec-num">Sec {sec.number}:</span>
+                          <strong className="ai-sec-title">{sec.title}</strong>
+                        </button>
+
+                        <div className="ai-sec-group__actions">
+                          <span className="ai-sec-count">
+                            {selectedInSec}/{lectures.length}
+                          </span>
+                          <button
+                            type="button"
+                            className="ai-sec-btn"
+                            onClick={() => (allSecSelected ? handleDeselectSection(sec) : handleSelectAllInSection(sec))}
+                          >
+                            {allSecSelected ? 'Clear Sec' : 'Select Sec'}
+                          </button>
+                        </div>
                       </div>
-                    </label>
+
+                      {isSectionOpen && (
+                        <div className="ai-sec-group__body">
+                          {filteredLecs.map((lec, idx) => {
+                            const isChecked = selectedLectureIds.includes(lec.id);
+                            return (
+                              <label key={lec.id} className={`ai-lec-item ${isChecked ? 'ai-lec-item--checked' : ''}`}>
+                                <input
+                                  type="checkbox"
+                                  checked={isChecked}
+                                  onChange={() => handleToggleLecture(lec.id)}
+                                  className="ai-lec-checkbox"
+                                />
+                                <span className="ai-lec-idx">#{idx + 1}</span>
+                                <span className="ai-lec-title">{lec.title}</span>
+                                <span className="ai-lec-dur">{lec.durationLabel || '15m'}</span>
+                              </label>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
                   );
                 })}
               </div>
@@ -469,40 +513,35 @@ export default function AiTutorModal({
           )}
 
           {scopeType === 'multi-section' && (
-            <div className="ai-multi-box">
-              <div className="ai-multi-box__header">
-                <span className="ai-multi-box__subtitle">
+            <div className="ai-topic-container">
+              <div className="ai-topic-toolbar">
+                <span className="ai-topic-toolbar__title">
                   Select one or more sections ({selectedSections.length} of {sections.length} selected):
                 </span>
-                <div className="ai-multi-box__actions">
-                  <button type="button" className="ai-link-btn" onClick={handleSelectAllSections}>
+                <div className="ai-topic-actions">
+                  <button type="button" className="ai-text-btn" onClick={handleSelectAllSections}>
                     Select All
                   </button>
-                  <button type="button" className="ai-link-btn" onClick={handleClearSections}>
+                  <button type="button" className="ai-text-btn" onClick={handleClearSections}>
                     Clear
                   </button>
                 </div>
               </div>
 
-              <div className="ai-checklist" role="group" aria-label="Available sections">
+              <div className="ai-section-checklist">
                 {sections.map((sec) => {
                   const isChecked = selectedSectionIds.includes(sec.id);
                   return (
-                    <label key={sec.id} className={`ai-check-item ${isChecked ? 'ai-check-item--checked' : ''}`}>
+                    <label key={sec.id} className={`ai-lec-item ${isChecked ? 'ai-lec-item--checked' : ''}`}>
                       <input
                         type="checkbox"
                         checked={isChecked}
-                        onChange={() => handleToggleSection(sec.id)}
-                        className="ai-check-input"
+                        onChange={() => handleToggleSectionSelect(sec.id)}
+                        className="ai-lec-checkbox"
                       />
-                      <div className="ai-check-info">
-                        <span className="ai-check-title">
-                          Section {sec.number}: {sec.title}
-                        </span>
-                        <span className="ai-check-meta">
-                          {sec.lectures?.length || 0} lectures · {sec.isProject ? 'Project' : 'Theory & Practice'}
-                        </span>
-                      </div>
+                      <span className="ai-sec-num">Section {sec.number}:</span>
+                      <strong className="ai-sec-title">{sec.title}</strong>
+                      <span className="ai-lec-dur">({sec.lectures?.length || 0} lectures)</span>
                     </label>
                   );
                 })}
@@ -516,16 +555,16 @@ export default function AiTutorModal({
                 🌐 Entire Curriculum Context: &ldquo;{course?.title || 'Core Java with AI'}&rdquo;
               </div>
               <div className="ai-summary-card__details">
-                Includes all {sections.length} sections and {allLectures.length} lectures as comprehensive background context for the AI.
+                Sends the complete curriculum roadmap with all {sections.length} sections and {allLectures.length} lectures as comprehensive background context.
               </div>
             </div>
           )}
         </div>
 
-        {/* Context Mode Toggle (Focused vs Full) */}
+        {/* Context Optimization Mode */}
         <div className="ai-modal__section">
           <div className="ai-context-header">
-            <label className="ai-modal__label">2. Context Optimization Mode</label>
+            <label className="ai-modal__label">2. Prompt Context Optimization</label>
             <div className="ai-mode-toggle" role="radiogroup" aria-label="Context Mode">
               <button
                 type="button"
@@ -533,7 +572,7 @@ export default function AiTutorModal({
                 onClick={() => setContextMode('focused')}
                 role="radio"
                 aria-checked={contextMode === 'focused'}
-                title="Concise outline tailored to fit deep links cleanly"
+                title="Structured Markdown roadmap tailored to fit deep links cleanly"
               >
                 ⚡ Focused (~1.5KB &middot; Fits Deep Links)
               </button>
@@ -543,7 +582,7 @@ export default function AiTutorModal({
                 onClick={() => setContextMode('full')}
                 role="radio"
                 aria-checked={contextMode === 'full'}
-                title="Full course syllabus XML (Recommended for file attachment)"
+                title="Full course syllabus XML (Recommended for file download/attachment)"
               >
                 📚 Full Syllabus (~15KB)
               </button>
@@ -553,36 +592,22 @@ export default function AiTutorModal({
           <div className="ai-length-badge">
             <span className="ai-length-dot" />
             <span>
-              Prompt size: <strong>{launchPlan.promptLength.toLocaleString()} chars</strong>
+              Prompt size: <strong>{launchPlan.promptLength.toLocaleString()} characters</strong>
               {contextMode === 'focused'
-                ? ' — Fits directly in ChatGPT & Claude query parameters!'
-                : ' — Exceeds URL limit; auto-copies to clipboard or use file attachment.'}
+                ? ' — Optimized to fit directly inside ChatGPT & Claude URL links!'
+                : ' — Exceeds URL limit; auto-copies to clipboard or download as .md file below.'}
             </span>
           </div>
         </div>
 
-        {/* Action Status Notification */}
+        {/* Status Notification */}
         {statusMessage && (
           <div className={`ai-status-banner ai-status-banner--${statusMessage.type}`}>
             {statusMessage.text}
           </div>
         )}
 
-        {/* File Attachment Guide (when opened or downloaded) */}
-        {showFileGuide && (
-          <div className="ai-file-guide">
-            <div className="ai-file-guide__title">
-              💡 How to use the Context File in ChatGPT or Claude:
-            </div>
-            <ol className="ai-file-guide__steps">
-              <li>Open your chat platform (<button type="button" className="ai-link-inline" onClick={() => handleLaunchPlatform('chatgpt')}>ChatGPT</button> or <button type="button" className="ai-link-inline" onClick={() => handleLaunchPlatform('claude')}>Claude</button>).</li>
-              <li>Click the paperclip 📎 (or drag &amp; drop) the downloaded <code>.md</code> file into the prompt box.</li>
-              <li>Ask your question! The AI will have full curriculum context without character limits.</li>
-            </ol>
-          </div>
-        )}
-
-        {/* Primary Launch Action Buttons */}
+        {/* Primary Action Buttons: Open ChatGPT / Claude */}
         <div className="ai-actions-grid">
           <button
             type="button"
@@ -592,7 +617,7 @@ export default function AiTutorModal({
             <span className="ai-platform-icon">💬</span>
             <div className="ai-platform-btn-text">
               <span className="ai-platform-btn-title">Ask ChatGPT</span>
-              <span className="ai-platform-btn-sub">Open chatgpt.com</span>
+              <span className="ai-platform-btn-sub">Copies prompt &amp; opens chatgpt.com</span>
             </div>
           </button>
 
@@ -604,29 +629,38 @@ export default function AiTutorModal({
             <span className="ai-platform-icon">⚡</span>
             <div className="ai-platform-btn-text">
               <span className="ai-platform-btn-title">Ask Claude</span>
-              <span className="ai-platform-btn-sub">Open claude.ai</span>
+              <span className="ai-platform-btn-sub">Copies prompt &amp; opens claude.ai</span>
             </div>
           </button>
         </div>
 
-        {/* Auxiliary Actions: File Download & Clipboard */}
+        {/* Dedicated File Download & Manual Copy Actions */}
         <div className="ai-aux-actions">
           <button
             type="button"
-            className="ai-btn-aux ai-btn-aux--primary"
-            onClick={() => handleDownloadContext('markdown')}
-            title="Download formatted Markdown syllabus to drag and drop into chat"
+            className="ai-btn-aux ai-btn-aux--gold"
+            onClick={handleCopyPrompt}
+            title="Copy full formatted prompt to clipboard"
           >
-            📎 Download Context File (.md)
+            📋 Copy Complete Prompt
           </button>
 
           <button
             type="button"
             className="ai-btn-aux"
-            onClick={handleCopyPrompt}
-            title="Copy full formatted prompt to clipboard"
+            onClick={() => handleDownloadContext('markdown')}
+            title="Download ready-to-attach Markdown prompt file"
           >
-            📋 Copy Formatted Prompt
+            📥 Download Prompt (.md)
+          </button>
+
+          <button
+            type="button"
+            className="ai-btn-aux"
+            onClick={() => handleDownloadContext('txt')}
+            title="Download ready-to-attach Plain Text prompt file"
+          >
+            📥 Download Prompt (.txt)
           </button>
 
           <button
@@ -635,7 +669,7 @@ export default function AiTutorModal({
             onClick={handleDownloadXml}
             title="Download complete course XML file"
           >
-            📥 Download XML
+            📥 Download XML Structure
           </button>
         </div>
 
@@ -647,7 +681,7 @@ export default function AiTutorModal({
             onClick={() => setPreviewExpanded((v) => !v)}
             aria-expanded={previewExpanded}
           >
-            <span>{previewExpanded ? '▼ Hide prompt text' : '▶ Preview prompt text...'}</span>
+            <span>{previewExpanded ? '▼ Hide complete prompt text' : '▶ Preview complete prompt text...'}</span>
             <span className="ai-preview-tag">{launchPlan.promptLength} chars</span>
           </button>
 
@@ -657,10 +691,11 @@ export default function AiTutorModal({
             </div>
           )}
         </div>
+      </div>
 
-        {/* Privacy & Logged-In Hint */}
-        <div className="ai-modal__footer-note">
-          🔒 <strong>100% Client-Side Privacy:</strong> Your course data never touches an external server. Ensure you are signed in to ChatGPT or Claude in your browser.
+      {/* Footer Note */}
+      <div className="ai-modal__footer-note">
+          🔒 <strong>100% Free &amp; Client-Side:</strong> All curriculum context is processed offline in your browser. No server telemetry or data collection.
         </div>
       </div>
     </div>

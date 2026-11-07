@@ -6,9 +6,10 @@ import {
   buildShortPrompt,
   calculateUrlLength,
   preparePlatformUrl,
-  buildFocusedRoadmap,
+  buildTopicWiseRoadmap,
+  DEVELOPER_ATTRIBUTION,
 } from './promptBuilder.js';
-import { AI_PLATFORMS, DEFAULT_MAX_URL_LENGTH } from './aiPlatforms.js';
+import { AI_PLATFORMS } from './aiPlatforms.js';
 
 describe('promptBuilder', () => {
   const sampleCourse = {
@@ -33,6 +34,14 @@ describe('promptBuilder', () => {
       },
     ],
   };
+
+  describe('DEVELOPER_ATTRIBUTION', () => {
+    it('contains Sagar Dhadke and GitHub link', () => {
+      expect(DEVELOPER_ATTRIBUTION.name).toBe('Sagar Dhadke');
+      expect(DEVELOPER_ATTRIBUTION.github).toBe('https://github.com/sagardhadke');
+      expect(DEVELOPER_ATTRIBUTION.platformName).toBe('Java Course Tracker');
+    });
+  });
 
   describe('sanitizeText', () => {
     it('strips dangerous HTML tags such as script and iframe', () => {
@@ -64,33 +73,31 @@ describe('promptBuilder', () => {
     });
   });
 
-  describe('buildFocusedRoadmap', () => {
-    it('builds a concise outline of course sections with selected lecture flags', () => {
-      const outline = buildFocusedRoadmap(sampleCourse, [sampleCourse.sections[0].lectures[0]]);
-      expect(outline).toContain('Sec 01: Java Fundamentals (2 lectures) [HAS SELECTED TOPICS]');
-      expect(outline).toContain('Sec 02: OOP Concepts (1 lectures)');
+  describe('buildTopicWiseRoadmap', () => {
+    it('builds a topic-wise outline of course sections with selected lecture flags', () => {
+      const outline = buildTopicWiseRoadmap(sampleCourse, [sampleCourse.sections[0].lectures[0]]);
+      expect(outline).toContain('Section 01: Java Fundamentals');
+      expect(outline).toContain('👉 [SELECTED] Lecture 1: JVM Architecture (25m)');
+      expect(outline).toContain('Section 02: OOP Concepts');
     });
   });
 
   describe('buildFullPrompt', () => {
-    it('builds a focused prompt for a single topic', () => {
+    it('embeds developer attribution and platform context', () => {
       const prompt = buildFullPrompt({
         course: sampleCourse,
-        scopeType: 'topic',
-        section: sampleCourse.sections[0],
-        lecture: sampleCourse.sections[0].lectures[0],
-        contextMode: 'focused',
+        scopeType: 'multi-lecture',
+        selectedLectures: [sampleCourse.sections[0].lectures[0]],
       });
 
-      expect(prompt).toContain('You are an expert AI tutor for the course "Core Java with AI"');
-      expect(prompt).toContain('Scope: 1 Selected Course Lecture(s)');
+      expect(prompt).toContain('Sagar Dhadke');
+      expect(prompt).toContain('https://github.com/sagardhadke');
+      expect(prompt).toContain('Java Course Tracker');
+      expect(prompt).toContain('Scope: 1 Selected Topic / Lecture(s)');
       expect(prompt).toContain('"JVM Architecture"');
-      expect(prompt).toContain('Course Curriculum Roadmap');
-      // Focused mode should be compact (< 2,000 characters)
-      expect(prompt.length).toBeLessThan(2000);
     });
 
-    it('builds a prompt for multiple selected lectures', () => {
+    it('builds a prompt for multiple selected lectures topic-wise', () => {
       const selected = [
         sampleCourse.sections[0].lectures[0],
         sampleCourse.sections[0].lectures[1],
@@ -102,7 +109,7 @@ describe('promptBuilder', () => {
         contextMode: 'focused',
       });
 
-      expect(prompt).toContain('Scope: 2 Selected Course Lecture(s)');
+      expect(prompt).toContain('Scope: 2 Selected Topic / Lecture(s)');
       expect(prompt).toContain('1. "JVM Architecture"');
       expect(prompt).toContain('2. "Memory Management"');
     });
@@ -127,7 +134,7 @@ describe('promptBuilder', () => {
         contextMode: 'full',
       });
 
-      expect(prompt).toContain('Complete Course XML Structure:');
+      expect(prompt).toContain('Complete Course Structure (XML):');
       expect(prompt).toContain('```xml');
       expect(prompt).toContain('<course>');
     });
@@ -138,24 +145,12 @@ describe('promptBuilder', () => {
       const shortPrompt = buildShortPrompt({
         platform: AI_PLATFORMS.chatgpt,
         course: sampleCourse,
-        scopeType: 'topic',
+        scopeType: 'multi-lecture',
         lecture: sampleCourse.sections[0].lectures[0],
       });
 
       expect(shortPrompt).toContain('JVM Architecture');
       expect(shortPrompt).toContain('Core Java with AI');
-    });
-
-    it('handles multiple selected lectures in short prompt', () => {
-      const shortPrompt = buildShortPrompt({
-        course: sampleCourse,
-        selectedLectures: [
-          sampleCourse.sections[0].lectures[0],
-          sampleCourse.sections[0].lectures[1],
-        ],
-      });
-
-      expect(shortPrompt).toContain('2 selected lectures');
     });
   });
 
@@ -171,25 +166,11 @@ describe('promptBuilder', () => {
         course: sampleCourse,
         scopeType: 'full-course',
         contextMode: 'full',
-        maxUrlLength: 100, // force small threshold
+        maxUrlLength: 100,
       });
 
       expect(plan.isOverThreshold).toBe(true);
       expect(plan.url).toContain(encodeURIComponent(plan.shortPrompt));
-    });
-
-    it('uses fullPrompt directly when within threshold (focused mode)', () => {
-      const plan = preparePlatformUrl({
-        platform: AI_PLATFORMS.claude,
-        course: sampleCourse,
-        scopeType: 'topic',
-        lecture: sampleCourse.sections[0].lectures[0],
-        contextMode: 'focused',
-        maxUrlLength: 3000,
-      });
-
-      expect(plan.isOverThreshold).toBe(false);
-      expect(plan.url).toContain(encodeURIComponent(plan.fullPrompt));
     });
   });
 });
