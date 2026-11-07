@@ -5,9 +5,11 @@
  * Never transmitted to any 3rd-party backend or telemetry server.
  */
 
+import { STORAGE_KEYS, LEGACY_STORAGE_KEYS } from '../../../services/storage/keys.js';
+
 export const MAX_API_KEYS = 5;
-export const API_KEYS_STORAGE_KEY = 'jct_ai_api_keys_v1';
-export const LEGACY_OPENAI_STORAGE_KEY = 'jct_openai_api_key';
+export const API_KEYS_STORAGE_KEY = STORAGE_KEYS.AI_API_KEYS;
+export const LEGACY_OPENAI_STORAGE_KEY = LEGACY_STORAGE_KEYS.OPENAI_API_KEY;
 
 export const AI_PROVIDERS = {
   openai: {

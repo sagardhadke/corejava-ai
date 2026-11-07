@@ -1,8 +1,9 @@
 import { useState } from 'react';
+import { STORAGE_KEYS } from '../../../services/storage/keys.js';
 import { showToast } from '../../../utils/toast.js';
 import './AiTutorFloatingButton.css';
 
-const AI_FAB_STORAGE_KEY = 'jct_ai_fab_hidden';
+const AI_FAB_STORAGE_KEY = STORAGE_KEYS.AI_FAB_HIDDEN;
 
 /**
  * Floating Action Button (FAB) for AI Tutor

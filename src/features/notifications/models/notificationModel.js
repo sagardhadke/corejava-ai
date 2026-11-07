@@ -3,8 +3,10 @@
  * Enterprise-grade state management, Web Notification API integration, and scheduled study alerts.
  */
 
-export const NOTIFICATIONS_STORAGE_KEY = 'jct_notifications_v1';
-export const NOTIFICATION_SETTINGS_KEY = 'jct_notification_settings_v1';
+import { STORAGE_KEYS } from '../../../services/storage/keys.js';
+
+export const NOTIFICATIONS_STORAGE_KEY = STORAGE_KEYS.NOTIFICATIONS;
+export const NOTIFICATION_SETTINGS_KEY = STORAGE_KEYS.NOTIFICATION_SETTINGS;
 
 export const NOTIFICATION_TYPES = {
   ACHIEVEMENT: 'achievement',

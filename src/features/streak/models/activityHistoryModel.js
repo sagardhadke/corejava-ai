@@ -1,4 +1,5 @@
 import { formatDuration } from '../../../utils/time.js';
+import { getHistoryKey } from '../../../services/storage/keys.js';
 
 /**
  * Aggregates study activity history across all registered courses.
@@ -12,7 +13,7 @@ export function getAggregatedHistory(courses = [], activeCourse = null, activeHi
   courseList.forEach((c) => {
     try {
       const isCurrentActive = activeCourse && c.id === activeCourse.id;
-      const raw = localStorage.getItem(`jct_history__${c.id}`);
+      const raw = localStorage.getItem(getHistoryKey(c.id));
       const courseHistory = isCurrentActive && activeHistory ? activeHistory : (raw ? JSON.parse(raw) : {});
       if (!courseHistory || typeof courseHistory !== 'object') return;
 

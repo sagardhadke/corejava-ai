@@ -1,7 +1,14 @@
 import { DEFAULT_COURSES } from './defaultCourses.js';
 import { parseCourseXml } from './xmlCourseParser.js';
+import {
+  STORAGE_KEYS,
+  COURSE_KEY_PREFIXES as COURSE_PREFIXES,
+  SENSITIVE_STORAGE_KEYS as REGISTRY_SENSITIVE_KEYS,
+  LEGACY_STORAGE_KEYS,
+  STORAGE_PREFIX,
+} from '../services/storage/keys.js';
 
-const REGISTRY_KEY = 'jct_course_registry_v1'; // { courseIds: [...], activeCourseId, customCourses: { [id]: courseObject } }
+const REGISTRY_KEY = STORAGE_KEYS.REGISTRY; // { courseIds: [...], activeCourseId, customCourses: { [id]: courseObject } }
 
 // The set of default course ids that ship with the app. These are never
 // stored in localStorage themselves (they come from defaultCourses.js), only
@@ -64,15 +71,15 @@ function saveRegistry(registry) {
 // Exhaustive list of all localStorage key prefixes owned by a specific course.
 // Includes progress, plan, settings, history, start dates, badges, streak freezes, and completion states.
 export const COURSE_KEY_PREFIXES = [
-  'jct_watched__',
-  'jct_today_plan__',
-  'jct_settings__',
-  'jct_history__',
-  'jct_start_date__',
-  'jct_start_date_manual__',
-  'jct_badges__',
-  'jct_streak_freezes__',
-  'jct_completion__',
+  COURSE_PREFIXES.WATCHED,
+  COURSE_PREFIXES.TODAY_PLAN,
+  COURSE_PREFIXES.SETTINGS,
+  COURSE_PREFIXES.HISTORY,
+  COURSE_PREFIXES.START_DATE,
+  COURSE_PREFIXES.START_DATE_MANUAL,
+  COURSE_PREFIXES.BADGES,
+  COURSE_PREFIXES.STREAK_FREEZES,
+  COURSE_PREFIXES.COMPLETION,
 ];
 
 // Returns all exact keys belonging to a specific course.
@@ -207,8 +214,13 @@ export function resetEverything() {
 
   localStorage.removeItem(REGISTRY_KEY);
   // Also clear any legacy/global keys from earlier single-course versions of the app.
-  ['jct_watched_v1', 'jct_today_plan_v1', 'jct_settings_v1', 'jct_history_v1',
-   'jct_motivation_shown_v1'].forEach((k) => localStorage.removeItem(k));
+  [
+    LEGACY_STORAGE_KEYS.WATCHED_V1,
+    LEGACY_STORAGE_KEYS.TODAY_PLAN_V1,
+    LEGACY_STORAGE_KEYS.SETTINGS_V1_OLD,
+    LEGACY_STORAGE_KEYS.HISTORY_V1,
+    LEGACY_STORAGE_KEYS.MOTIVATION_SHOWN_V1,
+  ].forEach((k) => localStorage.removeItem(k));
 }
 
 // ---- Backup & Restore ----
@@ -217,17 +229,9 @@ export function resetEverything() {
 // SECURITY GUARANTEE: Sensitive credentials (OpenAI API keys) are strictly
 // stripped from exports to prevent credential leakage when sharing backups.
 
-const APP_KEY_PREFIX = 'jct_';
+const APP_KEY_PREFIX = STORAGE_PREFIX;
 
-const SENSITIVE_STORAGE_KEYS = new Set([
-  'jct_openai_api_key_v1',
-  'jct_openai_key',
-  'jct_api_key',
-  'jct_ai_api_keys_v1',
-  'jct_openai_api_key',
-  'jct_anthropic_api_key',
-  'jct_gemini_api_key',
-]);
+const SENSITIVE_STORAGE_KEYS = new Set(REGISTRY_SENSITIVE_KEYS);
 
 /**
  * Sanitizes stored values before inclusion in an export bundle.
@@ -237,7 +241,7 @@ function sanitizeValueForExport(key, rawValue) {
   if (SENSITIVE_STORAGE_KEYS.has(key)) {
     return null; // Exclude top-level API key
   }
-  if (key && key.startsWith('jct_settings__') && typeof rawValue === 'string') {
+  if (key && key.startsWith(COURSE_PREFIXES.SETTINGS) && typeof rawValue === 'string') {
     try {
       const parsed = JSON.parse(rawValue);
       if (parsed && typeof parsed === 'object') {
@@ -293,7 +297,7 @@ export function importAllData(backup, { preserveExistingApiKey = true } = {}) {
   // Preserve existing local API key so restoring a course backup doesn't wipe credentials
   let existingApiKey = null;
   if (preserveExistingApiKey) {
-    existingApiKey = localStorage.getItem('jct_openai_api_key_v1');
+    existingApiKey = localStorage.getItem(STORAGE_KEYS.OPENAI_API_KEY);
   }
 
   // Clear all existing app keys first, so a restore fully replaces state
@@ -312,8 +316,8 @@ export function importAllData(backup, { preserveExistingApiKey = true } = {}) {
   });
 
   // Restore preserved local API key if the backup did not provide one
-  if (preserveExistingApiKey && existingApiKey && !backup.data['jct_openai_api_key_v1']) {
-    localStorage.setItem('jct_openai_api_key_v1', existingApiKey);
+  if (preserveExistingApiKey && existingApiKey && !backup.data[STORAGE_KEYS.OPENAI_API_KEY]) {
+    localStorage.setItem(STORAGE_KEYS.OPENAI_API_KEY, existingApiKey);
   }
 }
 

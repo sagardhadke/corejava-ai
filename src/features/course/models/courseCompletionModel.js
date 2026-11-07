@@ -11,8 +11,10 @@
  *   in_progress → verification_pending (PIN sent) → verification_completed → completed (100%)
  */
 
+import { COURSE_KEY_PREFIXES } from '../../../services/storage/keys.js';
+
 // ── localStorage keys (namespaced per course) ──────────────────────────
-export const COMPLETION_KEY_PREFIX = 'jct_completion__';
+export const COMPLETION_KEY_PREFIX = COURSE_KEY_PREFIXES.COMPLETION;
 
 // ── Status enum ────────────────────────────────────────────────────────
 export const COMPLETION_STATUS = {

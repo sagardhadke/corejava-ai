@@ -8,8 +8,9 @@ import {
   getMotivationStore,
 } from '../models/motivationModel.js';
 import { showToast } from '../../../utils/toast.js';
+import { STORAGE_KEYS } from '../../../services/storage/keys.js';
 
-const SHOWN_KEY = 'jct_motivation_shown_v1';
+const SHOWN_KEY = STORAGE_KEYS.MOTIVATION_SHOWN;
 
 export function getShownDate() {
   try {
