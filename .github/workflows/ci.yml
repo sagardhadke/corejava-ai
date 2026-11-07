@@ -1,0 +1,59 @@
+name: CI & Security Quality Gate
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  security-audit:
+    name: Security & Forbidden Files Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: npm
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Verify Forbidden Files & Secrets
+        run: node .github/scripts/forbidden-files-check.js --ci
+
+      - name: Run Dependency Vulnerability Audit
+        run: npm audit --audit-level=high
+
+  test-and-build:
+    name: Lint, Test & Production Build
+    runs-on: ubuntu-latest
+    needs: security-audit
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: npm
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Run Linter (Oxlint)
+        run: npm run lint
+
+      - name: Run Vitest Suite
+        run: npm test
+
+      - name: Run Production Build
+        run: npm run build

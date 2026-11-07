@@ -23,14 +23,17 @@ dist-ssr
 *.sln
 *.sw?
 
-# Private and internal handoff documentation
+# Private, internal handoff documentation, and scratch files
 PROJECT_HANDOFF_PROMPT.md
 PRIVATE_DEV_HANDOFF.md
+PROJECT_CONTEXT*.md
 *_HANDOFF*.md
 report-temp/
 local-testing/
 playwright-report/
 test-results/
+coverage/
+scratch/
 
 # Environment, credentials, and secrets
 .env
@@ -51,12 +54,22 @@ service-account*.json
 
 # AI tooling, agent configuration, and internal documentation
 AGENTS.md
+CLAUDE.md
+GEMINI.md
 .agents/
+.cursor/
+.claude/
+.gemini/
+.antigravity/
+.windsurf/
+.aider*
+.copilot/
 docs/bugs/
 
 # Sample test and course XML files
 sample-course-python.xml
 sample-test-course.xml
+
 
 
 

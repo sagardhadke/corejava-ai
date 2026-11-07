@@ -1,0 +1,2 @@
+node .github/scripts/forbidden-files-check.js
+npm test
