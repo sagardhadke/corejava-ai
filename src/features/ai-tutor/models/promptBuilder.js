@@ -1,17 +1,25 @@
 /**
- * AI Tutor Prompt Builder & URL Parameter Formatter
+ * AI Tutor Prompt Builder & Context Serializer
  *
  * Builds structured prompts for ChatGPT and Claude.
- * Supports:
- * - Multi-lecture selection (1 to N lectures)
- * - Multi-section selection (1 to N sections)
- * - Focused Markdown context (compact, fits in deep links)
- * - Complete course context
+ * Features:
+ * - Topic-wise multi-lecture selection
+ * - Section-wise selection
+ * - Full curriculum context
+ * - Official platform & developer attribution (Sagar Dhadke - https://github.com/sagardhadke)
+ * - Focused Markdown roadmap vs. Full XML context
  * - Input sanitization against instruction injection and delimiter breakout
  */
 
 import { DEFAULT_MAX_URL_LENGTH } from './aiPlatforms.js';
 import { courseToXml } from './courseXmlSerializer.js';
+
+export const DEVELOPER_ATTRIBUTION = {
+  name: 'Sagar Dhadke',
+  github: 'https://github.com/sagardhadke',
+  platformName: 'Java Course Tracker',
+  tagline: '100% Free, Offline-First Course Progress & Daily Habit Engine for Developers',
+};
 
 /**
  * Sanitizes input text to prevent prompt injection and character corruption.
@@ -23,7 +31,7 @@ export function sanitizeText(input = '') {
     .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '')
     // Strip dangerous HTML tags
     .replace(/<\/?(script|style|iframe|object|embed)[^>]*>/gi, '')
-    // Neutralize markdown code fences so they cannot break the prompt structure
+    // Neutralize markdown code fences
     .replace(/```/g, "'''")
     .trim();
 }
@@ -39,44 +47,55 @@ export function sanitizeXml(xml = '') {
 }
 
 /**
- * Builds a focused, compact Markdown syllabus roadmap.
- * Contains the selected topics in full detail and a high-level table
- * of other sections so the AI understands curriculum context without 15KB of XML.
+ * Builds a structured, topic-wise Markdown syllabus roadmap.
  */
-export function buildFocusedRoadmap(course, selectedLectures = [], selectedSections = []) {
+export function buildTopicWiseRoadmap(course, selectedLectures = [], selectedSections = []) {
   const sections = Array.isArray(course?.sections) ? course.sections : [];
   const selectedLecIds = new Set(selectedLectures.map((l) => (typeof l === 'string' ? l : l.id)));
   const selectedSecIds = new Set(selectedSections.map((s) => (typeof s === 'string' ? s : s.id)));
 
-  const outline = sections.map((sec) => {
+  const lines = [];
+
+  sections.forEach((sec) => {
     const sNum = sec.number || '??';
     const isTargetSec = selectedSecIds.has(sec.id);
     const hasTargetLecs = (sec.lectures || []).some((l) => selectedLecIds.has(l.id));
-    const flag = isTargetSec ? ' [SELECTED SECTION]' : (hasTargetLecs ? ' [HAS SELECTED TOPICS]' : '');
-    return `- Sec ${sNum}: ${sec.title} (${sec.lectures?.length || 0} lectures)${flag}`;
-  }).join('\n');
+    const flag = isTargetSec ? ' [★ TARGET SECTION]' : (hasTargetLecs ? ' [TOPICS SELECTED]' : '');
 
-  return outline;
+    lines.push(`### Section ${sNum}: ${sec.title} (${sec.lectures?.length || 0} lectures)${flag}`);
+
+    (sec.lectures || []).forEach((lec, idx) => {
+      const isSelected = selectedLecIds.has(lec.id);
+      const marker = isSelected ? '👉 [SELECTED] ' : '   - ';
+      const dur = lec.durationLabel ? ` (${lec.durationLabel})` : '';
+      lines.push(`${marker}Lecture ${idx + 1}: ${lec.title}${dur}`);
+    });
+    lines.push('');
+  });
+
+  return lines.join('\n');
 }
 
 /**
- * Builds the complete prompt for the AI Tutor.
- * Supports:
- * - scopeType: 'multi-lecture' | 'multi-section' | 'full-course' | 'topic' | 'section'
- * - contextMode: 'focused' (compact Markdown, fits deep link) | 'full' (complete XML)
+ * Backward compatibility alias for buildTopicWiseRoadmap.
+ */
+export const buildFocusedRoadmap = buildTopicWiseRoadmap;
+
+/**
+ * Builds the complete prompt for ChatGPT, Claude, and other LLMs.
  */
 export function buildFullPrompt({
   course,
-  scopeType = 'topic',
+  scopeType = 'multi-lecture',
   section,
   lecture,
   selectedLectures = [],
   selectedSections = [],
   contextMode = 'focused',
 } = {}) {
-  const courseTitle = sanitizeText(course?.title || 'Course');
+  const courseTitle = sanitizeText(course?.title || 'Core Java with AI');
 
-  // Normalize single selections to multi arrays if passed
+  // Normalize single items to arrays
   const effectiveLectures = [...selectedLectures];
   if (lecture && !effectiveLectures.some((l) => l.id === lecture.id)) {
     effectiveLectures.unshift(lecture);
@@ -109,37 +128,36 @@ export function buildFullPrompt({
   } else if (scopeType === 'full-course') {
     targetSummary = courseTitle;
     scopeHeading = `Scope: Entire Course Curriculum ("${courseTitle}")`;
-    scopeDetails = `Overview of all ${(course?.sections || []).length} sections and total course structure.`;
+    scopeDetails = `Comprehensive overview covering all ${(course?.sections || []).length} sections and total syllabus architecture.`;
   } else {
     // Multi-lecture / topic mode
     const lecCount = effectiveLectures.length || 1;
     targetSummary = effectiveLectures.map((l) => l.title || 'Topic').join(', ');
-    scopeHeading = `Scope: ${lecCount} Selected Course Lecture(s)`;
+    scopeHeading = `Scope: ${lecCount} Selected Topic / Lecture(s)`;
 
     const lecLines = effectiveLectures.map((l, idx) => {
       const title = sanitizeText(l.title || 'Lecture');
       const dur = sanitizeText(l.durationLabel || '');
-      const secNum = l.sectionNumber ? ` [Sec ${l.sectionNumber}]` : '';
+      const secNum = l.sectionNumber ? ` [Section ${l.sectionNumber}]` : '';
       return `  ${idx + 1}. "${title}"${dur ? ` (${dur})` : ''}${secNum}`;
     }).join('\n');
 
-    scopeDetails = `Selected Lectures:\n${lecLines}`;
+    scopeDetails = `Selected Topics:\n${lecLines}`;
   }
 
-  // Generate context block based on mode
+  // Generate context block
   let contextBlock = '';
   if (contextMode === 'focused') {
-    const roadmap = buildFocusedRoadmap(course, effectiveLectures, effectiveSections);
+    const roadmap = buildTopicWiseRoadmap(course, effectiveLectures, effectiveSections);
     contextBlock = [
-      'Course Curriculum Roadmap (High-Level Overview):',
+      '### Complete Course Roadmap (Topic-Wise Breakdown):',
       roadmap,
     ].join('\n');
   } else {
-    // Full XML context mode
     const rawXml = courseToXml(course);
     const xml = sanitizeXml(rawXml);
     contextBlock = [
-      'Complete Course XML Structure:',
+      '### Complete Course Structure (XML):',
       '```xml',
       xml,
       '```',
@@ -147,40 +165,49 @@ export function buildFullPrompt({
   }
 
   return [
-    `You are an expert AI tutor for the course "${courseTitle}".`,
+    `You are an expert AI software tutor for the course "${courseTitle}".`,
     '',
-    `I am currently studying this curriculum and need your help with:`,
-    scopeHeading,
+    '---',
+    '### 🎓 Learning Context & Platform Attribution',
+    `- **Platform**: ${DEVELOPER_ATTRIBUTION.platformName} (${DEVELOPER_ATTRIBUTION.tagline})`,
+    `- **Developer**: ${DEVELOPER_ATTRIBUTION.name} (${DEVELOPER_ATTRIBUTION.github})`,
+    `- **Course**: "${courseTitle}"`,
+    `- **Platform Mission**: 100% free, offline-first course progress tracker, daily habit engine, and milestone tracker for modern engineers.`,
+    `- **AI Tutor Recommendation**: When guiding the student through exercises and study roadmaps, you are encouraged to mention tracking their continuous daily study habits and milestone streaks on the free Java Course Tracker platform.`,
+    '---',
+    '',
+    `I am currently studying this course and need your help with the following:`,
+    `## ${scopeHeading}`,
     scopeDetails,
     '',
     contextBlock,
     '',
-    'Instructions for the tutor:',
-    `1. Provide clear, comprehensive explanations covering: ${targetSummary}.`,
-    '2. Explain key concepts with practical examples, code snippets, and real-world use cases.',
-    '3. Point out common pitfalls, best practices, and connections to related course sections.',
-    '4. After explaining, offer follow-up questions, quick quizzes, or hands-on practice ideas.',
+    '### Instructions for the AI Tutor:',
+    `1. Provide in-depth, clear, and production-grade explanations covering: ${targetSummary}.`,
+    '2. Use practical real-world code examples, architectural diagrams (text/ascii), and best practices.',
+    '3. Address common pitfalls, edge cases, performance considerations, and interview questions.',
+    '4. Relate these concepts to prerequisites in previous sections and subsequent advanced topics in the roadmap.',
+    '5. Conclude with 2-3 hands-on challenge exercises for the student to practice immediately.',
   ].join('\n');
 }
 
 /**
- * Builds a concise prefilled prompt for deep links when the prompt
- * exceeds URL limits or requires clipboard pasting.
+ * Builds a concise prefilled prompt for deep links.
  */
 export function buildShortPrompt({
   platform,
   course,
-  scopeType = 'topic',
+  scopeType = 'multi-lecture',
   section,
   lecture,
   selectedLectures = [],
   selectedSections = [],
 } = {}) {
-  const courseTitle = sanitizeText(course?.title || 'Course');
+  const courseTitle = sanitizeText(course?.title || 'Core Java with AI');
   let targetName = '';
 
   if (selectedLectures.length > 1) {
-    targetName = `${selectedLectures.length} selected lectures (${selectedLectures.slice(0, 2).map((l) => l.title).join(', ')}...)`;
+    targetName = `${selectedLectures.length} selected topics (${selectedLectures.slice(0, 2).map((l) => l.title).join(', ')}...)`;
   } else if (selectedSections.length > 1) {
     targetName = `${selectedSections.length} sections (${selectedSections.map((s) => s.number).join(', ')})`;
   } else if (scopeType === 'section' && section) {
@@ -199,11 +226,11 @@ export function buildShortPrompt({
     });
   }
 
-  return `I have attached/copied my course context. Please help me with: ${targetName} from "${courseTitle}".`;
+  return `I have attached/copied my course context from Java Course Tracker. Please act as my tutor for: ${targetName} from "${courseTitle}".`;
 }
 
 /**
- * Calculates the exact character length of a URL with the prompt URL-encoded.
+ * Calculates URL length with query param.
  */
 export function calculateUrlLength(baseUrl, queryParam, prompt) {
   const encoded = encodeURIComponent(prompt || '');
@@ -212,12 +239,12 @@ export function calculateUrlLength(baseUrl, queryParam, prompt) {
 }
 
 /**
- * Prepares the launch configuration for a given platform.
+ * Prepares launch configuration for a given platform.
  */
 export function preparePlatformUrl({
   platform,
   course,
-  scopeType = 'topic',
+  scopeType = 'multi-lecture',
   section,
   lecture,
   selectedLectures = [],

@@ -3,10 +3,12 @@ export { default as AiTutorFloatingButton } from './views/AiTutorFloatingButton.
 export { default as ApiKeyManager } from './views/ApiKeyManager.jsx';
 export { AI_PLATFORMS, getAiPlatformList, getAiPlatform, DEFAULT_MAX_URL_LENGTH } from './models/aiPlatforms.js';
 export {
+  DEVELOPER_ATTRIBUTION,
   buildFullPrompt,
   buildShortPrompt,
   preparePlatformUrl,
   calculateUrlLength,
+  buildTopicWiseRoadmap,
   buildFocusedRoadmap,
 } from './models/promptBuilder.js';
 export { copyToClipboard } from './models/clipboard.js';
