@@ -18,13 +18,10 @@ function toLocalDateKey(d) {
  * - Personalized progress reports
  */
 
-export const TRACKING_VERSION = 'v2';
-export const DAILY_LIMIT_SEC = 5 * 3600; // 5 hours in seconds
+import { getTrackingKey, getHistoryKey, TRACKING_VERSION } from '../../../services/storage/keys.js';
 
-/** localStorage key namespaced per course */
-export function getTrackingKey(courseId) {
-  return `jct_tracking__${courseId}_${TRACKING_VERSION}`;
-}
+export { getTrackingKey, TRACKING_VERSION };
+export const DAILY_LIMIT_SEC = 5 * 3600; // 5 hours in seconds
 
 /** Default empty tracking store structure */
 export function createEmptyTrackingStore() {
@@ -145,7 +142,7 @@ export function getTodayLearnedSec(courseId, dateKey, inMemoryHistory) {
     historySec = inMemoryHistory[dateKey].watchedSec;
   } else if (typeof localStorage !== 'undefined') {
     try {
-      const raw = localStorage.getItem(`jct_history__${courseId}`);
+      const raw = localStorage.getItem(getHistoryKey(courseId));
       if (raw) {
         const h = JSON.parse(raw);
         historySec = h?.[dateKey]?.watchedSec || 0;

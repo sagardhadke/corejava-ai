@@ -1,4 +1,5 @@
 import { showToast } from '../../../utils/toast.js';
+import { STORAGE_KEYS } from '../../../services/storage/keys.js';
 
 /**
  * Curated list of 15 high-impact motivational messages for the daily popup dialog.
@@ -22,7 +23,7 @@ export const DEFAULT_MOTIVATION_MESSAGES = [
   "The gap between who you are and who you want to become is closed by the code you write today.",
 ];
 
-export const MOTIVATION_STORE_KEY = 'jct_motivation_store_v2';
+export const MOTIVATION_STORE_KEY = STORAGE_KEYS.MOTIVATION_STORE;
 
 /**
  * Fisher-Yates array shuffler to ensure non-deterministic, unbiased quote distribution.
@@ -276,7 +277,7 @@ export function explainPrefetchError(err, status = null) {
   return `AI Quote Notice: ${msg || 'Could not fetch remote quote'}. Using curated study message.`;
 }
 
-const PREFETCH_COOLDOWN_KEY = 'jct_prefetch_cooldown_v1';
+const PREFETCH_COOLDOWN_KEY = STORAGE_KEYS.PREFETCH_COOLDOWN;
 const PREFETCH_COOLDOWN_MS = 60 * 60 * 1000; // 1 hour cooldown after API errors
 
 /**

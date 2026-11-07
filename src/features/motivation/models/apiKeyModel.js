@@ -1,4 +1,6 @@
-const API_KEY_STORAGE = 'jct_openai_api_key_v1';
+import { STORAGE_KEYS, COURSE_KEY_PREFIXES } from '../../../services/storage/keys.js';
+
+const API_KEY_STORAGE = STORAGE_KEYS.OPENAI_API_KEY;
 
 export function getStoredApiKey() {
   try {
@@ -6,7 +8,7 @@ export function getStoredApiKey() {
     if (direct.trim()) return direct.trim();
     for (let i = 0; i < localStorage.length; i++) {
       const k = localStorage.key(i);
-      if (k && k.startsWith('jct_settings__')) {
+      if (k && k.startsWith(COURSE_KEY_PREFIXES.SETTINGS)) {
         try {
           const s = JSON.parse(localStorage.getItem(k));
           if (s?.apiKey && typeof s.apiKey === 'string' && s.apiKey.trim()) return s.apiKey.trim();

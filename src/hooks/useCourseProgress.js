@@ -1,5 +1,15 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { useLocalStorage } from './useLocalStorage';
+import {
+  getWatchedKey,
+  getTodayPlanKey,
+  getSettingsKey,
+  getHistoryKey,
+  getStartDateKey,
+  getStartDateManualKey,
+  getBadgesKey,
+  getStreakFreezesKey,
+} from '../services/storage/keys.js';
 import { dateKey, formatDuration } from '../utils/time';
 import { getBadgesStatus } from '../features/badges/models/badgeModel.js';
 import { DEFAULT_SETTINGS } from '../features/settings/models/settingsModel.js';
@@ -48,14 +58,14 @@ export function useCourseProgress(course) {
   const courseId = course?.id || 'core-java-ai';
   const allLectures = useMemo(() => course?.allLectures || [], [course]);
 
-  const WATCHED_KEY = `jct_watched__${courseId}`;
-  const PLAN_KEY = `jct_today_plan__${courseId}`;
-  const SETTINGS_KEY = `jct_settings__${courseId}`;
-  const HISTORY_KEY = `jct_history__${courseId}`;
-  const START_DATE_KEY = `jct_start_date__${courseId}`;
-  const START_DATE_MANUAL_KEY = `jct_start_date_manual__${courseId}`;
-  const BADGES_KEY = `jct_badges__${courseId}`;
-  const FREEZES_KEY = `jct_streak_freezes__${courseId}`;
+  const WATCHED_KEY = getWatchedKey(courseId);
+  const PLAN_KEY = getTodayPlanKey(courseId);
+  const SETTINGS_KEY = getSettingsKey(courseId);
+  const HISTORY_KEY = getHistoryKey(courseId);
+  const START_DATE_KEY = getStartDateKey(courseId);
+  const START_DATE_MANUAL_KEY = getStartDateManualKey(courseId);
+  const BADGES_KEY = getBadgesKey(courseId);
+  const FREEZES_KEY = getStreakFreezesKey(courseId);
 
   const [watched, setWatched] = useLocalStorage(WATCHED_KEY, {});
   const [planStore, setPlanStore] = useLocalStorage(PLAN_KEY, { date: null, ids: [], auto: true });
@@ -187,7 +197,7 @@ export function useCourseProgress(course) {
       }
       const nextHistory = { ...h, [key]: nextBucket };
       try {
-        localStorage.setItem(`jct_history__${courseId}`, JSON.stringify(nextHistory));
+        localStorage.setItem(getHistoryKey(courseId), JSON.stringify(nextHistory));
       } catch {}
       return nextHistory;
     });
