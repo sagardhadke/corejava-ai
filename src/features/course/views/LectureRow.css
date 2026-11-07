@@ -175,6 +175,32 @@
   margin-left: auto;
 }
 
+/* AI Tutor trigger button */
+.lecture-row__ai-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--r-sm);
+  color: var(--ink-faint);
+  cursor: pointer;
+  padding: 0;
+  opacity: 0.5;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+.lecture-row:hover .lecture-row__ai-btn,
+.lecture-row__ai-btn:focus-visible {
+  opacity: 1;
+  color: var(--amber);
+  background: rgba(255, 184, 0, 0.1);
+  border-color: rgba(255, 184, 0, 0.25);
+  outline: none;
+}
+
 @media (max-width: 600px) {
   .lecture-row {
     padding: 7px 6px;

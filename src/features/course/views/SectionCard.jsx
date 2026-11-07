@@ -2,7 +2,7 @@ import { formatDuration } from '../../../utils/time.js';
 import LectureRow from './LectureRow.jsx';
 import './SectionCard.css';
 
-export default function SectionCard({ section, isOpen, onToggleOpen, watchedSet, planSet, onToggleWatched, onTogglePlan, lectureNumbers, isDailyLimitReached, todayRemainingCapSec }) {
+export default function SectionCard({ section, isOpen, onToggleOpen, watchedSet, planSet, onToggleWatched, onTogglePlan, lectureNumbers, isDailyLimitReached, todayRemainingCapSec, onOpenAiTutor }) {
   const total = section.lectures?.length || 0;
   const doneCount = (section.lectures || []).filter((l) => watchedSet.has(l.id)).length;
   const totalSec = (section.lectures || []).reduce((a, l) => a + (l.durationSec || 0), 0);
@@ -34,6 +34,19 @@ export default function SectionCard({ section, isOpen, onToggleOpen, watchedSet,
       </button>
       {isOpen && (
         <div className="section-card__body">
+          {onOpenAiTutor && (
+            <div className="section-card__ai-banner">
+              <button
+                type="button"
+                className="section-card__ai-trigger"
+                onClick={() => onOpenAiTutor({ scopeType: 'section', sectionId: section.id })}
+                title={`Ask AI Tutor about Section ${section.number}: ${section.title}`}
+                aria-label={`Ask AI Tutor about Section ${section.number}: ${section.title}`}
+              >
+                <span>✨ Ask AI Tutor about Section {section.number}</span>
+              </button>
+            </div>
+          )}
           {section.lectures?.map((l) => (
             <LectureRow
               key={l.id}
@@ -45,6 +58,7 @@ export default function SectionCard({ section, isOpen, onToggleOpen, watchedSet,
               onTogglePlan={onTogglePlan}
               isDailyLimitReached={isDailyLimitReached}
               todayRemainingCapSec={todayRemainingCapSec}
+              onOpenAiTutor={onOpenAiTutor}
             />
           ))}
         </div>

@@ -24,6 +24,7 @@ export default function CommandPalette({
   onOpenPracticeModal,
   onOpenImport,
   onClearPlan,
+  onOpenAiTutor,
 }) {
   const [query, setQuery] = useState('');
   const [activeIndex, setActiveIndex] = useState(0);
@@ -106,6 +107,14 @@ export default function CommandPalette({
         shortcut: 'B',
         icon: '🏆',
         run: () => { onClose(); onOpenBadges?.(); },
+      },
+      {
+        id: 'action-ai-tutor',
+        category: 'Quick Actions',
+        title: 'Ask AI Tutor (ChatGPT & Claude with Course Context)',
+        shortcut: 'A',
+        icon: '✨',
+        run: () => { onClose(); onOpenAiTutor?.(); },
       },
       {
         id: 'action-calendar',
@@ -236,7 +245,7 @@ export default function CommandPalette({
     }
 
     return result;
-  }, [query, course, courses, stats?.pct, onClose, onOpenBadges, onOpenCalendar, onOpenNotifications, onSendTestNotification, onOpenSettings, onOpenPracticeModal, onOpenImport, onClearPlan, onSwitchCourse, onJumpToSection]);
+  }, [query, course, courses, stats?.pct, onClose, onOpenBadges, onOpenCalendar, onOpenNotifications, onSendTestNotification, onOpenSettings, onOpenPracticeModal, onOpenImport, onClearPlan, onSwitchCourse, onJumpToSection, onOpenAiTutor]);
 
   // Keyboard navigation inside palette
   useEffect(() => {

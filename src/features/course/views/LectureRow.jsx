@@ -1,7 +1,7 @@
 import { spaceDurationLabel } from '../../../utils/time.js';
 import './LectureRow.css';
 
-export default function LectureRow({ lecture, number, watched, inPlan, onToggleWatched, onTogglePlan, isDailyLimitReached, todayRemainingCapSec }) {
+export default function LectureRow({ lecture, number, watched, inPlan, onToggleWatched, onTogglePlan, isDailyLimitReached, todayRemainingCapSec, onOpenAiTutor }) {
   const lectureSec = lecture?.durationSec || 0;
   const wouldExceedRemainingCap = typeof todayRemainingCapSec === 'number' && todayRemainingCapSec < lectureSec && lectureSec > 0;
   const isLocked = !watched && (isDailyLimitReached || wouldExceedRemainingCap);
@@ -58,7 +58,30 @@ export default function LectureRow({ lecture, number, watched, inPlan, onToggleW
       )}
 
       <span className="lecture-row__dur">{spaceDurationLabel(lecture.durationLabel)}</span>
+
+      {onOpenAiTutor && (
+        <button
+          type="button"
+          className="lecture-row__ai-btn"
+          onClick={(e) => {
+            e.stopPropagation();
+            onOpenAiTutor({ scopeType: 'topic', lectureId: lecture.id, sectionId: lecture.sectionId });
+          }}
+          title={`Ask AI Tutor about: ${lecture.title}`}
+          aria-label={`Ask AI Tutor about lecture: ${lecture.title}`}
+        >
+          <SparkleIconSmall />
+        </button>
+      )}
     </div>
+  );
+}
+
+function SparkleIconSmall() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <path d="M12 2L14.4 8.6L21 11L14.4 13.4L12 20L9.6 13.4L3 11L9.6 8.6L12 2Z" />
+    </svg>
   );
 }
 
