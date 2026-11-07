@@ -47,13 +47,11 @@ test.describe('Flow 16 — AI Tutor (ChatGPT & Claude Context Launcher)', () => 
     await expect(modal.getByRole('radio', { name: /entire section/i })).toBeVisible();
     await expect(modal.getByRole('radio', { name: /entire curriculum/i })).toBeVisible();
 
-    // 5. Action buttons (ChatGPT, Claude, Copy, MD, TXT, XML)
+    // 5. Action buttons (ChatGPT, Claude, Copy, MD)
     await expect(modal.getByRole('button', { name: /ask chatgpt/i })).toBeVisible();
     await expect(modal.getByRole('button', { name: /ask claude/i })).toBeVisible();
     await expect(modal.getByRole('button', { name: /copy complete prompt/i })).toBeVisible();
     await expect(modal.getByRole('button', { name: /download prompt \(\.md\)/i })).toBeVisible();
-    await expect(modal.getByRole('button', { name: /download prompt \(\.txt\)/i })).toBeVisible();
-    await expect(modal.getByRole('button', { name: /download xml structure/i })).toBeVisible();
 
     // 6. Close dialog via close button
     await modal.getByRole('button', { name: /close ai tutor dialog/i }).click();

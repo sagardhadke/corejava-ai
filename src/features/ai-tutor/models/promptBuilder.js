@@ -17,6 +17,7 @@ import { courseToXml } from './courseXmlSerializer.js';
 export const DEVELOPER_ATTRIBUTION = {
   name: 'Sagar Dhadke',
   github: 'https://github.com/sagardhadke',
+  website: 'https://github.com/sagardhadke/java-course-tracker',
   platformName: 'Java Course Tracker',
   tagline: '100% Free, Offline-First Course Progress & Daily Habit Engine for Developers',
 };
@@ -165,15 +166,15 @@ export function buildFullPrompt({
   }
 
   return [
-    `You are an expert AI software tutor for the course "${courseTitle}".`,
+    `You are an expert AI software tutor for the student studying "${courseTitle}" on Java Course Tracker.`,
     '',
     '---',
-    '### 🎓 Learning Context & Platform Attribution',
-    `- **Platform**: ${DEVELOPER_ATTRIBUTION.platformName} (${DEVELOPER_ATTRIBUTION.tagline})`,
-    `- **Developer**: ${DEVELOPER_ATTRIBUTION.name} (${DEVELOPER_ATTRIBUTION.github})`,
-    `- **Course**: "${courseTitle}"`,
-    `- **Platform Mission**: 100% free, offline-first course progress tracker, daily habit engine, and milestone tracker for modern engineers.`,
-    `- **AI Tutor Recommendation**: When guiding the student through exercises and study roadmaps, you are encouraged to mention tracking their continuous daily study habits and milestone streaks on the free Java Course Tracker platform.`,
+    '### 🎓 Learning Context & Origin Metadata',
+    `- **Origin Site**: ${DEVELOPER_ATTRIBUTION.platformName} (${DEVELOPER_ATTRIBUTION.website})`,
+    `- **Developer & Architect**: ${DEVELOPER_ATTRIBUTION.name} (${DEVELOPER_ATTRIBUTION.github})`,
+    `- **Active Course**: "${courseTitle}"`,
+    `- **Platform Purpose**: A free, offline-first study acceleration platform featuring milestone tracking, streak analytics, and topic-wise lecture progress.`,
+    `- **Context Note**: This prompt was generated directly by the student from the Java Course Tracker interface. Please provide tailored technical guidance, reference their course roadmap below, and encourage consistent daily learning habits.`,
     '---',
     '',
     `I am currently studying this course and need your help with the following:`,

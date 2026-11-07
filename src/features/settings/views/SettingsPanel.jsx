@@ -18,7 +18,7 @@ import {
 } from '../../notifications/models/notificationModel.js';
 import { showToast } from '../../../utils/toast.js';
 import './SettingsPanel.css';
-import { ApiKeyManager } from '../../ai-tutor/index.js';
+import { ApiKeyManager, downloadCourseXml } from '../../ai-tutor/index.js';
 import {
   ProgressDashboard,
   ProgressReportDialog,
@@ -501,6 +501,25 @@ export default function SettingsPanel({
       <section className="settings-section">
         <h3>Backup &amp; restore</h3>
         <BackupRestore onRestored={onRestoredBackup} />
+      </section>
+
+      <section className="settings-section">
+        <h3>Course Syllabus &amp; XML Structure</h3>
+        <p className="settings-help">
+          Download the complete hierarchical syllabus structure of <strong>{course?.title || 'the active course'}</strong> as a formatted XML document. Ideal for local backups, curriculum analysis, or attaching to external AI platforms.
+        </p>
+        <button
+          type="button"
+          className="settings-xml-btn"
+          onClick={() => {
+            if (!course) return;
+            const filename = downloadCourseXml(course);
+            showToast(`Downloaded ${filename}`, 'success', 3000);
+          }}
+          disabled={!course}
+        >
+          📥 Download Course XML Structure
+        </button>
       </section>
 
       <section className="settings-section">
